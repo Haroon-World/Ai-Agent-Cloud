@@ -346,14 +346,16 @@ def test_send_message():
         is_active=True
     ).first()
 
+    data = request.get_json(silent=True) or {}
+    override_token = data.get("access_token") or request.form.get("access_token")
+
     if wa_account:
         phone_number_id = wa_account.phone_number_id
-        access_token = wa_account.access_token or Config.WHATSAPP_ACCESS_TOKEN
+        access_token = override_token or wa_account.access_token or Config.WHATSAPP_ACCESS_TOKEN
     else:
         phone_number_id = Config.WHATSAPP_PHONE_NUMBER_ID
-        access_token = Config.WHATSAPP_ACCESS_TOKEN
+        access_token = override_token or Config.WHATSAPP_ACCESS_TOKEN
 
-    data = request.get_json(silent=True) or {}
     to_phone = data.get("phone") or request.form.get("phone")
     text = data.get("message") or request.form.get("message", "Hello from ClinicConnect AI Agent!")
     template = data.get("template")
@@ -377,5 +379,45 @@ def test_send_message():
         )
 
     return jsonify(res)
+
+
+@whatsapp_bp.route("/set-token", methods=["POST"])
+@_whatsapp_login_required
+def set_whatsapp_token():
+    """
+    Update or insert the ClinicWhatsAppAccount access token in the database.
+    Requires logged-in admin session. Takes immediate effect for outbound messages.
+    """
+    business_id = session.get("business_id")
+    data = request.get_json(silent=True) or {}
+    token = (data.get("access_token") or request.form.get("access_token") or "").strip()
+    phone_id = (data.get("phone_number_id") or request.form.get("phone_number_id") or Config.WHATSAPP_PHONE_NUMBER_ID or "").strip()
+
+    if not token:
+        return jsonify({"success": False, "error": "access_token is required"}), 400
+
+    wa_account = ClinicWhatsAppAccount.query.filter_by(business_id=business_id).first()
+    if not wa_account:
+        wa_account = ClinicWhatsAppAccount(
+            business_id=business_id,
+            phone_number_id=phone_id or "1313879111808444",
+            waba_id=Config.WHATSAPP_BUSINESS_ACCOUNT_ID or "993720013281872",
+            display_phone_number="+15552035825",
+            access_token=token,
+            is_active=True
+        )
+        db.session.add(wa_account)
+    else:
+        wa_account.access_token = token
+        if phone_id:
+            wa_account.phone_number_id = phone_id
+        wa_account.is_active = True
+
+    db.session.commit()
+    return jsonify({
+        "success": True,
+        "message": f"WhatsApp access token successfully saved to database for clinic {business_id}."
+    })
+
 
 
