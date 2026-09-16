@@ -91,6 +91,11 @@ class TestSaaSHardeningAndMultiDoctorGuard(unittest.TestCase):
             self.clinic_user_id = self.clinic_user.id
             self.platform_user_id = self.platform_user.id
 
+            future_dt = datetime.now(timezone.utc) + timedelta(days=2)
+            while future_dt.strftime("%A") in ["Sunday", "Saturday"]:
+                future_dt += timedelta(days=1)
+            self.test_date = future_dt.strftime("%Y-%m-%d")
+
     def tearDown(self):
         with self.app.app_context():
             db.session.remove()
@@ -170,7 +175,7 @@ class TestSaaSHardeningAndMultiDoctorGuard(unittest.TestCase):
                 "content": None,
                 "tool_calls": [{
                     "name": "check_availability",
-                    "arguments": {"date": "2026-09-09"},
+                    "arguments": {"date": self.test_date},
                     "id": "call_avail_1"
                 }]
             }
@@ -212,7 +217,7 @@ class TestSaaSHardeningAndMultiDoctorGuard(unittest.TestCase):
                 "content": None,
                 "tool_calls": [{
                     "name": "check_availability",
-                    "arguments": {"date": "2026-09-09"},
+                    "arguments": {"date": self.test_date},
                     "id": "call_t1"
                 }]
             }
@@ -225,7 +230,7 @@ class TestSaaSHardeningAndMultiDoctorGuard(unittest.TestCase):
                 "content": None,
                 "tool_calls": [{
                     "name": "check_availability",
-                    "arguments": {"date": "2026-09-09", "doctor_id": self.doc1_id},
+                    "arguments": {"date": self.test_date, "doctor_id": self.doc1_id},
                     "id": "call_t2"
                 }]
             }
@@ -277,7 +282,7 @@ class TestSaaSHardeningAndMultiDoctorGuard(unittest.TestCase):
                 "content": None,
                 "tool_calls": [{
                     "name": "check_availability",
-                    "arguments": {"date": "2026-09-09", "doctor_id": solo_doc.id},
+                    "arguments": {"date": self.test_date, "doctor_id": solo_doc.id},
                     "id": "call_solo"
                 }]
             }

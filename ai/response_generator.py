@@ -404,12 +404,24 @@ def _format_availability(
         spoken_d_roman = _fmt_spoken_date_roman(date_val)
         spoken_t_roman = _fmt_spoken_time_roman(req_time)
 
-        if cust_name and not cust_phone:
+        if cust_name and cust_phone:
+            if lang == "urdu":
+                return f"بہترین، {cust_name} صاحب! میں نے {d_name} کے ساتھ {spoken_d_urdu} بوقت {spoken_t_urdu} سلاٹ محفوظ کر لیا ہے۔ کیا میں یہ بکنگ کنفرم کر دوں؟"
+            elif lang == "roman_urdu":
+                return f"Behtareen, {cust_name}! Maine {d_name} ke sath {spoken_d_roman} ko {spoken_t_roman} ka slot reserve kar liya hai. Kya main yeh appointment confirm kar doon?"
+            return f"Perfect, {cust_name}! I have reserved the {fmt_time} slot on {formatted_date} with {d_name} for you.\n\nShall I go ahead and confirm this appointment?"
+        elif cust_name and not cust_phone:
             if lang == "urdu":
                 return f"بہترین، {cust_name} صاحب! میں نے {spoken_d_urdu} کو {spoken_t_urdu} کا وقت آپ کے لیے محفوظ کر لیا ہے۔ بکنگ کو فائنل کرنے کے لیے، برائے مہربانی اپنا فون نمبر شیئر کر دیجیے تاکہ ہم آپ کو تصدیقی میسج بھیج سکیں۔"
             elif lang == "roman_urdu":
                 return f"Behtareen, {cust_name}! Maine {spoken_d_roman} ko {spoken_t_roman} ka slot aap ke لیے mehfooz kar liya hai. Booking ko final karne ke liye apna contact number share kar dijiye taake hum aap ko confirmation message bhej sakein."
             return f"Wonderful, {cust_name}! I have reserved the {fmt_time} slot on {formatted_date} with {d_name} for you. To finalize your booking, could you please share your contact phone number so we can send your confirmation details?"
+        elif not cust_name and cust_phone:
+            if lang == "urdu":
+                return f"بہترین! میں نے {d_name} کے ساتھ {spoken_d_urdu} کو {spoken_t_urdu} کا وقت آپ کے لیے محفوظ کر لیا ہے۔ بکنگ فائنل کرنے کے لیے براہ کرم اپنا پورا نام بتا دیجیے۔"
+            elif lang == "roman_urdu":
+                return f"Behtareen! Maine {d_name} ke sath {spoken_d_roman} ko {spoken_t_roman} ka slot reserve kar liya hai. Booking finalize karne ke liye barah-e-karam apna full name batayein."
+            return f"Perfect! I have reserved the {fmt_time} slot on {formatted_date} with {d_name} for you.\n\nTo finalize your booking, may I please have your full name?"
         elif not cust_name and not cust_phone:
             if lang == "urdu":
                 return f"بہترین! میں نے {spoken_d_urdu} کو {spoken_t_urdu} کا وقت آپ کے لیے محفوظ کر لیا ہے۔ بکنگ کو فائنل کرنے کے لیے، کیا میں آپ کا پورا نام جان سکتا ہوں؟ اور ساتھ ہی اپنا فون نمبر بھی شیئر کر دیجیے تاکہ ہم آپ کو تصدیقی میسج بھیج سکیں۔"
@@ -471,9 +483,9 @@ def _format_availability(
 
         groups = []
         if morning:
-            groups.append(f"  - **Morning:** {', '.join(morning)}")
+            groups.append(f"  - *Morning:* {', '.join(morning)}")
         if afternoon:
-            groups.append(f"  - **Afternoon:** {', '.join(afternoon)}")
+            groups.append(f"  - *Afternoon:* {', '.join(afternoon)}")
         slots_text = "\n".join(groups) if groups else "  - " + ", ".join([_fmt_time_ampm(s) for s in slots])
         lines.append(f"• **{d_name}**:\n{slots_text}")
 

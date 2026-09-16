@@ -514,10 +514,14 @@ def _resolve_workflow_input(conv: Conversation, user_content: str):
                 "wrong number", "wrong mobile", "wrong phone", "number was of", "number was wrong", "mobile was of",
                 "correct my number", "correct my phone", "correct my name", "change my name", "update my name",
                 "write my mobile", "write my phone", "write my number", "mera number change", "number badal", "phone change",
-                "change number", "change name", "update contact", "change contact"
+                "change number", "change name", "change the name", "change patient name", "update patient name",
+                "correct patient name", "change the patient name", "wrong name", "name is wrong", "name was wrong",
+                "patient name is", "patient name:", "update contact", "change contact"
             ]
             is_contact_update = any(k in text_lower for k in contact_update_phrases) or (
                 _extract_phone_number(user_content) and any(w in text_lower for w in ["change", "update", "correct", "wrong", "instead", "brother", "sister", "badal"])
+            ) or (
+                any(w in text_lower for w in ["name", "naam", "patient"]) and any(w in text_lower for w in ["change", "update", "correct", "wrong", "instead", "badal"])
             )
             reschedule_keywords = [
                 "move it to", "move to", "reschedule", "change time to", "change appointment time", "postpone to",
@@ -720,8 +724,12 @@ def _resolve_workflow_input(conv: Conversation, user_content: str):
     _roster_names = [d["name"] for d in doctor_roster] + [s["name"] for s in service_roster]
     is_awaiting_name = (conv.awaiting_input == "name")
     cand_name = _extract_name(user_content, roster_names=_roster_names, is_awaiting_name=is_awaiting_name)
-    if cand_name and not conv.pending_customer_name:
-        conv.pending_customer_name = cand_name
+    if cand_name:
+        is_explicit_name_stmt = any(w in text_lower for w in ["name", "naam", "for ", "it is for", "it's for", "not for", "change", "update", "correct", "instead"])
+        if is_awaiting_name or is_explicit_name_stmt or not conv.pending_customer_name:
+            conv.pending_customer_name = cand_name
+            if is_awaiting_name:
+                conv.awaiting_input = None
 
     # Sanitization guard: If pending_customer_name is contaminated with question/inquiry words or invalid tokens, reset it!
     if conv.pending_customer_name and not _is_valid_name_token(conv.pending_customer_name, roster_names=None):
@@ -739,16 +747,20 @@ def _resolve_workflow_input(conv: Conversation, user_content: str):
         "wrong number", "wrong mobile", "wrong phone", "number was of", "number was wrong", "mobile was of",
         "correct my number", "correct my phone", "correct my name", "change my name", "update my name",
         "write my mobile", "write my phone", "write my number", "mera number change", "number badal", "phone change",
-        "change number", "change name", "update contact", "change contact"
+        "change number", "change name", "change the name", "change patient name", "update patient name",
+        "correct patient name", "change the patient name", "wrong name", "name is wrong", "name was wrong",
+        "patient name is", "patient name:", "update contact", "change contact"
     ]
     is_contact_update = any(k in text_lower for k in contact_update_phrases) or (
         phone_found and any(w in text_lower for w in ["change", "update", "correct", "wrong", "instead", "brother", "sister", "badal"])
+    ) or (
+        any(w in text_lower for w in ["name", "naam", "patient"]) and any(w in text_lower for w in ["change", "update", "correct", "wrong", "instead", "badal"])
     )
     if is_contact_update and not parsed_date and not _extract_time_token(user_content):
         conv.intent = "UPDATE_CUSTOMER_DETAILS"
         if phone_found:
             conv.pending_customer_phone = phone_found
-        if cand_name and any(w in text_lower for w in ["name", "naam"]):
+        if cand_name:
             conv.pending_customer_name = cand_name
 
     # 7. Confirmation triggers

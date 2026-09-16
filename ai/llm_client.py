@@ -784,6 +784,9 @@ def _extract_name(text: str, roster_names: Optional[List[str]] = None, is_awaiti
 
     # Roman Urdu & English explicit patterns
     name_patterns = [
+        (r'(?:not\s+for\s+[a-zA-Z\s]+(?:,\s*)?(?:it\s+is\s+|it\'s\s+)?for|it\s+is\s+for|it\'s\s+for|actually\s+for|appointment\s+is\s+for)\s+([a-zA-Z]+(?:\s+[a-zA-Z]+)*)', True),
+        (r'(?:change|update|correct)\s+(?:the\s+)?(?:patient\s+)?name(?:\s+of\s+the\s+patient)?\s*(?::|\s+to|\s+is)?\s*([a-zA-Z]+(?:\s+[a-zA-Z]+)*)', True),
+        (r'(?:patient\s+name|name\s+of\s+patient)\s*(?::|\s+is|\s+to)\s*([a-zA-Z]+(?:\s+[a-zA-Z]+)*)', True),
         (r'(?:change\s+(?:my\s+)?name\s+to|update\s+(?:my\s+)?name\s+to|correct\s+(?:my\s+)?name\s+to|write\s+(?:my\s+)?name\s+(?:as|is|to)?)\s+([a-zA-Z]+(?:\s+[a-zA-Z]+)*)', True),
         (r'(?:mera\s+naam\s+(?:badal\s+ke|change\s+karke|rakhein|likhein))\s+([a-zA-Z]+(?:\s+[a-zA-Z]+)*)', True),
         (r'(?:mera\s+naam|meray\s+naam|naam\s+hai|naam\s+hy)\s+([a-zA-Z]+(?:\s+[a-zA-Z]+)*)', True),
@@ -797,6 +800,7 @@ def _extract_name(text: str, roster_names: Optional[List[str]] = None, is_awaiti
             name = re.split(r'[,.]|\bphone\b|\bcontact\b|\bat\b|\bon\b|\bdate\b|\bfor\b|\bwith\b|\bi\s+need\b|\bi\s+want\b|\band\b|\bhai\b|\bhein\b|\bhy\b|\bha\b|\bplease\b|\bselect\b|\bprefer\b|\bdr\b|\bdoctor\b', raw, flags=re.IGNORECASE)[0].strip()
             name = re.sub(r'^(?:to|as|is|actually|the)\s+', '', name, flags=re.IGNORECASE).strip()
             name = re.sub(r'^(?:a\s+|an\s+|the\s+)?(?:cleaning|checkup|consultation|appointment|booking|regular|routine)\s+(?:for\s+)?', '', name, flags=re.IGNORECASE).strip()
+            name = re.sub(r'^[:\s]+', '', name).strip()
             check_roster = None if is_explicit_self else roster_names
             if _is_valid_name_token(name, check_roster):
                 if not is_explicit_self and _is_roster_conflict(name, roster_names):
@@ -1499,7 +1503,8 @@ class MockAdapter(BaseLLMAdapter):
                     "tool_calls": [{"name": "human_handoff", "arguments": {"reason": f"Customer inquired about medical specialty not currently in roster: {user_text}"}}]
                 }
 
-            if any(w in user_text for w in non_dental_terms):
+            is_scheduling_token = any(w in user_text for w in ["earliest", "early", "first", "slot", "slots", "timing", "timings", "schedule", "appointment", "booking", "din", "waqt"])
+            if not is_scheduling_token and any(re.search(rf"\b{re.escape(w)}\b", user_text) for w in non_dental_terms):
                 available_specs = ", ".join(f"{d['name']} ({d.get('specialization', 'Specialist')})" for d in doctor_roster)
                 return {
                     "content": f"ClinicConnect is a multi-specialty polyclinic, but we do not currently offer eye checkups or non-rostered services. Our available practicing doctors and specialties are: {available_specs}. However, if you or a family member need a dental checkup or consultation with any of our available specialists, I'd be happy to assist you with booking an appointment or checking our doctor schedules!",
@@ -1511,6 +1516,59 @@ class MockAdapter(BaseLLMAdapter):
                 "content": "I cannot provide medical advice or verify insurance coverage directly. Let me connect you with our medical staff.",
                 "tool_calls": [{"name": "human_handoff", "arguments": {"reason": f"Out-of-scope / medical query: {user_text}"}}]
             }
+
+        # Handle "earliest slot" / "first available slot" query
+        is_earliest_query = any(w in user_text for w in ["earliest", "first available", "first slot", "pehle slot", "sab se pehle", "subah pehla"])
+        if is_earliest_query:
+            from services.booking_service import BookingService
+            target_d_id = doc_id or (doctor_roster[0]["id"] if doctor_roster else 1)
+            target_d_name = doc_name or (doctor_roster[0]["name"] if doctor_roster else "Dr. Ahmed Khan")
+            today_dt = datetime.now()
+            effective_svc_id = svc_id
+            if effective_svc_id and service_roster:
+                matching_svc = next((s for s in service_roster if s.get("id") == effective_svc_id and s.get("doctor_id") == target_d_id), None)
+                if not matching_svc:
+                    effective_svc_id = None
+            earliest_found = None
+            for d_offset in range(1, 8):
+                check_d_str = (today_dt + timedelta(days=d_offset)).strftime("%Y-%m-%d")
+                avail = BookingService.check_availability(
+                    business_id=conv_state.get("business_id", 1),
+                    doctor_id=target_d_id,
+                    service_id=effective_svc_id,
+                    date_str=check_d_str
+                )
+                if not avail.get("success") and effective_svc_id:
+                    effective_svc_id = None
+                    avail = BookingService.check_availability(
+                        business_id=conv_state.get("business_id", 1),
+                        doctor_id=target_d_id,
+                        service_id=None,
+                        date_str=check_d_str
+                    )
+                slots = avail.get("available_slots", []) if avail.get("success") else []
+                if slots:
+                    earliest_found = (check_d_str, slots[0], target_d_name, target_d_id)
+                    break
+            if earliest_found:
+                e_date, e_time, e_doc_name, e_doc_id = earliest_found
+                fmt_e_time = _fmt_time_ampm(e_time)
+                d_obj = datetime.strptime(e_date, "%Y-%m-%d")
+                e_day_name = d_obj.strftime("%A, %B %d, %Y")
+                if lang == "urdu":
+                    return {
+                        "content": f"{e_doc_name} کی سب سے پہلی دستیاب سلاٹ **{e_day_name}** بوقت **{fmt_e_time}** ہے۔ کیا میں یہ وقت آپ کے لیے بک کر دوں؟",
+                        "tool_calls": []
+                    }
+                elif lang == "roman_urdu":
+                    return {
+                        "content": f"{e_doc_name} ki sab se pehli available slot **{e_day_name}** ko **{fmt_e_time}** par hai. Kya main yeh appointment book kar doon?",
+                        "tool_calls": []
+                    }
+                return {
+                    "content": f"The earliest available slot with **{e_doc_name}** is on **{e_day_name}** at **{fmt_e_time}**.\n\nWould you like me to reserve this appointment for you?",
+                    "tool_calls": []
+                }
 
         # --- EXPLICIT AWAITING_INPUT RESOLUTION (Runs FIRST before Case A-E & keyword matching) ---
         # Check Appointment Status / Booking Details Inquiry FIRST (before BOOKED state or cancellation)
@@ -1559,14 +1617,16 @@ class MockAdapter(BaseLLMAdapter):
             "wrong number", "wrong mobile", "wrong phone", "number was of", "number was wrong", "mobile was of",
             "correct my number", "correct my phone", "correct my name", "change my name", "update my name",
             "write my mobile", "write my phone", "write my number", "mera number change", "number badal", "phone change",
-            "change number", "change name", "update contact", "change contact"
+            "change number", "change name", "change the name", "change patient name", "update patient name",
+            "correct patient name", "change the patient name", "wrong name", "name is wrong", "name was wrong",
+            "patient name is", "patient name:", "update contact", "change contact"
         ]
         is_contact_update = any(w in user_text for w in contact_update_phrases) or (
             phone_val and any(w in user_text for w in ["change", "update", "correct", "wrong", "instead", "brother", "sister", "badal"])
         )
         if is_contact_update and not parsed_target_date and not _extract_time_str(user_text):
             new_phone = phone_val
-            new_name = cand_name if (cand_name and not is_question and any(w in user_text for w in ["name", "naam"])) else None
+            new_name = cand_name if (cand_name and not is_question and any(w in user_text for w in ["name", "naam", "patient"])) else None
             if new_phone or new_name:
                 args = {}
                 if new_name:
@@ -2052,7 +2112,24 @@ class MockAdapter(BaseLLMAdapter):
                         "tool_calls": []
                     }
                 elif not is_question and not target_date_str:
+                    is_initial_greeting = any(w in user_text.split() for w in ["hi", "hello", "hey", "salam", "aoa", "assalam", "start"]) or len(user_text.strip()) <= 4
                     roster_names = ", ".join(d["name"] for d in doctor_roster) or "Dr. Ahmed Khan or Dr. Sara Malik"
+                    clinic_name = conv_state.get("clinic_name") or "Arfa Dental Clinic"
+                    if is_initial_greeting:
+                        if lang == "urdu":
+                            return {
+                                "content": f"خوش آمدید! **{clinic_name}** میں خوش آمدید۔ 🦷✨ میں آپ کا اے آئی کیئر اسسٹنٹ ہوں۔ کیا آپ ہمارے ڈاکٹرز ({roster_names}) میں سے کسی کے ساتھ اپائنٹمنٹ بک کرنا چاہتے ہیں یا کسی علاج کے بارے میں معلومات لینا چاہتے ہیں؟",
+                                "tool_calls": []
+                            }
+                        elif lang == "roman_urdu":
+                            return {
+                                "content": f"Welcome to **{clinic_name}**! 🦷✨ Main aap ka AI care assistant hoon. Kya aap hamare doctors ({roster_names}) ke sath appointment book karna chahte hain, ya kisi treatment ke baare mein maloomat lena chahte hain?",
+                                "tool_calls": []
+                            }
+                        return {
+                            "content": f"Hello and welcome to **{clinic_name}**! 🦷✨\n\nI am your AI receptionist. How can I assist you today? Would you like to book an appointment with our specialists ({roster_names}), or inquire about our treatments?",
+                            "tool_calls": []
+                        }
                     if lang == "urdu":
                         return {
                             "content": f"براہ کرم ہمارے کلینک کے ڈاکٹرز میں سے کسی ایک کا انتخاب کریں: {roster_names}۔",

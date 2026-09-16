@@ -58,6 +58,12 @@ class TestBookingConfirmationFallback(unittest.TestCase):
         db.session.add(self.service)
         db.session.commit()
 
+        # Calculate next weekday date (e.g. Monday-Friday)
+        future_dt = datetime.now(timezone.utc) + timedelta(days=2)
+        while future_dt.strftime("%A") == "Sunday":
+            future_dt += timedelta(days=1)
+        self.target_date = future_dt.strftime("%Y-%m-%d")
+
         # Create Conversation with pre-collected details
         self.conv = Conversation(
             business_id=self.clinic.id,
@@ -65,7 +71,7 @@ class TestBookingConfirmationFallback(unittest.TestCase):
             channel="web_chat",
             selected_doctor_id=self.doctor.id,
             selected_service_id=self.service.id,
-            requested_date="2026-09-16",
+            requested_date=self.target_date,
             requested_time="11:30",
             pending_customer_name="Ali Haider",
             pending_customer_phone="03197155071",
@@ -87,7 +93,7 @@ class TestBookingConfirmationFallback(unittest.TestCase):
             customer_phone="",    # Omitted by caller
             doctor_id=self.doctor.id,
             service_id=self.service.id,
-            appointment_date="2026-09-16",
+            appointment_date=self.target_date,
             appointment_time="11:30",
             conversation_id=self.conv.id
         )
@@ -104,7 +110,7 @@ class TestBookingConfirmationFallback(unittest.TestCase):
         result = dispatcher.execute("book_appointment", {
             "doctor_id": self.doctor.id,
             "service_id": self.service.id,
-            "appointment_date": "2026-09-16",
+            "appointment_date": self.target_date,
             "appointment_time": "11:30",
             "customer_name": "Ali Haider"
         })
@@ -119,7 +125,7 @@ class TestBookingConfirmationFallback(unittest.TestCase):
         result = dispatcher.execute("book_appointment", {
             "doctor_id": self.doctor.id,
             "service_id": self.service.id,
-            "date": "2026-09-16",
+            "date": self.target_date,
             "time": "11:30",
             "patient_name": "Ali Haider",
             "phone": "03197155071"

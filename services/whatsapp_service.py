@@ -26,6 +26,15 @@ class WhatsAppService:
             clean = "92" + clean[1:]
         return clean
 
+    @staticmethod
+    def format_for_whatsapp(text: str) -> str:
+        """Convert standard markdown bold **text** to WhatsApp *text* and normalize spacing."""
+        if not text:
+            return ""
+        # Convert standard markdown **bold** to WhatsApp *bold*
+        formatted = re.sub(r'\*\*(.*?)\*\*', r'*\1*', text)
+        return formatted.strip()
+
     @classmethod
     def send_text_message(
         cls,
@@ -58,7 +67,7 @@ class WhatsAppService:
             "type": "text",
             "text": {
                 "preview_url": False,
-                "body": text
+                "body": cls.format_for_whatsapp(text)
             }
         }
 

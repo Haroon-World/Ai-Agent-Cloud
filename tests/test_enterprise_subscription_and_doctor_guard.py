@@ -138,10 +138,11 @@ class TestEnterpriseSubscriptionAndDoctorGuard(unittest.TestCase):
     def test_booking_service_requires_doctor_selection_in_multi_doctor_clinic(self):
         """Direct check_availability call with doctor_id=None in multi-doctor clinic must reject."""
         with self.app.app_context():
+            future_d = (datetime.now(timezone.utc) + timedelta(days=2)).strftime("%Y-%m-%d")
             res = BookingService.check_availability(
                 business_id=self.multi_biz_id,
                 doctor_id=None,
-                date_str="2026-09-08"
+                date_str=future_d
             )
             self.assertFalse(res.get("success"))
             self.assertTrue(res.get("requires_doctor"))
