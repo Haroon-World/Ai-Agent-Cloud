@@ -62,7 +62,8 @@ def _resolve_chat_business_id(clinic_id: int = None) -> int:
 def get_or_create_conversation(
     business_id: int,
     conversation_id: int = None,
-    visitor_id: str = None
+    visitor_id: str = None,
+    force_new: bool = False
 ) -> Tuple[Conversation, bool]:
     """
     Retrieve an existing conversation owned by this visitor or create a fresh one.
@@ -70,13 +71,35 @@ def get_or_create_conversation(
     Returns (conversation, is_new_session) — is_new_session is True when a new
     conversation was created.
     """
-    if conversation_id:
-        query = Conversation.query.filter_by(id=conversation_id, business_id=business_id)
+    if not force_new:
+        if conversation_id:
+            try:
+                c_id = int(conversation_id)
+                query = Conversation.query.filter_by(id=c_id, business_id=business_id)
+                if visitor_id:
+                    query = query.filter_by(visitor_id=visitor_id)
+                conv = query.first()
+                if conv:
+                    return conv, False
+            except (ValueError, TypeError):
+                pass
+
+        # Fallback: check session active conversation for this visitor
         if visitor_id:
-            query = query.filter_by(visitor_id=visitor_id)
-        conv = query.first()
-        if conv:
-            return conv, False
+            active_conv_id = session.get("active_conversation_id")
+            if active_conv_id:
+                conv = Conversation.query.filter_by(id=active_conv_id, business_id=business_id, visitor_id=visitor_id).first()
+                if conv and conv.workflow_state != "BOOKED":
+                    return conv, False
+
+            # Fallback 2: Most recent uncompleted conversation for this visitor
+            latest_conv = (
+                Conversation.query.filter_by(business_id=business_id, visitor_id=visitor_id)
+                .order_by(Conversation.created_at.desc())
+                .first()
+            )
+            if latest_conv and latest_conv.workflow_state != "BOOKED":
+                return latest_conv, False
 
     # Create new conversation bound to this visitor
     conv = Conversation(
@@ -127,6 +150,7 @@ def init_chat():
     visitor_id = _get_or_set_visitor_id()
     business_id = _resolve_chat_business_id()
     conv, is_new = get_or_create_conversation(business_id, visitor_id=visitor_id)
+    session["active_conversation_id"] = conv.id
     return jsonify({
         "success": True,
         "conversation_id": conv.id,
@@ -187,6 +211,7 @@ def send_message():
 
     try:
         conv, is_new = get_or_create_conversation(target_business_id, conversation_id, visitor_id=visitor_id)
+        session["active_conversation_id"] = conv.id
         llm_provider = current_app.config.get("LLM_PROVIDER", Config.LLM_PROVIDER)
         agent = Agent(business_id=target_business_id, llm_provider=llm_provider)
         result = agent.process_message(conversation_id=conv.id, user_content=message_text)
@@ -215,7 +240,8 @@ def send_message():
 def reset_chat():
     visitor_id = _get_or_set_visitor_id()
     business_id = _resolve_chat_business_id()
-    conv, _ = get_or_create_conversation(business_id, visitor_id=visitor_id)
+    conv, _ = get_or_create_conversation(business_id, visitor_id=visitor_id, force_new=True)
+    session["active_conversation_id"] = conv.id
     return jsonify({
         "success": True,
         "conversation_id": conv.id,

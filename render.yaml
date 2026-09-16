@@ -1,0 +1,95 @@
+services:
+  - type: web
+    name: clinic-connect-ai
+    runtime: python
+    plan: starter
+    buildCommand: pip install -r requirements.txt
+    startCommand: gunicorn "app:create_app()" --bind 0.0.0.0:$PORT --workers 2 --threads 4 --timeout 120
+    healthCheckPath: /
+    envVars:
+      - key: PYTHON_VERSION
+        value: 3.11.9
+      - key: FLASK_ENV
+        value: production
+      - key: DATABASE_URL
+        fromDatabase:
+          name: clinic-connect-db
+          property: connectionString
+      - key: SECRET_KEY
+        generateValue: true
+
+      # LLM Provider Configuration ('gemini', 'groq', or 'mock')
+      - key: LLM_PROVIDER
+        value: groq
+      - key: GEMINI_API_KEY
+        sync: false
+      - key: GEMINI_MODEL
+        value: gemini-2.5-flash
+      - key: GROQ_API_KEY
+        sync: false
+      - key: GROQ_MODEL
+        value: openai/gpt-oss-120b
+
+      # Speech-to-Text & Text-to-Speech
+      - key: STT_PROVIDER
+        value: groq
+      - key: GROQ_STT_MODEL
+        value: whisper-large-v3
+      - key: TTS_PROVIDER
+        value: gemini
+      - key: GROQ_TTS_MODEL
+        value: playai-tts
+      - key: GROQ_TTS_VOICE
+        value: Fritz-PlayAI
+
+      # Multi-tenant Defaults
+      - key: DEFAULT_BUSINESS_ID
+        value: 1
+      - key: BUSINESS_TIMEZONE
+        value: Asia/Karachi
+
+      # Clinic Admin Credentials
+      - key: ADMIN_USERNAME
+        value: admin
+      - key: ADMIN_PASSWORD
+        sync: false
+
+      # Platform Owner Credentials
+      - key: PLATFORM_ADMIN_USERNAME
+        value: clinicconnectaipro
+      - key: PLATFORM_ADMIN_PASSWORD
+        sync: false
+
+      # Meta WhatsApp Cloud API Configuration
+      - key: WHATSAPP_PHONE_NUMBER_ID
+        sync: false
+      - key: WHATSAPP_BUSINESS_ACCOUNT_ID
+        sync: false
+      - key: WHATSAPP_ACCESS_TOKEN
+        sync: false
+      - key: WHATSAPP_WEBHOOK_VERIFY_TOKEN
+        sync: false
+      - key: WHATSAPP_APP_SECRET
+        sync: false
+      - key: WHATSAPP_API_VERSION
+        value: v19.0
+
+      # Email / SMTP Configuration
+      - key: SMTP_HOST
+        value: smtp.gmail.com
+      - key: SMTP_PORT
+        value: 587
+      - key: SMTP_USER
+        sync: false
+      - key: SMTP_PASSWORD
+        sync: false
+      - key: MAIL_DEFAULT_SENDER
+        sync: false
+      - key: SMTP_USE_TLS
+        value: true
+
+databases:
+  - name: clinic-connect-db
+    databaseName: clinic_connect_prod
+    user: clinic_admin
+    plan: starter

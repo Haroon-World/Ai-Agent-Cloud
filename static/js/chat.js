@@ -225,6 +225,10 @@ async function handleSendMessage(e) {
         if (thinkingElem) thinkingElem.remove();
 
         if (data.success) {
+            if (data.conversation_id) {
+                conversationId = data.conversation_id;
+                try { localStorage.setItem(storageKey, conversationId); } catch (e) {}
+            }
             const wasNear = isUserNearBottom();
             appendMessageBubble('assistant', data.reply);
             // Ensure no stale UI action wrappers exist before rendering new action
