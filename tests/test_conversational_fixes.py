@@ -136,5 +136,52 @@ class TestConversationalFixes(unittest.TestCase):
         self.assertIn("Shall I go ahead and confirm this appointment?", resp)
         self.assertNotIn("Here are the available appointment slots", resp)
 
+    def test_time_extraction_default_pm(self):
+        """Verify that bare hour/minute between 1 and 7 defaults to PM (clinic hours)."""
+        from ai.llm_client import _extract_time_str
+        self.assertEqual(_extract_time_str("1.30"), "13:30")
+        self.assertEqual(_extract_time_str("1:30"), "13:30")
+        self.assertEqual(_extract_time_str("3 pm"), "15:00")
+        self.assertEqual(_extract_time_str("1.30 am"), "01:30")
+        self.assertEqual(_extract_time_str("10.30"), "10:30")
+
+    def test_why_question_detection_and_no_autobooking(self):
+        """Verify that 'Then why did you told me wrong' is classified as question and does not trigger book_appointment."""
+        from ai.llm_client import _is_question_query
+        self.assertTrue(_is_question_query("Then why were you telling me 1.30"))
+        self.assertTrue(_is_question_query("Then why did you told me wrong"))
+
+        adapter = MockAdapter()
+        conv_state = {
+            "selected_doctor_id": 2,
+            "selected_service_id": 3,
+            "target_date_str": "2026-09-18",
+            "pending_customer_name": "Ali",
+            "pending_customer_phone": "923187538771",
+            "workflow_state": "SELECTING_TIME",
+            "all_offered_slots": ["09:00", "09:30", "10:00", "10:30", "11:00", "11:30", "12:00", "12:30", "13:00", "13:30", "14:00", "14:30", "16:00", "16:30"],
+            "last_offered_slots": {
+                "2": ["09:00", "09:30", "10:00", "10:30", "11:00", "11:30", "12:00", "12:30", "13:00", "13:30", "14:00", "14:30", "16:00", "16:30"]
+            },
+            "doctor_roster": [
+                {"id": 2, "name": "Dr. Sara Malik", "specialization": "Pediatric & Cosmetic Dentistry"}
+            ],
+            "service_roster": [
+                {"id": 3, "name": "Teeth Whitening", "doctor_id": 2}
+            ]
+        }
+        res = adapter.chat_completion(
+            system_prompt="Clinic Name: Arfa Dental Clinic",
+            messages=[{"role": "user", "content": "Then why did you told me wrong"}],
+            tools=[],
+            conversation_state=conv_state
+        )
+        # Should not book appointment tool call
+        self.assertEqual(res.get("tool_calls"), [])
+        content = res.get("content", "")
+        self.assertIn("apologize", content.lower())
+        self.assertIn("05:00 pm", content.lower())
+
 if __name__ == "__main__":
     unittest.main()
+

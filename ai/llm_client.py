@@ -407,6 +407,8 @@ def _is_question_query(text: str) -> bool:
         "slots after", "available before", "slots before", "what time",
         "is anything", "are any", "what are", "who is", "show me", "tell me",
         "is this", "is that", "available", "after", "before", "free", "any slot",
+        "why", "how", "what", "where", "who", "whom", "whose", "wrong", "reason",
+        "why did", "why were", "why was", "why are", "why is", "tell me why", "explain",
         "kis din", "kis kis din", "kab", "timing", "timings", "schedule", "working days",
         "kia", "kya", "kitna", "kitni", "kitne", "kahan", "kidhar", "kyun", "kyu",
         "kaisa", "kaisi", "kaise", "kese", "kon", "kaun", "konsa", "konsi",
@@ -499,6 +501,8 @@ def _extract_time_str(text: str) -> Optional[str]:
             h += 12
         elif ampm == "am" and h == 12:
             h = 0
+        elif not ampm and 1 <= h <= 7:
+            h += 12
         return f"{h:02d}:{mn:02d}"
 
     # 2. Match H am / H pm (e.g. 10 am, 2 pm, 12 pm, ten am, two pm)
@@ -1902,7 +1906,14 @@ class MockAdapter(BaseLLMAdapter):
                         if chosen_time not in avail_slots:
                             d_display_name = doc_name or "our doctor"
                             fmt_t = _fmt_time_ampm(chosen_time)
-                            slot_bullets = "\n".join([f"• {_fmt_time_ampm(s)}" for s in avail_slots[:10]])
+                            morning_slots = [_fmt_time_ampm(s) for s in avail_slots if int(s.split(":")[0]) < 12]
+                            afternoon_slots = [_fmt_time_ampm(s) for s in avail_slots if int(s.split(":")[0]) >= 12]
+                            groups = []
+                            if morning_slots:
+                                groups.append(f"• *Morning:* {', '.join(morning_slots)}")
+                            if afternoon_slots:
+                                groups.append(f"• *Afternoon:* {', '.join(afternoon_slots)}")
+                            slot_bullets = "\n".join(groups) if groups else "\n".join([f"• {_fmt_time_ampm(s)}" for s in avail_slots])
                             if lang == "urdu":
                                 spoken_d_u = _fmt_spoken_date_urdu(target_date_str)
                                 spoken_t_u = _fmt_spoken_time_urdu(chosen_time)
@@ -2321,7 +2332,14 @@ class MockAdapter(BaseLLMAdapter):
                     if time_token not in avail_slots:
                         d_display_name = doc_name or "our doctor"
                         fmt_t = _fmt_time_ampm(time_token)
-                        slot_bullets = "\n".join([f"• {_fmt_time_ampm(s)}" for s in avail_slots[:10]])
+                        morning_slots = [_fmt_time_ampm(s) for s in avail_slots if int(s.split(":")[0]) < 12]
+                        afternoon_slots = [_fmt_time_ampm(s) for s in avail_slots if int(s.split(":")[0]) >= 12]
+                        groups = []
+                        if morning_slots:
+                            groups.append(f"• *Morning:* {', '.join(morning_slots)}")
+                        if afternoon_slots:
+                            groups.append(f"• *Afternoon:* {', '.join(afternoon_slots)}")
+                        slot_bullets = "\n".join(groups) if groups else "\n".join([f"• {_fmt_time_ampm(s)}" for s in avail_slots])
                         if lang == "urdu":
                             spoken_d_u = _fmt_spoken_date_urdu(target_date_str) if target_date_str else ""
                             spoken_t_u = _fmt_spoken_time_urdu(time_token)
@@ -2542,7 +2560,30 @@ class MockAdapter(BaseLLMAdapter):
         doc_slots = last_offered_slots.get(str(doc_id)) or all_offered_slots
 
         # Case A: User is asking an availability question on an explicit date
-        if is_question and (time_token or any(w in user_text for w in ["slot", "other", "after", "before", "time", "available", "availability", "when"])):
+        if is_question and (time_token or any(w in user_text for w in ["slot", "other", "after", "before", "time", "available", "availability", "when", "why", "kyun"])):
+            is_why_time_query = any(w in user_text.lower() for w in ["why", "kyun", "kyu", "reason", "wrong", "telling me", "told me", "ghalat"])
+            if is_why_time_query:
+                doc_display_name = doc_name or "our doctor"
+                spoken_d_str = effective_date or "that date"
+                fmt_t = _fmt_time_ampm(time_token) if time_token else None
+                if lang == "urdu":
+                    t_mention = f" اور {fmt_t} بھی دستیاب اوقات میں شامل تھا" if fmt_t else ""
+                    return {
+                        "content": f"معذرت خواہ ہیں! {doc_display_name} کا شیڈول 05:00 PM تک ہے{t_mention}۔ کچھ اوقات پہلے سے بک ہونے کی وجہ سے دستیاب نہیں تھے۔ براہ کرم بتائیے کہ آپ کے لیے کون سا وقت سب سے بہتر رہے گا؟",
+                        "tool_calls": []
+                    }
+                elif lang == "roman_urdu":
+                    t_mention = f" aur {fmt_t} bhi available slots mein shamil tha" if fmt_t else ""
+                    return {
+                        "content": f"Maazrat chahte hain agar koi misunderstanding hui! {doc_display_name} ka schedule 05:00 PM tak hai{t_mention}. Kuch slots pehle se booked hone ki wajah se available nahi thein. Barah-e-karam batayein aap ke liye konsa time slot best rahe ga?",
+                        "tool_calls": []
+                    }
+                t_mention = f" {_fmt_time_ampm(time_token)} was simply one of the available afternoon slots." if fmt_t else " Some slots were already reserved for prior bookings."
+                return {
+                    "content": f"I apologize for any misunderstanding! {doc_display_name} is scheduled until 05:00 PM on {spoken_d_str}.{t_mention} Please let me know which available time from 09:00 AM to 05:00 PM works best for you!",
+                    "tool_calls": []
+                }
+
             if not explicit_date_given or not effective_date:
                 return {
                     "content": f"Sure! I'd be happy to check availability for {doc_name}. Which date would you like to visit us?",
@@ -2705,10 +2746,46 @@ class MockAdapter(BaseLLMAdapter):
         # Case C: Both name and phone are available -> proceed to book or reschedule
         is_reschedule = (conv_state.get("intent") == "RESCHEDULE_APPOINTMENT") or bool(conv_state.get("active_appointment_id") and any(w in user_text.lower() for w in ["reschedule", "change", "switch", "same", "confirm", "yes", "update"]))
         has_time = bool(req_time or time_token)
-        time_or_date_ready = has_time if is_reschedule else (req_time or time_token or target_date_str)
-        if effective_phone and effective_name and time_or_date_ready and effective_date:
+        is_confirm = any(w in user_text.lower() for w in ["confirm", "book", "yes", "yeah", "ok", "okay", "sure", "theek", "haan", "sahi"])
+
+        if effective_phone and effective_name and effective_date:
             if not doc_id:
                 return _prompt_doctor_choice(doctor_roster, lang, effective_name)
+
+            # GUARD: Never book an appointment if the user did NOT choose a time and did NOT confirm!
+            if not has_time and not (is_confirm and doc_slots):
+                if is_question:
+                    is_why_wrong = any(w in user_text.lower() for w in ["wrong", "why", "kyun", "ghalat", "tell me", "told me", "mistake", "false"])
+                    if is_why_wrong:
+                        if lang == "urdu":
+                            return {
+                                "content": f"معذرت خواہ ہیں! ڈاکٹر صاحب کا کلینک شیڈول 05:00 PM تک ہی ہے۔ کچھ اوقات پہلے سے بک ہونے کی وجہ سے دستیاب نہیں تھے۔ براہ کرم بتائیے کہ آپ {effective_date} کو کس وقت آنا پسند کریں گے؟",
+                                "tool_calls": []
+                            }
+                        elif lang == "roman_urdu":
+                            return {
+                                "content": f"Maazrat chahte hain agar koi confusion hui! Doctor ka schedule 05:00 PM tak hai, lekin kuch slots pehle se booked hone ki wajah se available nahi thein. Barah-e-karam batayein aap {effective_date} ko kis time ana pasand karein ge?",
+                                "tool_calls": []
+                            }
+                        return {
+                            "content": f"I apologize for the confusion! The clinic schedule is indeed until 05:00 PM; however, certain slots (such as 03:00 PM) were unavailable due to existing bookings. Please let me know which of the available slots on {effective_date} works best for you!",
+                            "tool_calls": []
+                        }
+                if lang == "urdu":
+                    return {
+                        "content": f"شکریہ {effective_name}! براہ کرم {effective_date} کے لیے اپنا پسندیدہ وقت (ٹائم سلاٹ) منتخب کریں۔",
+                        "tool_calls": []
+                    }
+                elif lang == "roman_urdu":
+                    return {
+                        "content": f"Shukriya {effective_name}! Barah-e-karam {effective_date} ke liye apna preferred time slot select karein.",
+                        "tool_calls": []
+                    }
+                return {
+                    "content": f"Thank you, {effective_name}! Please choose which available time slot works best for your appointment on {effective_date}.",
+                    "tool_calls": []
+                }
+
             doc_services = [s for s in service_roster if s.get("doctor_id") == doc_id] if doc_id else service_roster
             effective_svc_id = svc_id or (doc_services[0]["id"] if doc_services else None)
             effective_doc_id = doc_id
