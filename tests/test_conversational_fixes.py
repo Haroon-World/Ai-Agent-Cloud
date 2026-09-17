@@ -182,6 +182,65 @@ class TestConversationalFixes(unittest.TestCase):
         self.assertIn("apologize", content.lower())
         self.assertIn("05:00 pm", content.lower())
 
+    def test_negation_dont_cancel_safety(self):
+        """Verify that 'don't cancel my appointment' does NOT trigger cancel_appointment."""
+        adapter = MockAdapter()
+        conv_state = {
+            "selected_doctor_id": 1,
+            "selected_service_id": 1,
+            "workflow_state": "BOOKED",
+            "intent": "BOOK_APPOINTMENT",
+            "pending_customer_name": "Ali Hassan",
+            "pending_customer_phone": "03001234567"
+        }
+        res = adapter.chat_completion(
+            system_prompt="Clinic Name: Arfa Dental Clinic",
+            messages=[{"role": "user", "content": "Please don't cancel my appointment"}],
+            tools=[],
+            conversation_state=conv_state
+        )
+        self.assertEqual(res.get("tool_calls"), [])
+        content = res.get("content", "")
+        self.assertIn("not been cancelled", content.lower())
+
+    def test_no_word_not_parsed_as_nine(self):
+        """Verify that 'no', 'no thanks', 'room no 2' are not parsed as 9:00 AM, while 'no baje' is."""
+        from ai.llm_client import _extract_time_str
+        from ai.agent import _extract_time_token
+
+        self.assertIsNone(_extract_time_str("no"))
+        self.assertIsNone(_extract_time_token("no"))
+        self.assertIsNone(_extract_time_str("no thanks"))
+        self.assertIsNone(_extract_time_token("no thanks"))
+        self.assertIsNone(_extract_time_str("room no 2"))
+        self.assertIsNone(_extract_time_token("room no 2"))
+
+        self.assertEqual(_extract_time_str("no baje"), "09:00")
+        self.assertEqual(_extract_time_token("no baje"), "09:00")
+
+    def test_room_no_2_does_not_cancel_booking(self):
+        """Verify that mentioning 'room no 2' does not cancel booking during confirmation."""
+        adapter = MockAdapter()
+        conv_state = {
+            "awaiting_input": "confirmation",
+            "workflow_state": "SELECTING_TIME",
+            "pending_customer_name": "Ali",
+            "pending_customer_phone": "03001234567",
+            "target_date_str": "2026-09-18",
+            "req_time": "10:00",
+            "selected_doctor_id": 1,
+            "selected_service_id": 1
+        }
+        res = adapter.chat_completion(
+            system_prompt="Clinic Name: Arfa Dental Clinic",
+            messages=[{"role": "user", "content": "room no 2"}],
+            tools=[],
+            conversation_state=conv_state
+        )
+        content = res.get("content", "")
+        self.assertNotIn("cancelled your booking request", content.lower())
+
 if __name__ == "__main__":
     unittest.main()
+
 

@@ -437,7 +437,7 @@ _URDU_ROMAN_NUMBERS = {
     "che": 6, "chay": 6, "chhey": 6, "چھ": 6, "۶": 6,
     "saat": 7, "sat": 7, "سات": 7, "۷": 7,
     "aath": 8, "ath": 8, "آٹھ": 8, "۸": 8,
-    "nau": 9, "no": 9, "نو": 9, "۹": 9,
+    "nau": 9, "نو": 9, "۹": 9,
     "das": 10, "دس": 10, "۱۰": 10,
     "gyarah": 11, "gyara": 11, "gyaarah": 11, "گیارہ": 11, "گہرہ": 11, "گیرہ": 11, "۱۱": 11,
     "barah": 12, "bara": 12, "baarah": 12, "بارہ": 12, "۱۲": 12,
@@ -524,7 +524,7 @@ def _extract_time_str(text: str) -> Optional[str]:
     m = re.search(prefix_pattern + num_token_pattern + r'\s*' + baje_pattern, norm_text)
     if m:
         token = m.group(1)
-        h = int(token) if token.isdigit() else _URDU_ROMAN_NUMBERS.get(token)
+        h = int(token) if token.isdigit() else (9 if token == "no" else _URDU_ROMAN_NUMBERS.get(token))
         if h is not None:
             is_pm = any(w in norm_text for w in ["pm", "dopahar", "shaam", "raat", "دوپہر", "شام", "رات", "دن"])
             is_am = any(w in norm_text for w in ["am", "subah", "صبح"])
@@ -1646,13 +1646,36 @@ class MockAdapter(BaseLLMAdapter):
                 }
 
         # Check Cancellation Request
+        is_negated_cancel = any(re.search(pat, user_text.lower()) for pat in [
+            r"\b(?:don\'?t|do not|never|should not|shouldn\'?t|please don\'?t|plz don\'?t)\s+(?:cancel|کینسل|منسوخ)",
+            r"\b(?:cancel|کینسل|منسوخ)\s+(?:mat|nahi|nahin|na\s+karein|na\s+karo|not|krna|karna nahi|karna na)\b",
+            r"\b(?:mat|nahi|nahin|na)\s+(?:karo|karein|krna|karna)?\s*(?:cancel|کینسل|منسوخ)",
+            r"\b(?:not|never|nahi|nahin)\b.*?\b(?:cancel|کینسل|منسوخ)\b.*?\b(?:appointment|booking|اپائنٹمنٹ|بکنگ)\b",
+            r"\b(?:cancel|کینسل|منسوخ)\b.*?\b(?:appointment|booking|اپائنٹمنٹ|بکنگ)\b.*?\b(?:mat|nahi|nahin|not)\b"
+        ])
+        if is_negated_cancel:
+            if lang == "urdu":
+                return {
+                    "content": "بے فکر رہیں! آپ کی اپائنٹمنٹ منسوخ نہیں کی گئی ہے اور بدستور مکمل طور پر کنفرم اور محفوظ ہے۔ اگر مزید کوئی رہنمائی درکار ہو تو ضرور بتائیں۔",
+                    "tool_calls": []
+                }
+            elif lang == "roman_urdu":
+                return {
+                    "content": "Befikr rahein! Aap ki appointment cancel nahi ki gayi hai aur fully confirmed aur active hai. Agar mazeed koi rahnumai chahiye to zaroor batayein.",
+                    "tool_calls": []
+                }
+            return {
+                "content": "Rest assured! Your appointment has NOT been cancelled and remains fully confirmed and active. Please let us know if you need any other assistance.",
+                "tool_calls": []
+            }
+
         cancel_keywords = [
             "cancel booking", "cancel appointment", "cancel my appointment", "cancel my booking",
             "appointment cancel", "booking cancel", "cancel kr do", "cancel kar do", "cancel kar dein",
             "cancel kardein", "cancel krdein", "cancel kardo", "cancel please", "please cancel",
             "کینسل", "منسوخ"
         ]
-        if not _is_appointment_status_inquiry(user_text) and (
+        if not _is_appointment_status_inquiry(user_text) and not is_negated_cancel and (
             any(w in user_text for w in cancel_keywords) or (
                 "cancel" in user_text and any(w in user_text for w in ["appointment", "booking", "slot", "meri", "my"]) and not any(w in user_text for w in ["or not", "ya nahi", "was", "is it", "staff", "check"])
             )
@@ -2240,7 +2263,10 @@ class MockAdapter(BaseLLMAdapter):
                             conv_state, user_text, effective_name, effective_phone,
                             doc_id, doc_name, effective_svc_id, target_date_str, chosen_time
                         )
-                elif any(w in user_text for w in ["no", "cancel", "nevermind", "nahi"]):
+                elif any(re.search(pat, user_text.lower()) for pat in [
+                    r"^(?:no|nahi|nahin|nevermind|cancel)\b",
+                    r"\b(?:cancel\s+(?:booking|request|appointment)|nahi\s+karwana|nahi\s+karni|don\'?t\s+book)\b"
+                ]) and not is_negated_cancel:
                     return {
                         "content": "I have cancelled your booking request. How else may I assist you?",
                         "tool_calls": []
@@ -3421,7 +3447,33 @@ class LLMClient:
                 conversation_state=conversation_state
             )
         except Exception as e:
-            print(f"[LLMClient Warning]: Provider '{self.provider}' failed with: {e}. Gracefully falling back to deterministic adapter.")
+            print(f"[LLMClient Warning]: Primary provider '{self.provider}' failed with: {e}.")
+
+            # Dual-Cloud Secondary Fallback
+            if self.provider == "groq" and Config.GEMINI_API_KEY and not isinstance(self.adapter, GeminiAdapter):
+                try:
+                    print("[LLMClient]: Trying secondary provider 'gemini'...")
+                    return GeminiAdapter(api_key=Config.GEMINI_API_KEY, model_name=Config.GEMINI_MODEL).chat_completion(
+                        system_prompt=system_prompt,
+                        messages=messages,
+                        tools=tools,
+                        conversation_state=conversation_state
+                    )
+                except Exception as e2:
+                    print(f"[LLMClient Warning]: Secondary provider 'gemini' also failed: {e2}.")
+            elif self.provider == "gemini" and Config.GROQ_API_KEY and not isinstance(self.adapter, GroqAdapter):
+                try:
+                    print("[LLMClient]: Trying secondary provider 'groq'...")
+                    return GroqAdapter(api_key=Config.GROQ_API_KEY, model_name=Config.GROQ_MODEL).chat_completion(
+                        system_prompt=system_prompt,
+                        messages=messages,
+                        tools=tools,
+                        conversation_state=conversation_state
+                    )
+                except Exception as e2:
+                    print(f"[LLMClient Warning]: Secondary provider 'groq' also failed: {e2}.")
+
+            print("[LLMClient]: Gracefully falling back to deterministic mock adapter.")
             return MockAdapter().chat_completion(
                 system_prompt=system_prompt,
                 messages=messages,

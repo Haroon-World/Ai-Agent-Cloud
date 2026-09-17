@@ -35,7 +35,7 @@ _URDU_ROMAN_NUMBERS = {
     "che": 6, "chay": 6, "chhey": 6, "چھ": 6, "۶": 6,
     "saat": 7, "sat": 7, "سات": 7, "۷": 7,
     "aath": 8, "ath": 8, "آٹھ": 8, "۸": 8,
-    "nau": 9, "no": 9, "نو": 9, "۹": 9,
+    "nau": 9, "نو": 9, "۹": 9,
     "das": 10, "دس": 10, "۱۰": 10,
     "gyarah": 11, "gyara": 11, "gyaarah": 11, "گیارہ": 11, "گہرہ": 11, "گیرہ": 11, "۱۱": 11,
     "barah": 12, "bara": 12, "baarah": 12, "بارہ": 12, "۱۲": 12,
@@ -122,7 +122,7 @@ def _extract_time_token(text: str) -> Optional[str]:
     m = re.search(prefix_pattern + num_token_pattern + r'\s*' + baje_pattern, norm_text)
     if m:
         token = m.group(1)
-        h = int(token) if token.isdigit() else _URDU_ROMAN_NUMBERS.get(token)
+        h = int(token) if token.isdigit() else (9 if token == "no" else _URDU_ROMAN_NUMBERS.get(token))
         if h is not None:
             is_pm = any(w in norm_text for w in ["pm", "dopahar", "shaam", "raat", "دوپہر", "شام", "رات", "دن"])
             is_am = any(w in norm_text for w in ["am", "subah", "صبح"])
@@ -492,7 +492,16 @@ def _resolve_workflow_input(conv: Conversation, user_content: str):
         "cancel kardein", "cancel krdein", "cancel kardo", "cancel please", "please cancel",
         "کینسل", "منسوخ"
     ]
-    is_cancel_msg = not _is_appointment_status_inquiry(user_content) and (
+    # Check if user explicitly negates cancellation (e.g. "don't cancel", "do not cancel", "cancel mat karna")
+    is_negated_cancel = any(re.search(pat, text_lower) for pat in [
+        r"\b(?:don\'?t|do not|never|should not|shouldn\'?t|please don\'?t|plz don\'?t)\s+(?:cancel|کینسل|منسوخ)",
+        r"\b(?:cancel|کینسل|منسوخ)\s+(?:mat|nahi|nahin|na\s+karein|na\s+karo|not|krna|karna nahi|karna na)\b",
+        r"\b(?:mat|nahi|nahin|na)\s+(?:karo|karein|krna|karna)?\s*(?:cancel|کینسل|منسوخ)",
+        r"\b(?:not|never|nahi|nahin)\b.*?\b(?:cancel|کینسل|منسوخ)\b.*?\b(?:appointment|booking|اپائنٹمنٹ|بکنگ)\b",
+        r"\b(?:cancel|کینسل|منسوخ)\b.*?\b(?:appointment|booking|اپائنٹمنٹ|بکنگ)\b.*?\b(?:mat|nahi|nahin|not)\b"
+    ])
+
+    is_cancel_msg = not _is_appointment_status_inquiry(user_content) and not is_negated_cancel and (
         any(k in text_lower for k in cancel_keywords) or (
             "cancel" in text_lower and any(w in text_lower for w in ["appointment", "booking", "slot", "meri", "my"]) and not any(w in text_lower for w in ["or not", "ya nahi", "was", "is it", "staff", "check"])
         )
@@ -509,7 +518,7 @@ def _resolve_workflow_input(conv: Conversation, user_content: str):
     # If in BOOKED state and user initiates a new message (inquiry, new booking, doctor question, etc.)
     if conv.workflow_state == "BOOKED":
         is_ack = any(k in text_lower for k in ["confirm", "yes", "yeah", "sure", "ok", "okay", "haan", "theek", "thanks", "thank you", "done", "alright"])
-        if not is_ack and not is_cancel_msg:
+        if not is_ack and not is_cancel_msg and not is_negated_cancel:
             contact_update_phrases = [
                 "change my mobile", "change my number", "change my phone", "change mobile number", "change phone number",
                 "update my mobile", "update my number", "update my phone", "update phone", "update mobile",
@@ -777,9 +786,11 @@ def _resolve_workflow_input(conv: Conversation, user_content: str):
         "cancel kardein", "cancel krdein", "cancel kardo", "cancel please", "please cancel",
         "کینسل", "منسوخ"
     ]
-    is_cancel_msg = any(k in text_lower for k in cancel_keywords) or (
-        "cancel" in text_lower and any(w in text_lower for w in ["appointment", "booking", "slot", "meri", "my"])
-    )
+    is_cancel_msg = not is_negated_cancel and (
+        any(k in text_lower for k in cancel_keywords) or (
+            "cancel" in text_lower and any(w in text_lower for w in ["appointment", "booking", "slot", "meri", "my"])
+        )
+    ) and not any(w in text_lower for w in ["or not", "ya nahi", "was", "is it", "staff", "check", "why", "kyun"])
     if is_cancel_msg:
         conv.workflow_state = "START"
         conv.intent = "CANCEL_APPOINTMENT"
@@ -788,6 +799,8 @@ def _resolve_workflow_input(conv: Conversation, user_content: str):
         conv.requested_date = None
         conv.selected_doctor_id = None
         conv.selected_service_id = None
+    elif is_negated_cancel:
+        conv.intent = "RETAIN_APPOINTMENT"
 
     # 9. Reschedule trigger
     reschedule_keywords = [
@@ -1267,6 +1280,49 @@ class Agent:
         # Respond warmly without restarting the booking flow or displaying the doctor roster!
         if conv.workflow_state == "BOOKED":
             t_clean = re.sub(r"[^\w\s]", "", user_content.lower()).strip()
+            is_negated_cancel = any(re.search(pat, user_content.lower()) for pat in [
+                r"\b(?:don\'?t|do not|never|should not|shouldn\'?t|please don\'?t|plz don\'?t)\s+(?:cancel|کینسل|منسوخ)",
+                r"\b(?:cancel|کینسل|منسوخ)\s+(?:mat|nahi|nahin|na\s+karein|na\s+karo|not|krna|karna nahi|karna na)\b",
+                r"\b(?:mat|nahi|nahin|na)\s+(?:karo|karein|krna|karna)?\s*(?:cancel|کینسل|منسوخ)",
+                r"\b(?:not|never|nahi|nahin)\b.*?\b(?:cancel|کینسل|منسوخ)\b.*?\b(?:appointment|booking|اپائنٹمنٹ|بکنگ)\b",
+                r"\b(?:cancel|کینسل|منسوخ)\b.*?\b(?:appointment|booking|اپائنٹمنٹ|بکنگ)\b.*?\b(?:mat|nahi|nahin|not)\b"
+            ])
+            if is_negated_cancel:
+                is_urdu = any('\u0600' <= ch <= '\u06FF' for ch in user_content)
+                is_roman = any(w in t_clean for w in ["shukriya", "shukria", "bohat", "bht", "theek", "thik", "karo", "karna", "nahi", "mat"])
+                if is_urdu:
+                    reassure_reply = "بے فکر رہیں! آپ کی اپائنٹمنٹ منسوخ نہیں کی گئی ہے اور بدستور مکمل طور پر کنفرم اور محفوظ ہے۔ اگر مزید کوئی رہنمائی درکار ہو تو ضرور بتائیں۔"
+                elif is_roman:
+                    reassure_reply = "Befikr rahein! Aap ki appointment cancel nahi ki gayi hai aur fully confirmed aur active hai. Agar mazeed koi rahnumai chahiye to zaroor batayein."
+                else:
+                    reassure_reply = "Rest assured! Your appointment has NOT been cancelled and remains fully confirmed and active. Please let us know if you need any other assistance."
+
+                asst_msg = Message(
+                    conversation_id=conv.id,
+                    role="assistant",
+                    content=reassure_reply
+                )
+                conv.updated_at = datetime.now(timezone.utc)
+                db.session.add(asst_msg)
+                db.session.commit()
+
+                total_turn_ms = (time.perf_counter() - t_start) * 1000.0
+                return {
+                    "conversation_id": conv.id,
+                    "status": conv.status,
+                    "content": reassure_reply,
+                    "executed_tools": [],
+                    "ui_action": None,
+                    "metrics": {
+                        "db_queries": getattr(_local_perf_state, "query_count", 0),
+                        "llm_call_1_ms": 0.0,
+                        "tool_time_ms": 0.0,
+                        "llm_call_2_ms": 0.0,
+                        "response_gen_ms": 0.0,
+                        "total_turn_ms": round(total_turn_ms, 2)
+                    }
+                }
+
             gratitude_tokens = [
                 "shukriya", "shukria", "shukaria", "shukariaa", "thanks", "thank you", "thx",
                 "bohat shukriya", "bohat shukria", "bht shukaria", "bht shukariaa", "bht shukria", "bht shukriya",
