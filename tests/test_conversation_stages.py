@@ -193,6 +193,147 @@ class TestConvFlow(unittest.TestCase):
         self.assertNotEqual(conv4.workflow_state, "BOOKED")
         self.assertNotIn("successfully booked", res.get("content").lower())
 
+    def test_inactivity_timeout_resets_draft(self):
+        from datetime import datetime, timezone, timedelta
+        from models import Message
+
+        conv = Conversation(
+            business_id=self.clinic.id,
+            customer_id=self.cust.id,
+            status="AI",
+            channel="whatsapp",
+            selected_doctor_id=self.doc2.id,
+            selected_service_id=self.svc1.id,
+            requested_date="2026-09-18",
+            requested_time="09:00",
+            pending_customer_name="Ali",
+            pending_customer_phone="03001234567",
+            workflow_state="COLLECTING_INFO",
+            awaiting_input="service_choice"
+        )
+        db.session.add(conv)
+        db.session.commit()
+
+        # Simulate last message 3 hours ago
+        past_time = datetime.now(timezone.utc) - timedelta(hours=3)
+        msg = Message(
+            conversation_id=conv.id,
+            role="user",
+            content="Earlier message 3 hours ago",
+            created_at=past_time
+        )
+        db.session.add(msg)
+        conv.updated_at = past_time
+        db.session.commit()
+
+        # User sends a new message after 3 hours
+        res = self.agent.process_message(conv.id, "Hi")
+        db.session.refresh(conv)
+
+        # Verify draft state has been completely reset
+        self.assertIsNone(conv.selected_doctor_id)
+        self.assertIsNone(conv.selected_service_id)
+        self.assertIsNone(conv.requested_date)
+        self.assertIsNone(conv.requested_time)
+        self.assertIsNone(conv.pending_customer_name)
+        self.assertIsNone(conv.pending_customer_phone)
+
+    def test_booking_for_another_patient_with_different_number(self):
+        conv = Conversation(
+            business_id=self.clinic.id,
+            customer_id=self.cust.id,
+            status="AI",
+            channel="whatsapp",
+            pending_customer_name=None,
+            pending_customer_phone=None,
+            workflow_state="START"
+        )
+        db.session.add(conv)
+        db.session.commit()
+
+        self.agent.process_message(conv.id, "Dr Sara")
+        self.agent.process_message(conv.id, "Consultation")
+        r_earliest = self.agent.process_message(conv.id, "earliest slot")
+        db.session.refresh(conv)
+        self.assertIn("share the patient's full name and mobile number", r_earliest.get("content", ""))
+
+        # User books for another patient: Ali, with separate mobile 03001234567
+        r_book = self.agent.process_message(conv.id, "For Ali, 03001234567")
+        db.session.refresh(conv)
+        self.assertEqual(conv.workflow_state, "BOOKED")
+
+        # Verify appointment customer is Ali with 03001234567
+        appt = Appointment.query.filter_by(conversation_id=conv.id).first()
+        self.assertIsNotNone(appt)
+        self.assertEqual(appt.customer.name, "Ali")
+        self.assertEqual(appt.customer.phone, "03001234567")
+        # Verify booked_by_phone is the WhatsApp thread phone
+        self.assertEqual(appt.booked_by_phone, self.cust.phone)
+
+    def test_booking_for_another_patient_using_whatsapp_number(self):
+        conv = Conversation(
+            business_id=self.clinic.id,
+            customer_id=self.cust.id,
+            status="AI",
+            channel="whatsapp",
+            pending_customer_name=None,
+            pending_customer_phone=None,
+            workflow_state="START"
+        )
+        db.session.add(conv)
+        db.session.commit()
+
+        self.agent.process_message(conv.id, "Dr Sara")
+        self.agent.process_message(conv.id, "Consultation")
+        self.agent.process_message(conv.id, "earliest slot")
+        
+        # User specifies patient name only
+        r_name = self.agent.process_message(conv.id, "For Ali")
+        db.session.refresh(conv)
+        # Agent asks whether to use WhatsApp contact number or a different mobile
+        self.assertIn(self.cust.phone, r_name.get("content", ""))
+
+        # User confirms to use WhatsApp contact number
+        r_confirm = self.agent.process_message(conv.id, "use this number")
+        db.session.refresh(conv)
+        self.assertEqual(conv.workflow_state, "BOOKED")
+
+        # Verify appointment is booked for Ali with WhatsApp number
+        appt = Appointment.query.filter_by(conversation_id=conv.id).first()
+        self.assertIsNotNone(appt)
+        self.assertEqual(appt.customer.name, "Ali")
+        self.assertEqual(appt.customer.phone, self.cust.phone)
+        self.assertEqual(appt.booked_by_phone, self.cust.phone)
+
+    def test_subsequent_booking_after_booked_state_prompts_patient_details(self):
+        conv = Conversation(
+            business_id=self.clinic.id,
+            customer_id=self.cust.id,
+            status="AI",
+            channel="whatsapp",
+            selected_doctor_id=self.doc2.id,
+            selected_service_id=self.svc1.id,
+            requested_date="2026-09-18",
+            requested_time="09:00",
+            pending_customer_name="Ali",
+            pending_customer_phone="03001234567",
+            workflow_state="BOOKED"
+        )
+        db.session.add(conv)
+        db.session.commit()
+
+        # User initiates a new booking request
+        r1 = self.agent.process_message(conv.id, "I want to book another appointment with Dr Sara")
+        db.session.refresh(conv)
+        # Pending patient details should have been reset
+        self.assertIsNone(conv.pending_customer_name)
+        self.assertIsNone(conv.pending_customer_phone)
+
+        self.agent.process_message(conv.id, "Consultation")
+        r_earliest = self.agent.process_message(conv.id, "earliest slot")
+        # Verify agent prompts for patient details again instead of assuming Ali
+        self.assertIn("share the patient's full name and mobile number", r_earliest.get("content", ""))
+
 if __name__ == "__main__":
     unittest.main()
 

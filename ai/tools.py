@@ -267,6 +267,8 @@ class ToolDispatcher:
                 booked_by = None
                 if conv and conv.visitor_id and "wa_" in conv.visitor_id:
                     booked_by = conv.visitor_id.replace("wa_", "").replace("whatsapp_", "")
+                elif conv and conv.customer and conv.customer.phone:
+                    booked_by = conv.customer.phone
 
                 cust_phone = (
                     arguments.get("customer_phone")

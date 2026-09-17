@@ -1334,6 +1334,9 @@ class MockAdapter(BaseLLMAdapter):
         # Name extraction & state resolution
         pending_name = conv_state.get("pending_customer_name")
         pending_phone = conv_state.get("pending_customer_phone")
+        account_name = conv_state.get("customer_name")
+        account_phone = conv_state.get("customer_phone")
+
         _roster_names_for_exclusion = (
             [d.get("name") for d in (conv_state.get("doctor_roster") or [])] +
             [s.get("name") for s in (conv_state.get("service_roster") or [])]
@@ -1342,8 +1345,24 @@ class MockAdapter(BaseLLMAdapter):
         cand_name = _extract_name(user_text, roster_names=_roster_names_for_exclusion, is_awaiting_name=is_awaiting_name_mock)
         if pending_name and not _is_valid_name_token(pending_name, roster_names=None):
             pending_name = None
-        effective_name = cand_name or pending_name
-        effective_phone = phone_val or pending_phone
+
+        is_self_patient_user = any(re.search(r'\b' + re.escape(p) + r'\b', user_text) for p in [
+            "for me", "it is for me", "it's for me", "its for me", "for myself",
+            "mera hai", "mere liye", "mere lye", "apne liye", "apne lye", "apna hai",
+            "same number", "same phone", "use this number", "isi number pe", "isi number par",
+            "isi number", "this number", "isi pe"
+        ])
+        is_confirm_word = any(w in user_text for w in ["confirm", "book", "yes", "yeah", "ok", "okay", "sure", "theek", "haan", "sahi", "go ahead"])
+
+        # If user says "for me", "same number", or "yes" when confirming:
+        if is_self_patient_user or (is_confirm_word and not pending_name and not cand_name):
+            effective_name = cand_name or pending_name or account_name
+            effective_phone = phone_val or pending_phone or account_phone
+        else:
+            effective_name = cand_name or pending_name
+            effective_phone = phone_val or pending_phone
+
+        display_name_greeting = cand_name or pending_name or account_name
 
 
         # ── CLASSIFY INTENT FROM CURRENT MESSAGE ONLY (before any state lookup) ──
@@ -1559,18 +1578,21 @@ class MockAdapter(BaseLLMAdapter):
                 fmt_e_time = _fmt_time_ampm(e_time)
                 d_obj = datetime.strptime(e_date, "%Y-%m-%d")
                 e_day_name = d_obj.strftime("%A, %B %d, %Y")
+                self_hint_u = f" ({account_name})" if account_name else ""
+                self_hint_r = f" [{account_name}]" if account_name else ""
+                self_hint_e = f", {account_name}" if account_name else ""
                 if lang == "urdu":
                     return {
-                        "content": f"{e_doc_name} کی سب سے پہلی دستیاب سلاٹ **{e_day_name}** بوقت **{fmt_e_time}** ہے۔ کیا میں یہ وقت آپ کے لیے بک کر دوں؟",
+                        "content": f"{e_doc_name} کی سب سے پہلی دستیاب سلاٹ **{e_day_name}** بوقت **{fmt_e_time}** ہے۔\n\nکیا میں یہ وقت آپ کے لیے محفوظ کر لوں؟ بکنگ مکمل کرنے کے لیے، براہ کرم مریض کا پورا نام اور موبائل نمبر بتا دیں (یا اگر یہ اپائنٹمنٹ آپ اپنے لیے{self_hint_u} بک کر رہے ہیں تو مطلع فرما دیں)۔",
                         "tool_calls": []
                     }
                 elif lang == "roman_urdu":
                     return {
-                        "content": f"{e_doc_name} ki sab se pehli available slot **{e_day_name}** ko **{fmt_e_time}** par hai. Kya main yeh appointment book kar doon?",
+                        "content": f"{e_doc_name} ki sab se pehli available slot **{e_day_name}** ko **{fmt_e_time}** par hai.\n\nKya main yeh slot aap ke liye reserve kar loon? Booking complete karne ke liye patient ka mukammal naam aur mobile number bata dein (ya agar yeh appointment aap apne liye{self_hint_r} book kar rahe hain to zaroor batayein).",
                         "tool_calls": []
                     }
                 return {
-                    "content": f"The earliest available slot with **{e_doc_name}** is on **{e_day_name}** at **{fmt_e_time}**.\n\nWould you like me to reserve this appointment for you?",
+                    "content": f"The earliest available slot with **{e_doc_name}** is on **{e_day_name}** at **{fmt_e_time}**.\n\nWould you like me to reserve this appointment for you? To finalize your booking, please share the patient's full name and mobile number (or let me know if this appointment is for you{self_hint_e}).",
                     "tool_calls": []
                 }
 
@@ -1598,7 +1620,8 @@ class MockAdapter(BaseLLMAdapter):
 
         # Check BOOKED state
         if workflow_state == "BOOKED":
-            if any(re.search(r'\b' + re.escape(w) + r'\b', user_text) for w in ["yes", "yeah", "confirm", "sure", "go ahead", "ok", "okay", "haan", "theek", "book it", "please book", "book", "thanks", "thank you", "done", "alright"]):
+            has_new_booking_phrase = any(w in user_text.lower() for w in ["another", "new", "naya", "nayi", "dobara", "doosri", "dusra", "dusri", "want to book", "book another", "book appointment", "appointment with", "ek aur", "appointment chahiye"])
+            if not has_new_booking_phrase and any(re.search(r'\b' + re.escape(w) + r'\b', user_text, re.I) for w in ["yes", "yeah", "confirm", "sure", "go ahead", "ok", "okay", "haan", "theek", "thanks", "thank you", "done", "alright"]):
                 if lang == "urdu":
                     return {
                         "content": "🎉 **آپ کی اپائنٹمنٹ پہلے ہی تصدیق شدہ ہے!** ہم کلینک میں آپ کے منتظر ہیں۔ کیا میں آپ کی مزید کوئی مدد کر سکتا ہوں؟",
@@ -2257,10 +2280,12 @@ class MockAdapter(BaseLLMAdapter):
                         return _prompt_doctor_choice(doctor_roster, lang, effective_name)
                     doc_services = [s for s in service_roster if s.get("doctor_id") == doc_id] if doc_id else service_roster
                     effective_svc_id = svc_id or (doc_services[0]["id"] if doc_services else None)
-                    if effective_name and effective_phone and target_date_str:
+                    effective_name_final = effective_name or account_name
+                    effective_phone_final = effective_phone or account_phone
+                    if effective_name_final and effective_phone_final and target_date_str:
                         chosen_time = req_time or "10:00"
                         return _make_booking_or_reschedule_tool(
-                            conv_state, user_text, effective_name, effective_phone,
+                            conv_state, user_text, effective_name_final, effective_phone_final,
                             doc_id, doc_name, effective_svc_id, target_date_str, chosen_time
                         )
                 elif any(re.search(pat, user_text.lower()) for pat in [
@@ -2317,15 +2342,17 @@ class MockAdapter(BaseLLMAdapter):
                     }
 
             elif awaiting_input == "phone":
-                if phone_match:
-                    effective_phone = phone_match
-                    if effective_name and target_date_str and req_time:
+                is_same_phone_user = any(w in user_text for w in ["same", "use this", "yes", "yeah", "sure", "haan", "theek", "isi", "this", "whatsapp", "ok", "okay"])
+                if phone_match or (is_same_phone_user and account_phone):
+                    effective_phone = phone_match or account_phone
+                    effective_name_final = effective_name or account_name
+                    if effective_name_final and target_date_str and req_time:
                         if not doc_id:
-                            return _prompt_doctor_choice(doctor_roster, lang, effective_name)
+                            return _prompt_doctor_choice(doctor_roster, lang, effective_name_final)
                         doc_services = [s for s in service_roster if s.get("doctor_id") == doc_id] if doc_id else service_roster
                         effective_svc_id = svc_id or (doc_services[0]["id"] if doc_services else None)
                         return _make_booking_or_reschedule_tool(
-                            conv_state, user_text, effective_name, effective_phone,
+                            conv_state, user_text, effective_name_final, effective_phone,
                             doc_id, doc_name, effective_svc_id, target_date_str, req_time
                         )
                     if lang == "urdu":
@@ -2711,7 +2738,7 @@ class MockAdapter(BaseLLMAdapter):
             spoken_d_u = _fmt_spoken_date_urdu(effective_date)
             spoken_t_u = _fmt_spoken_time_urdu(effective_time)
             spoken_d_r = _fmt_spoken_date_roman(effective_date)
-            if effective_name and effective_phone:
+            if effective_name and effective_phone and (pending_name or cand_name or is_self_patient_user or is_confirm_word):
                 if lang == "urdu":
                     return {
                         "content": f"بہترین، {effective_name} صاحب! میں نے {doc_name} کے ساتھ {spoken_d_u} بوقت {spoken_t_u} کا وقت محفوظ کر لیا ہے۔ کیا میں یہ بکنگ کنفرم کر دوں؟",
@@ -2728,43 +2755,64 @@ class MockAdapter(BaseLLMAdapter):
                 }
 
             if effective_name and not effective_phone:
-                if lang == "urdu":
+                if account_phone:
+                    if lang == "urdu":
+                        return {
+                            "content": f"بہترین! میں نے {spoken_d_u} کو {spoken_t_u} کا وقت {effective_name} کے لیے محفوظ کر لیا ہے۔ کیا ہم مریض کا رابطہ نمبر ({account_phone}) رکھیں یا کوئی دوسرا نمبر لکھیں؟",
+                            "tool_calls": []
+                        }
+                    elif lang == "roman_urdu":
+                        return {
+                            "content": f"Behtareen! Maine {spoken_d_r} ko {spoken_t_r} ka slot {effective_name} ke liye reserve kar liya hai. Kya hum patient ka contact number yahi ({account_phone}) use karein ya koi doosra number likhein?",
+                            "tool_calls": []
+                        }
                     return {
-                        "content": f"بہترین، {effective_name} صاحب! میں نے {spoken_d_u} کو {spoken_t_u} کا وقت آپ کے لیے محفوظ کر لیا ہے۔ بکنگ کو فائنل کرنے کے لیے، برائے مہربانی اپنا فون نمبر شیئر کر دیجیے تاکہ ہم آپ کو تصدیقی میسج بھیج سکیں۔",
+                        "content": f"Wonderful! I have reserved the {_fmt_time_ampm(effective_time)} slot on {effective_date} for {effective_name}. Could you please share {effective_name}'s mobile number, or should we use this contact number ({account_phone}) for updates?",
                         "tool_calls": []
                     }
-                elif lang == "roman_urdu":
+                else:
+                    if lang == "urdu":
+                        return {
+                            "content": f"بہترین، {effective_name} صاحب! میں نے {spoken_d_u} کو {spoken_t_u} کا وقت آپ کے لیے محفوظ کر لیا ہے۔ بکنگ کو فائنل کرنے کے لیے، برائے مہربانی اپنا فون نمبر شیئر کر دیجیے تاکہ ہم آپ کو تصدیقی میسج بھیج سکیں۔",
+                            "tool_calls": []
+                        }
+                    elif lang == "roman_urdu":
+                        return {
+                            "content": f"Behtareen, {effective_name}! Maine {spoken_d_r} ko {spoken_t_r} ka slot aap ke liye mehfooz kar liya hai. Booking ko final karne ke liye apna contact number share kar dijiye taake hum confirmation bhej sakein.",
+                            "tool_calls": []
+                        }
                     return {
-                        "content": f"Behtareen, {effective_name}! Maine {spoken_d_r} ko {spoken_t_r} ka slot aap ke liye mehfooz kar liya hai. Booking ko final karne ke liye apna contact number share kar dijiye taake hum confirmation bhej sakein.",
+                        "content": f"Wonderful, {effective_name}! I have reserved the {_fmt_time_ampm(effective_time)} slot on {effective_date} for you. To finalize your booking, could you please share your contact phone number so we can send your confirmation details?",
                         "tool_calls": []
                     }
-                return {
-                    "content": f"Wonderful, {effective_name}! I have reserved the {_fmt_time_ampm(effective_time)} slot on {effective_date} for you. To finalize your booking, could you please share your contact phone number so we can send your confirmation details?",
-                    "tool_calls": []
-                }
+
+            self_hint_u = f" ({account_name})" if account_name else ""
+            self_hint_r = f" [{account_name}]" if account_name else ""
+            self_hint_e = f", {account_name}" if account_name else ""
             if lang == "urdu":
                 return {
-                    "content": f"بہترین! میں نے {spoken_d_u} کو {spoken_t_u} کا وقت آپ کے لیے محفوظ کر لیا ہے۔ بکنگ کو فائنل کرنے کے لیے، کیا میں آپ کا پورا نام جان سکتا ہوں؟ اور ساتھ ہی اپنا فون نمبر بھی شیئر کر دیجیے تاکہ ہم آپ کو تصدیقی میسج بھیج سکیں۔",
+                    "content": f"بہترین! میں نے {spoken_d_u} کو {spoken_t_u} کا وقت آپ کے لیے محفوظ کر لیا ہے۔ بکنگ کو فائنل کرنے کے لیے، کیا میں مریض کا پورا نام اور موبائل نمبر جان سکتا ہوں (یا اگر یہ اپائنٹمنٹ آپ اپنے لیے{self_hint_u} بک کر رہے ہیں تو مطلع فرما دیں)؟",
                     "tool_calls": []
                 }
             elif lang == "roman_urdu":
                 return {
-                    "content": f"Behtareen! Maine {spoken_d_r} ko {spoken_t_r} ka slot aap ke liye mehfooz kar liya hai. Booking ko final karne ke liye, kya main aap ka poora naam jaan sakta hoon? Aur sath hi apna phone number bhi share kar dijiye taake hum aap ko confirmation message bhej sakein.",
+                    "content": f"Behtareen! Maine {spoken_d_r} ko {spoken_t_r} ka slot aap ke liye mehfooz kar liya hai. Booking ko final karne ke liye, patient ka mukammal naam aur mobile number bata dein (ya agar yeh appointment aap apne liye{self_hint_r} book kar rahe hain to zaroor batayein)?",
                     "tool_calls": []
                 }
             return {
-                "content": f"Perfect! I have reserved the {_fmt_time_ampm(effective_time)} slot on {effective_date} for you. To finalize your booking, may I please have your full name and contact phone number so we can send your confirmation message?",
+                "content": f"Perfect! I have reserved the {_fmt_time_ampm(effective_time)} slot on {effective_date} for you. To finalize your booking, could you please share the patient's full name and mobile number (or let me know if this appointment is for you{self_hint_e})?",
                 "tool_calls": []
             }
 
         # Already booked confirmation message (only when user is not making a new booking request)
         if workflow_state == "BOOKED":
-            is_ack = any(w in user_text for w in ["confirm", "yes", "yeah", "sure", "ok", "okay", "haan", "theek", "thanks", "thank you", "done", "alright"])
-            has_new_booking_request = not is_ack and (
+            has_new_booking_phrase = any(w in user_text.lower() for w in ["another", "new", "naya", "nayi", "dobara", "doosri", "dusra", "dusri", "want to book", "book another", "book appointment", "appointment with", "ek aur", "appointment chahiye"])
+            is_ack = not has_new_booking_phrase and any(re.search(r'\b' + re.escape(w) + r'\b', user_text, re.I) for w in ["confirm", "yes", "yeah", "sure", "ok", "okay", "haan", "theek", "thanks", "thank you", "done", "alright"])
+            has_new_booking_request = has_new_booking_phrase or (not is_ack and (
                 (doc_id and doc_id != conversation_state.get("selected_doctor_id")) or
                 time_token or target_date_str or
                 any(w in user_text for w in ["naya", "nayi", "new", "another", "dobara", "doosri"])
-            )
+            ))
             if not has_new_booking_request:
                 effective_doc_name = doc_name or (doctor_roster[0]["name"] if doctor_roster else "our practicing dentist")
                 chosen_time = time_token or req_time or "09:00"
@@ -2846,37 +2894,69 @@ class MockAdapter(BaseLLMAdapter):
                     "tool_calls": []
                 }
             if not effective_phone:
+                if account_phone:
+                    if lang == "urdu":
+                        return {
+                            "content": f"بہترین! میں نے وقت {cand_name} کے لیے محفوظ کر لیا ہے۔ کیا ہم مریض کا رابطہ نمبر ({account_phone}) رکھیں یا کوئی دوسرا نمبر لکھیں؟",
+                            "tool_calls": []
+                        }
+                    elif lang == "roman_urdu":
+                        return {
+                            "content": f"Theek hai, {cand_name} ke liye appointment! Barah-e-karam {cand_name} ka mobile number share kar dein, ya kya hum isi WhatsApp number ({account_phone}) ko use karein?",
+                            "tool_calls": []
+                        }
+                    return {
+                        "content": f"Got it, booking for {cand_name}! Could you please share {cand_name}'s mobile number, or should we use this WhatsApp number ({account_phone}) for the appointment updates?",
+                        "tool_calls": []
+                    }
+                else:
+                    if lang == "urdu":
+                        return {
+                            "content": f"شکریہ {cand_name} صاحب! بکنگ مکمل کرنے کے لیے براہ کرم اپنا رابطہ فون نمبر فراہم کریں۔",
+                            "tool_calls": []
+                        }
+                    elif lang == "roman_urdu":
+                        return {
+                            "content": f"Shukriya {cand_name}! Booking complete karne ke liye barah-e-karam apna contact phone number provide karein.",
+                            "tool_calls": []
+                        }
+                    return {
+                        "content": f"Thank you, {cand_name}. Please provide your contact phone number to complete and confirm your booking.",
+                        "tool_calls": []
+                    }
+
+        # Case D: Name provided but phone still missing in booking context -> ask specifically for phone ONLY when slot & date are selected
+        if effective_name and not effective_phone and (req_time or time_token) and effective_date:
+            if account_phone:
                 if lang == "urdu":
                     return {
-                        "content": f"شکریہ {cand_name} صاحب! بکنگ مکمل کرنے کے لیے براہ کرم اپنا رابطہ فون نمبر فراہم کریں۔",
+                        "content": f"بہترین! میں نے وقت {effective_name} کے لیے محفوظ کر لیا ہے۔ کیا ہم مریض کا رابطہ نمبر ({account_phone}) رکھیں یا کوئی دوسرا نمبر لکھیں؟",
                         "tool_calls": []
                     }
                 elif lang == "roman_urdu":
                     return {
-                        "content": f"Shukriya {cand_name}! Booking complete karne ke liye barah-e-karam apna contact phone number provide karein.",
+                        "content": f"Theek hai, {effective_name} ke liye appointment! Barah-e-karam {effective_name} ka mobile number share kar dein, ya kya hum isi WhatsApp number ({account_phone}) ko use karein?",
                         "tool_calls": []
                     }
                 return {
-                    "content": f"Thank you, {cand_name}. Please provide your contact phone number to complete and confirm your booking.",
+                    "content": f"Got it, booking for {effective_name}! Could you please share {effective_name}'s mobile number, or should we use this WhatsApp number ({account_phone}) for the appointment updates?",
                     "tool_calls": []
                 }
-
-        # Case D: Name provided but phone still missing in booking context -> ask specifically for phone ONLY when slot & date are selected
-        if effective_name and not effective_phone and (req_time or time_token) and effective_date:
-            if lang == "urdu":
+            else:
+                if lang == "urdu":
+                    return {
+                        "content": f"شکریہ {effective_name} صاحب! بکنگ مکمل کرنے کے لیے براہ کرم اپنا رابطہ فون نمبر فراہم کریں۔",
+                        "tool_calls": []
+                    }
+                elif lang == "roman_urdu":
+                    return {
+                        "content": f"Shukriya {effective_name}! Booking complete karne ke liye barah-e-karam apna contact phone number provide karein.",
+                        "tool_calls": []
+                    }
                 return {
-                    "content": f"شکریہ {effective_name} صاحب! بکنگ مکمل کرنے کے لیے براہ کرم اپنا رابطہ فون نمبر فراہم کریں۔",
+                    "content": f"Thank you, {effective_name}. Please provide your contact phone number to complete and confirm your booking.",
                     "tool_calls": []
                 }
-            elif lang == "roman_urdu":
-                return {
-                    "content": f"Shukriya {effective_name}! Booking complete karne ke liye barah-e-karam apna contact phone number provide karein.",
-                    "tool_calls": []
-                }
-            return {
-                "content": f"Thank you, {effective_name}. Please provide your contact phone number to complete and confirm your booking.",
-                "tool_calls": []
-            }
 
         # Case E: Phone provided but name still missing in booking context -> ask specifically for name ONLY when slot & date are selected
         if effective_phone and not effective_name and (req_time or time_token) and effective_date:

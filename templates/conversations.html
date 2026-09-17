@@ -90,7 +90,13 @@
                  data-phone="{{ (c.customer.phone if c.customer else '') | lower }}"
                  data-date="{{ c.created_at.strftime('%Y-%m-%d') if c.created_at else '' }}">
                 <div class="conv-item-top">
-                    <span class="conv-customer-name">{{ c.customer.name if c.customer else "Visitor #" ~ c.id }}</span>
+                    <span class="conv-customer-name" title="{{ c.customer.phone if c.customer and c.customer.phone else (c.customer.name if c.customer else 'Visitor') }}">
+                        {% if c.customer and c.customer.phone %}
+                            📱 {{ c.customer.phone }}{% if c.customer.name and c.customer.name != c.customer.phone %} <span style="font-weight: 500; font-size: 0.82rem; opacity: 0.85;">({{ c.customer.name }})</span>{% endif %}
+                        {% else %}
+                            {{ c.customer.name if c.customer else "Visitor #" ~ c.id }}
+                        {% endif %}
+                    </span>
                     <div style="display: flex; align-items: center; gap: 6px;">
                         {% if c.status == 'HUMAN' %}
                             <span class="badge badge-warning">👨‍💼 HUMAN</span>

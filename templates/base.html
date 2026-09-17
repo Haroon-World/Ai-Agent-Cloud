@@ -31,7 +31,6 @@
                     <a href="/admin/conversations" class="nav-item {% if request.path.startswith('/admin/conversations') %}active{% endif %}">Conversations</a>
                     <a href="/admin/reminders" class="nav-item {% if request.path.startswith('/admin/reminders') %}active{% endif %}">Reminders</a>
                     <a href="/admin/subscription" class="nav-item {% if request.path.startswith('/admin/subscription') %}active{% endif %}">💳 Subscription</a>
-                    <a href="/admin/whatsapp" class="nav-item {% if request.path.startswith('/admin/whatsapp') %}active{% endif %}">📱 WhatsApp</a>
                 {% endif %}
                 {% if session.get('is_platform_admin') %}
                     <a href="/platform/dashboard" class="nav-item {% if request.path.startswith('/platform') %}active{% endif %}" style="color: #a5b4fc; font-weight: 700;">🛡️ SaaS Console</a>

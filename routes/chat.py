@@ -192,6 +192,9 @@ def get_history(conversation_id):
         "status": conv.status,
         "workflow_state": conv.workflow_state,
         "handoff_reason": conv.handoff_reason,
+        "customer_name": conv.customer.name if conv.customer else conv.pending_customer_name,
+        "customer_phone": conv.customer.phone if conv.customer else conv.pending_customer_phone,
+        "channel": conv.channel,
         "messages": visible_messages
     })
 

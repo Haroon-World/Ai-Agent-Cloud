@@ -38,9 +38,9 @@ async function loadConversationDetails(convId, options = {}) {
     try {
         const res = await fetch(`/api/chat/history/${convId}`);
         const data = await res.json();
-        if (!data.success) return;
-
-        document.getElementById('activeConvTitle').textContent = `Conversation #${data.conversation_id}`;
+        const phoneInfo = data.customer_phone ? ` • 📱 ${data.customer_phone}` : '';
+        const nameInfo = (data.customer_name && data.customer_name !== data.customer_phone) ? ` (${data.customer_name})` : '';
+        document.getElementById('activeConvTitle').textContent = `Conversation #${data.conversation_id}${phoneInfo}${nameInfo}`;
         
         // Status Badge
         const statusBadge = document.getElementById('activeConvStatusBadge');

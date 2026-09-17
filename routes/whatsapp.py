@@ -233,8 +233,8 @@ def handle_webhook():
                 status="AI",
                 intent="UNKNOWN",
                 workflow_state="START",
-                pending_customer_name=clean_profile_name or customer.name,
-                pending_customer_phone=customer.phone
+                pending_customer_name=None,
+                pending_customer_phone=None
             )
             db.session.add(conv)
             db.session.commit()
@@ -247,10 +247,6 @@ def handle_webhook():
             if conv.status == "CLOSED":
                 conv.status = "AI"
                 conv.workflow_state = "START"
-
-            # If current pending name is a stale test name or empty, update to verified profile name
-            if clean_profile_name and (not conv.pending_customer_name or conv.pending_customer_name.lower() in ["ali", "patient", "test", "user", "guest", "whatsapp patient"]):
-                conv.pending_customer_name = clean_profile_name
 
             # If previous state was BOOKED and user asks a new question or wants another booking/reschedule,
             # transition state cleanly so they don't get stuck in finished booking state
@@ -266,6 +262,8 @@ def handle_webhook():
                     conv.selected_doctor_id = None
                     conv.selected_service_id = None
                     conv.awaiting_input = None
+                    conv.pending_customer_name = None
+                    conv.pending_customer_phone = None
             db.session.commit()
 
         # 4. Invoke AI Agent

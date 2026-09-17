@@ -304,6 +304,8 @@ def _build_state_dict(conv: Conversation) -> Dict[str, Any]:
         "pending_customer_name": conv.pending_customer_name,
         "pending_customer_phone": conv.pending_customer_phone,
         "customer_id": conv.customer_id,
+        "customer_name": conv.customer.name if conv.customer else None,
+        "customer_phone": conv.customer.phone if conv.customer else None,
         "channel": conv.channel or "web_chat",
         "business_id": conv.business_id,
         "active_appointment_id": active_appt_id,
@@ -517,7 +519,8 @@ def _resolve_workflow_input(conv: Conversation, user_content: str):
 
     # If in BOOKED state and user initiates a new message (inquiry, new booking, doctor question, etc.)
     if conv.workflow_state == "BOOKED":
-        is_ack = any(k in text_lower for k in ["confirm", "yes", "yeah", "sure", "ok", "okay", "haan", "theek", "thanks", "thank you", "done", "alright"])
+        has_new_booking_intent = any(w in text_lower for w in ["another", "new", "naya", "nayi", "dobara", "doosri", "dusra", "dusri", "want to book", "book another", "book appointment", "appointment with", "appointment chahiye", "ek aur"])
+        is_ack = not has_new_booking_intent and bool(re.search(r'\b(?:confirm|yes|yeah|sure|ok|okay|haan|theek|thanks|thank you|done|alright)\b', text_lower))
         if not is_ack and not is_cancel_msg and not is_negated_cancel:
             contact_update_phrases = [
                 "change my mobile", "change my number", "change my phone", "change mobile number", "change phone number",
@@ -548,6 +551,8 @@ def _resolve_workflow_input(conv: Conversation, user_content: str):
                 conv.requested_date = None
                 conv.requested_time = None
                 conv.awaiting_input = None
+                conv.pending_customer_name = None
+                conv.pending_customer_phone = None
 
     # Shared question-detection for the roster guards below.
     # Condition (d): allow a roster match to overwrite state when the message
@@ -748,8 +753,23 @@ def _resolve_workflow_input(conv: Conversation, user_content: str):
             else:
                 conv.awaiting_input = "date_choice"
 
-    # Ensure customer info from linked customer record is carried over if not yet populated
-    if conv.customer:
+    # Check if user confirms appointment is for themselves or same contact
+    is_self_patient = any(re.search(r'\b' + re.escape(p) + r'\b', text_lower) for p in [
+        "for me", "it is for me", "it's for me", "its for me", "for myself",
+        "mera hai", "mere liye", "mere lye", "apne liye", "apne lye", "apna hai",
+        "same number", "same phone", "use this number", "isi number pe", "isi number par",
+        "isi number", "this number", "isi pe"
+    ])
+    if is_self_patient:
+        if conv.customer:
+            if not conv.pending_customer_name:
+                conv.pending_customer_name = conv.customer.name
+            conv.pending_customer_phone = conv.customer.phone
+        if conv.awaiting_input in ["name", "phone", "patient_info"]:
+            conv.awaiting_input = "confirmation"
+
+    # Status inquiry or cancellation: carry over linked customer info
+    if conv.customer and conv.intent in ["APPOINTMENT_STATUS_INQUIRY", "CANCEL_APPOINTMENT"]:
         if not conv.pending_customer_name and conv.customer.name:
             conv.pending_customer_name = conv.customer.name
         if not conv.pending_customer_phone and conv.customer.phone:
@@ -757,9 +777,12 @@ def _resolve_workflow_input(conv: Conversation, user_content: str):
 
     # If in BOOKED state and user initiates a new booking request with new parameters
     if conv.workflow_state == "BOOKED":
-        is_ack = any(k in text_lower for k in ["confirm", "yes", "yeah", "sure", "ok", "okay", "haan", "theek", "thanks", "thank you", "done", "alright"])
-        if not is_ack and (matched_doc or parsed_date or _extract_time_token(user_content) or any(w in text_lower for w in ["naya", "nayi", "new", "another", "dobara", "doosri"])):
+        has_new_booking_intent = any(w in text_lower for w in ["another", "new", "naya", "nayi", "dobara", "doosri", "dusra", "dusri", "want to book", "book another", "book appointment", "appointment with", "appointment chahiye", "ek aur"])
+        is_ack = not has_new_booking_intent and bool(re.search(r'\b(?:confirm|yes|yeah|sure|ok|okay|haan|theek|thanks|thank you|done|alright)\b', text_lower))
+        if not is_ack and (matched_doc or parsed_date or _extract_time_token(user_content) or has_new_booking_intent):
             conv.workflow_state = "COLLECTING_INFO"
+            conv.pending_customer_name = None
+            conv.pending_customer_phone = None
 
     # 5. Extract customer name (excluding doctor & service names)
     _roster_names = [d["name"] for d in doctor_roster] + [s["name"] for s in service_roster]
@@ -778,8 +801,15 @@ def _resolve_workflow_input(conv: Conversation, user_content: str):
 
     # 6. Extract customer phone
     phone_found = _extract_phone_number(user_content)
-    if phone_found and not conv.pending_customer_phone:
+    if phone_found:
         conv.pending_customer_phone = phone_found
+        if conv.awaiting_input == "phone":
+            conv.awaiting_input = "confirmation" if (conv.pending_customer_name and conv.requested_date and conv.requested_time) else None
+    elif conv.awaiting_input == "phone" and conv.pending_customer_name:
+        is_same_phone_affirm = any(p in text_lower for p in ["same", "use this", "yes", "yeah", "sure", "haan", "theek", "isi", "this", "whatsapp", "ok", "okay"])
+        if is_same_phone_affirm and conv.customer and conv.customer.phone:
+            conv.pending_customer_phone = conv.customer.phone
+            conv.awaiting_input = "confirmation" if (conv.requested_date and conv.requested_time) else None
 
     # Contact details update trigger (name or phone update)
     contact_update_phrases = [
@@ -806,6 +836,10 @@ def _resolve_workflow_input(conv: Conversation, user_content: str):
 
     # 7. Confirmation triggers
     if any(k in text_lower for k in ["confirm", "confirm booking", "confirm appointment", "yes", "yeah", "sure", "book it", "please book", "go ahead", "haan", "theek hai", "theek", "confirm kar do", "confirm karein"]):
+        if not conv.pending_customer_name and conv.customer and conv.customer.name:
+            conv.pending_customer_name = conv.customer.name
+        if not conv.pending_customer_phone and conv.customer and conv.customer.phone:
+            conv.pending_customer_phone = conv.customer.phone
         if conv.pending_customer_name and conv.pending_customer_phone and conv.requested_date and conv.requested_time:
             conv.awaiting_input = "confirmation"
 
@@ -1275,13 +1309,37 @@ class Agent:
         if not conv:
             raise ValueError(f"Conversation {conversation_id} not found.")
 
+        # Check for 2-hour inactivity session reset before updating timestamps
+        now = datetime.now(timezone.utc)
+        last_msg = (
+            Message.query
+            .filter_by(conversation_id=conv.id)
+            .order_by(Message.created_at.desc())
+            .first()
+        )
+        last_activity = last_msg.created_at if last_msg and last_msg.created_at else conv.updated_at
+        if last_activity:
+            if last_activity.tzinfo is None:
+                last_activity = last_activity.replace(tzinfo=timezone.utc)
+            if (now - last_activity) > timedelta(hours=2):
+                # 2-hour inactivity session timeout: clear all draft booking state and patient info
+                conv.workflow_state = "START"
+                conv.intent = "UNKNOWN"
+                conv.awaiting_input = None
+                conv.requested_date = None
+                conv.requested_time = None
+                conv.selected_doctor_id = None
+                conv.selected_service_id = None
+                conv.pending_customer_name = None
+                conv.pending_customer_phone = None
+
         # 1. Persist user message to DB unconditionally & update conversation timestamp
         user_msg = Message(
             conversation_id=conv.id,
             role="user",
             content=user_content
         )
-        conv.updated_at = datetime.now(timezone.utc)
+        conv.updated_at = now
         db.session.add(user_msg)
         db.session.commit()
 
