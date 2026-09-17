@@ -1,3 +1,4 @@
+import re
 import hashlib
 import hmac
 import logging
@@ -196,17 +197,22 @@ def handle_webhook():
             (Customer.phone == from_phone) | (Customer.phone == clean_phone)
         ).first()
 
+        clean_profile_name = re.sub(r'^[~_\s]+|[~_\s]+$', '', patient_name).strip() if patient_name else None
+
         if not customer:
             customer = Customer(
                 business_id=business_id,
-                name=patient_name or f"WhatsApp Patient ({clean_phone[-4:] if len(clean_phone) >= 4 else clean_phone})",
+                name=clean_profile_name or f"WhatsApp Patient ({clean_phone[-4:] if len(clean_phone) >= 4 else clean_phone})",
                 phone=clean_phone
             )
             db.session.add(customer)
             db.session.commit()
-        elif patient_name and ("WhatsApp Patient" in (customer.name or "")):
-            customer.name = patient_name
-            db.session.commit()
+        elif clean_profile_name:
+            # If the stored customer name is a placeholder or previous test name (like "Ali" / "WhatsApp Patient"):
+            # update it to the verified WhatsApp profile name
+            if ("WhatsApp Patient" in (customer.name or "")) or (customer.name and customer.name.lower() in ["ali", "patient", "test", "user", "guest"]):
+                customer.name = clean_profile_name
+                db.session.commit()
 
         # 3. Unified Conversation Lookup — Strictly ONE continuous thread per WhatsApp Phone Number
         wa_visitor_id = f"wa_{clean_phone}"
@@ -227,7 +233,7 @@ def handle_webhook():
                 status="AI",
                 intent="UNKNOWN",
                 workflow_state="START",
-                pending_customer_name=customer.name,
+                pending_customer_name=clean_profile_name or customer.name,
                 pending_customer_phone=customer.phone
             )
             db.session.add(conv)
@@ -241,6 +247,10 @@ def handle_webhook():
             if conv.status == "CLOSED":
                 conv.status = "AI"
                 conv.workflow_state = "START"
+
+            # If current pending name is a stale test name or empty, update to verified profile name
+            if clean_profile_name and (not conv.pending_customer_name or conv.pending_customer_name.lower() in ["ali", "patient", "test", "user", "guest", "whatsapp patient"]):
+                conv.pending_customer_name = clean_profile_name
 
             # If previous state was BOOKED and user asks a new question or wants another booking/reschedule,
             # transition state cleanly so they don't get stuck in finished booking state

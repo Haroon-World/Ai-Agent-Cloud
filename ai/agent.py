@@ -3,7 +3,7 @@ import re
 import uuid
 import time
 import threading
-from datetime import datetime, timezone, date as dt_date, timedelta as dt_td
+from datetime import datetime, timezone, date as dt_date, timedelta, timedelta as dt_td
 from typing import Dict, Any, List, Optional
 from sqlalchemy import event
 from sqlalchemy.engine import Engine
@@ -688,6 +688,36 @@ def _resolve_workflow_input(conv: Conversation, user_content: str):
         conv.requested_date = parsed_date
         if conv.awaiting_input == "date_choice":
             conv.awaiting_input = None
+
+    # Resolve "earliest slot" / "first available" queries dynamically across doctor's upcoming schedule
+    is_earliest_query = any(w in text_lower for w in ["earliest", "first available", "first slot", "pehle slot", "sab se pehle", "subah pehla"])
+    if is_earliest_query:
+        target_d_id = conv.selected_doctor_id or (doctor_roster[0]["id"] if doctor_roster else 1)
+        effective_svc_id = conv.selected_service_id
+        today_dt = datetime.now()
+        for d_offset in range(1, 8):
+            check_d_str = (today_dt + timedelta(days=d_offset)).strftime("%Y-%m-%d")
+            avail = BookingService.check_availability(
+                business_id=conv.business_id,
+                doctor_id=target_d_id,
+                service_id=effective_svc_id,
+                date_str=check_d_str
+            )
+            if not avail.get("success") and effective_svc_id:
+                avail = BookingService.check_availability(
+                    business_id=conv.business_id,
+                    doctor_id=target_d_id,
+                    service_id=None,
+                    date_str=check_d_str
+                )
+            slots = avail.get("available_slots", []) if avail.get("success") else []
+            if slots:
+                conv.requested_date = check_d_str
+                conv.requested_time = slots[0]
+                conv.selected_doctor_id = target_d_id
+                conv.awaiting_input = "confirmation"
+                conv.workflow_state = "CONFIRMING"
+                break
 
     # 4. Resolve Time with authoritative live availability validation
     if not _is_question_query(user_content):
@@ -1427,20 +1457,22 @@ class Agent:
         is_confirm_reply = any(k in user_content.lower() for k in [
             "confirm appointment", "confirm booking", "confirm", "book it", "please book", "go ahead",
             "yes, confirm", "yes confirm", "haan confirm", "theek hai confirm"
-        ]) or (conv.awaiting_input == "confirmation" and any(k in user_content.lower() for k in ["yes", "yeah", "sure", "ok", "okay", "haan", "theek"]))
+        ]) or (conv.awaiting_input == "confirmation" and any(k in user_content.lower() for k in ["yes", "yeah", "sure", "ok", "okay", "haan", "theek", "yup", "jee", "ji"]))
 
         existing_tool_names = [t.get("name") for t in (response.get("tool_calls") or [])]
         if is_confirm_reply and conv.workflow_state != "BOOKED" and "book_appointment" not in existing_tool_names:
             has_name = bool(conv.pending_customer_name or (conv.customer and conv.customer.name))
             has_phone = bool(conv.pending_customer_phone or (conv.customer and conv.customer.phone))
-            if conv.selected_doctor_id and conv.selected_service_id and conv.requested_date and conv.requested_time and has_name and has_phone:
+            doc_services = BookingService.get_services(conv.business_id, doctor_id=conv.selected_doctor_id)
+            effective_svc_id = conv.selected_service_id or (doc_services[0]["id"] if doc_services else None)
+            if conv.selected_doctor_id and effective_svc_id and conv.requested_date and conv.requested_time and has_name and has_phone:
                 if not response.get("tool_calls"):
                     response["tool_calls"] = []
                 response["tool_calls"].append({
                     "name": "book_appointment",
                     "arguments": {
                         "doctor_id": conv.selected_doctor_id,
-                        "service_id": conv.selected_service_id,
+                        "service_id": effective_svc_id,
                         "appointment_date": conv.requested_date,
                         "appointment_time": conv.requested_time,
                         "customer_name": conv.pending_customer_name or (conv.customer.name if conv.customer else "Valued Patient"),

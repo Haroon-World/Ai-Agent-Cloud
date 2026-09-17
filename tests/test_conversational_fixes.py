@@ -240,7 +240,117 @@ class TestConversationalFixes(unittest.TestCase):
         content = res.get("content", "")
         self.assertNotIn("cancelled your booking request", content.lower())
 
+    def test_earliest_slot_resolution_and_confirmation(self):
+        """Verify that 'earliest slot' populates requested_date, requested_time, awaiting_input='confirmation', and 'yes' books the appointment."""
+        from models import Conversation, Customer
+        from ai.agent import Agent
+
+        customer = Customer(
+            business_id=1,
+            name="Mahr Haroon",
+            phone="923187538771"
+        )
+        db.session.add(customer)
+        db.session.commit()
+
+        conv = Conversation(
+            business_id=1,
+            customer_id=customer.id,
+            channel="whatsapp",
+            status="AI",
+            workflow_state="COLLECTING_INFO",
+            selected_doctor_id=2,  # Dr. Sara Malik
+            selected_service_id=7,  # Pediatric & General Consultation
+            pending_customer_name="Mahr Haroon",
+            pending_customer_phone="923187538771"
+        )
+        db.session.add(conv)
+        db.session.commit()
+
+        agent = Agent(business_id=1, llm_provider="mock")
+        # Step 1: User says 'earliest slot'
+        res1 = agent.process_message(conv.id, "earliest slot")
+        db.session.refresh(conv)
+        self.assertIsNotNone(conv.requested_date)
+        self.assertIsNotNone(conv.requested_time)
+        self.assertEqual(conv.awaiting_input, "confirmation")
+        self.assertIn("earliest available slot", res1.get("content", "").lower())
+
+        # Step 2: User says 'yes'
+        res2 = agent.process_message(conv.id, "yes")
+        db.session.refresh(conv)
+        self.assertEqual(conv.workflow_state, "BOOKED")
+        self.assertTrue(any(t.get("name") == "book_appointment" for t in res2.get("executed_tools", [])))
+        self.assertIn("confirmed", res2.get("content", "").lower())
+
+    def test_whatsapp_profile_name_sanitization_and_override(self):
+        """Verify profile names with tildes and spaces are cleaned and override old test names."""
+        import re
+        raw_name = "~Mahr Haroon~"
+        clean_name = re.sub(r'^[~_\s]+|[~_\s]+$', '', raw_name).strip()
+        self.assertEqual(clean_name, "Mahr Haroon")
+
+    def test_full_user_transcript_dr_sara_earliest_slot_flow(self):
+        """Simulate the exact 5-step user transcript and verify successful booking on 'yes'."""
+        from models import Conversation, Customer
+        from ai.agent import Agent
+
+        customer = Customer(
+            business_id=1,
+            name="Mahr Haroon",
+            phone="923187538779"
+        )
+        db.session.add(customer)
+        db.session.commit()
+
+        conv = Conversation(
+            business_id=1,
+            customer_id=customer.id,
+            channel="whatsapp",
+            status="AI",
+            workflow_state="START",
+            pending_customer_name="Mahr Haroon",
+            pending_customer_phone="923187538779"
+        )
+        db.session.add(conv)
+        db.session.commit()
+
+        agent = Agent(business_id=1, llm_provider="mock")
+
+        # Turn 1: "HI"
+        r1 = agent.process_message(conv.id, "HI")
+        self.assertIn("Arfa Dental Clinic", r1.get("content", ""))
+
+        # Turn 2: "DR SARA"
+        r2 = agent.process_message(conv.id, "DR SARA")
+        db.session.refresh(conv)
+        self.assertEqual(conv.selected_doctor_id, 2)
+        self.assertIn("Sara Malik", r2.get("content", ""))
+
+        # Turn 3: "consultation"
+        r3 = agent.process_message(conv.id, "consultation")
+        db.session.refresh(conv)
+        self.assertEqual(conv.selected_service_id, 7)
+
+        # Turn 4: "earliest slot"
+        r4 = agent.process_message(conv.id, "earliest slot")
+        db.session.refresh(conv)
+        self.assertIsNotNone(conv.requested_date)
+        self.assertIsNotNone(conv.requested_time)
+        self.assertEqual(conv.awaiting_input, "confirmation")
+        self.assertIn("earliest available slot", r4.get("content", "").lower())
+        self.assertIn("reserve this appointment for you", r4.get("content", "").lower())
+
+        # Turn 5: "yes"
+        r5 = agent.process_message(conv.id, "yes")
+        db.session.refresh(conv)
+        self.assertEqual(conv.workflow_state, "BOOKED")
+        self.assertIn("confirmed", r5.get("content", "").lower())
+        self.assertIn("Mahr Haroon", r5.get("content", ""))
+        self.assertIn("Dr. Sara Malik", r5.get("content", ""))
+
 if __name__ == "__main__":
     unittest.main()
+
 
 
