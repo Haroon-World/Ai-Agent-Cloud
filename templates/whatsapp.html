@@ -1,0 +1,165 @@
+{% extends "base.html" %}
+
+{% block title %}WhatsApp Integration - {{ business.name }}{% endblock %}
+
+{% block content %}
+<div class="dashboard-header">
+    <div>
+        <h1 class="page-title">📱 WhatsApp Integration &amp; API Management</h1>
+        <p class="page-subtitle">Configure Meta WhatsApp Cloud API credentials, test real-time connectivity, and manage tokens with zero server downtime.</p>
+    </div>
+    <div class="header-actions">
+        <a href="/admin" class="btn btn-secondary">← Back to Dashboard</a>
+    </div>
+</div>
+
+<!-- Integration Status Overview -->
+<div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 20px; margin-bottom: 24px;">
+    <!-- Active Status Card -->
+    <div class="section-card" style="border-top: 4px solid {% if has_token %}#10b981{% else %}#ef4444{% endif %};">
+        <div style="font-size: 0.82rem; font-weight: 700; color: #64748b; text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 8px;">
+            Connection Status
+        </div>
+        <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 12px; flex-wrap: wrap;">
+            {% if has_token %}
+                <span class="badge badge-success" style="font-size: 1rem; padding: 6px 14px; background: #10b981; color: white;">🟢 Active &amp; Ready</span>
+            {% else %}
+                <span class="badge badge-danger" style="font-size: 1rem; padding: 6px 14px; background: #ef4444; color: white;">⛔ No Token Configured</span>
+            {% endif %}
+        </div>
+        <div style="font-size: 0.88rem; color: #475569; margin-bottom: 6px;">
+            Connected Number: <strong>{{ display_phone }}</strong>
+        </div>
+        <div style="font-size: 0.88rem; color: #475569; margin-bottom: 6px;">
+            Phone Number ID: <code style="background: #f1f5f9; padding: 2px 6px; border-radius: 4px;">{{ phone_id }}</code>
+        </div>
+        <div style="font-size: 0.88rem; color: #475569;">
+            Active Token: <code style="background: #f1f5f9; padding: 2px 6px; border-radius: 4px;">{{ masked_token }}</code>
+        </div>
+    </div>
+
+    <!-- Webhook Info Card -->
+    <div class="section-card" style="border-top: 4px solid #6366f1;">
+        <div style="font-size: 0.82rem; font-weight: 700; color: #64748b; text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 8px;">
+            Meta Webhook Configuration
+        </div>
+        <div style="font-size: 0.85rem; color: #475569; margin-bottom: 8px;">
+            <strong>Callback URL:</strong><br>
+            <code id="webhookUrl" style="background: #f1f5f9; padding: 4px 8px; border-radius: 4px; display: inline-block; word-break: break-all; margin-top: 4px;">{{ webhook_url }}</code>
+        </div>
+        <div style="font-size: 0.85rem; color: #475569; margin-bottom: 8px;">
+            <strong>Verify Token:</strong><br>
+            <code style="background: #f1f5f9; padding: 4px 8px; border-radius: 4px; display: inline-block; margin-top: 4px;">{{ verify_token }}</code>
+        </div>
+        <div style="font-size: 0.78rem; color: #64748b;">
+            Ensure Webhook fields include: <span class="badge badge-secondary" style="font-size: 0.75rem;">messages</span>
+        </div>
+    </div>
+</div>
+
+<!-- Forms Section -->
+<div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(360px, 1fr)); gap: 24px; margin-bottom: 30px;">
+    <!-- Update Access Token Form -->
+    <div class="section-card">
+        <h2 style="font-size: 1.25rem; font-weight: 700; color: #1e293b; margin-bottom: 8px;">
+            🔑 Update WhatsApp Access Token
+        </h2>
+        <p style="font-size: 0.88rem; color: #64748b; margin-bottom: 20px;">
+            Whenever you generate a new token in Meta Developers, paste it here. It is verified live with Meta before saving and applies immediately without restarting the server.
+        </p>
+
+        <form method="POST" action="/admin/whatsapp/update">
+            <div class="form-group" style="margin-bottom: 16px;">
+                <label for="access_token" style="display: block; font-size: 0.88rem; font-weight: 600; color: #334155; margin-bottom: 6px;">
+                    Meta WhatsApp Access Token:
+                </label>
+                <textarea 
+                    id="access_token" 
+                    name="access_token" 
+                    rows="4" 
+                    placeholder="EAAVOVmZCyfAcB..." 
+                    required 
+                    style="width: 100%; padding: 10px 12px; border: 1px solid #cbd5e1; border-radius: 8px; font-family: monospace; font-size: 0.85rem; resize: vertical; box-sizing: border-box;"></textarea>
+                <small style="color: #64748b; font-size: 0.78rem;">Paste the entire token starting with <code>EAAV...</code></small>
+            </div>
+
+            <div class="form-group" style="margin-bottom: 20px;">
+                <label for="phone_number_id" style="display: block; font-size: 0.88rem; font-weight: 600; color: #334155; margin-bottom: 6px;">
+                    Phone Number ID:
+                </label>
+                <input 
+                    type="text" 
+                    id="phone_number_id" 
+                    name="phone_number_id" 
+                    value="{{ phone_id }}" 
+                    required 
+                    style="width: 100%; padding: 10px 12px; border: 1px solid #cbd5e1; border-radius: 8px; font-size: 0.9rem; box-sizing: border-box;">
+            </div>
+
+            <button type="submit" class="btn btn-primary" style="width: 100%; padding: 12px; font-weight: 600; font-size: 0.95rem; border-radius: 8px; background: #2563eb; color: white; border: none; cursor: pointer;">
+                💾 Verify &amp; Save WhatsApp Token
+            </button>
+        </form>
+    </div>
+
+    <!-- Live Test Message Card -->
+    <div class="section-card">
+        <h2 style="font-size: 1.25rem; font-weight: 700; color: #1e293b; margin-bottom: 8px;">
+            📨 Outbound Test Message
+        </h2>
+        <p style="font-size: 0.88rem; color: #64748b; margin-bottom: 20px;">
+            Confirm that your active WhatsApp token and Meta Cloud API credentials can send messages to a live phone number.
+        </p>
+
+        <form method="POST" action="/admin/whatsapp/test-send">
+            <div class="form-group" style="margin-bottom: 16px;">
+                <label for="test_phone" style="display: block; font-size: 0.88rem; font-weight: 600; color: #334155; margin-bottom: 6px;">
+                    Recipient Phone Number (with Country Code):
+                </label>
+                <input 
+                    type="text" 
+                    id="test_phone" 
+                    name="test_phone" 
+                    placeholder="923187538771" 
+                    value="923187538771" 
+                    required 
+                    style="width: 100%; padding: 10px 12px; border: 1px solid #cbd5e1; border-radius: 8px; font-size: 0.9rem; box-sizing: border-box;">
+                <small style="color: #64748b; font-size: 0.78rem;">e.g., <code>923187538771</code> for Pakistan or <code>15551234567</code> for US (no + or spaces).</small>
+            </div>
+
+            <div style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 12px; margin-bottom: 20px; font-size: 0.82rem; color: #475569;">
+                <strong>Test Payload:</strong><br>
+                <em>"👋 Hello! This is a test message from ClinicConnect AI. Your WhatsApp API token is active and working perfectly!"</em>
+            </div>
+
+            <button type="submit" class="btn btn-secondary" style="width: 100%; padding: 12px; font-weight: 600; font-size: 0.95rem; border-radius: 8px; border: 1px solid #cbd5e1; cursor: pointer;">
+                🚀 Send Live Test Message
+            </button>
+        </form>
+    </div>
+</div>
+
+<!-- Guide: How to generate a permanent token -->
+<div class="section-card" style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 10px; padding: 24px;">
+    <h3 style="font-size: 1.15rem; font-weight: 700; color: #1e293b; margin-bottom: 12px;">
+        💡 Why do temporary tokens expire &amp; How to create a Permanent Token
+    </h3>
+    <div style="font-size: 0.88rem; color: #475569; line-height: 1.6;">
+        <p style="margin-bottom: 10px;">
+            The token on the Meta WhatsApp <strong>"API Setup"</strong> page is a <strong>24-hour temporary token</strong> designed only for quick testing. When 24 hours pass, Meta invalidates it, and outgoing AI replies will fail.
+        </p>
+        <p style="margin-bottom: 10px;">
+            To generate a <strong>Permanent Token that never expires</strong>, follow these 4 steps:
+        </p>
+        <ol style="margin-left: 20px; margin-bottom: 14px;">
+            <li style="margin-bottom: 6px;">Go to <strong><a href="https://business.facebook.com/settings/system-users" target="_blank" style="color: #2563eb; text-decoration: underline;">Meta Business Settings &gt; Users &gt; System Users</a></strong>.</li>
+            <li style="margin-bottom: 6px;">Click <strong>Add</strong>, name it <code>ClinicConnect-Bot</code>, and assign the role <strong>Admin</strong>.</li>
+            <li style="margin-bottom: 6px;">Click <strong>Assign Assets</strong> &gt; <strong>Apps</strong> &gt; select your WhatsApp App &gt; toggle <strong>Full Control</strong> &gt; Save.</li>
+            <li style="margin-bottom: 6px;">Click <strong>Generate New Token</strong>, select your App, set Token Expiration to <strong>Never</strong>, check <code>whatsapp_business_messaging</code> and <code>whatsapp_business_management</code>, and copy the token.</li>
+        </ol>
+        <p style="margin: 0;">
+            Paste that token into the form above, and your clinic will run permanently without needing manual refreshes!
+        </p>
+    </div>
+</div>
+{% endblock %}

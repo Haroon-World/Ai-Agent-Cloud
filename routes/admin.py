@@ -4,10 +4,10 @@ from datetime import datetime, date, timedelta
 from functools import wraps
 from flask import (
     Blueprint, render_template, request, redirect, url_for,
-    session, flash, jsonify, abort, Response
+    session, flash, jsonify, abort, Response, current_app
 )
 from config.config import Config
-from models import db, Business, Appointment, Conversation, Message, Reminder, Customer, Doctor, Service, ClinicInvitation
+from models import db, Business, Appointment, Conversation, Message, Reminder, Customer, Doctor, Service, ClinicInvitation, ClinicWhatsAppAccount
 from models.user import User
 from services.handoff_service import HandoffService
 from services.subscription_service import SubscriptionService
@@ -1682,5 +1682,129 @@ def dismiss_subscription_notice():
     if req_id:
         session[f"dismissed_rejection_{req_id}"] = True
     return jsonify({"success": True})
+
+
+# ---------------------------------------------------------------------------
+# WhatsApp Integration Management
+# ---------------------------------------------------------------------------
+
+@admin_bp.route("/admin/whatsapp", methods=["GET"])
+@login_required
+def whatsapp_view():
+    """WhatsApp integration dashboard: view status, update token, and test connectivity."""
+    business_id = _current_business_id()
+    business = db.session.get(Business, business_id)
+    wa_account = ClinicWhatsAppAccount.query.filter_by(business_id=business_id).first()
+    
+    current_token = wa_account.access_token if wa_account else current_app.config.get("WHATSAPP_ACCESS_TOKEN", Config.WHATSAPP_ACCESS_TOKEN)
+    masked_token = f"{current_token[:10]}...{current_token[-8:]}" if current_token and len(current_token) > 20 else ("Set" if current_token else "Not Configured")
+    phone_id = (wa_account.phone_number_id if wa_account else None) or Config.WHATSAPP_PHONE_NUMBER_ID or "1313879111808444"
+    display_phone = (wa_account.display_phone_number if wa_account else None) or "+1 555-203-5825"
+    waba_id = (wa_account.waba_id if wa_account else None) or Config.WHATSAPP_BUSINESS_ACCOUNT_ID or "993720013281872"
+    
+    return render_template(
+        "whatsapp.html",
+        business=business,
+        wa_account=wa_account,
+        phone_id=phone_id,
+        display_phone=display_phone,
+        waba_id=waba_id,
+        masked_token=masked_token,
+        has_token=bool(current_token),
+        webhook_url="https://clinic-connect-ai.onrender.com/api/whatsapp/webhook",
+        verify_token=getattr(Config, "WHATSAPP_WEBHOOK_VERIFY_TOKEN", "clinic_connect_secret_2026") or "clinic_connect_secret_2026"
+    )
+
+
+@admin_bp.route("/admin/whatsapp/update", methods=["POST"])
+@login_required
+def whatsapp_update():
+    """Verify and update WhatsApp Access Token in DB for immediate, zero-restart activation."""
+    business_id = _current_business_id()
+    raw_token = request.form.get("access_token", "").strip().strip("'").strip('"')
+    phone_id = request.form.get("phone_number_id", "").strip() or Config.WHATSAPP_PHONE_NUMBER_ID or "1313879111808444"
+
+    if not raw_token:
+        flash("WhatsApp Access Token cannot be empty.", "danger")
+        return redirect(url_for("admin_bp.whatsapp_view"))
+
+    # Test token against Meta Graph API in real-time
+    import urllib.request, json
+    meta_url = f"https://graph.facebook.com/v19.0/{phone_id}?fields=display_phone_number,verified_name"
+    req = urllib.request.Request(meta_url, headers={"Authorization": f"Bearer {raw_token}"})
+    verified_name = None
+    display_phone = None
+    try:
+        with urllib.request.urlopen(req, timeout=10) as resp:
+            data = json.loads(resp.read().decode())
+            display_phone = data.get("display_phone_number")
+            verified_name = data.get("verified_name")
+    except Exception as e:
+        err_msg = str(e)
+        try:
+            if hasattr(e, "read"):
+                err_data = json.loads(e.read().decode())
+                err_msg = err_data.get("error", {}).get("message", str(e))
+        except Exception:
+            pass
+        flash(f"Meta Graph API rejected this token: {err_msg}. Please ensure you copied the complete token.", "danger")
+        return redirect(url_for("admin_bp.whatsapp_view"))
+
+    # Save verified token in database
+    wa_account = ClinicWhatsAppAccount.query.filter_by(business_id=business_id).first()
+    if not wa_account:
+        wa_account = ClinicWhatsAppAccount(
+            business_id=business_id,
+            phone_number_id=phone_id,
+            waba_id=Config.WHATSAPP_BUSINESS_ACCOUNT_ID or "993720013281872",
+            display_phone_number=display_phone or "+1 555-203-5825",
+            access_token=raw_token,
+            is_active=True
+        )
+        db.session.add(wa_account)
+    else:
+        wa_account.access_token = raw_token
+        wa_account.phone_number_id = phone_id
+        if display_phone:
+            wa_account.display_phone_number = display_phone
+        wa_account.is_active = True
+
+    db.session.commit()
+    current_app.config["WHATSAPP_ACCESS_TOKEN"] = raw_token
+
+    flash(f"✅ WhatsApp token verified and saved! Active on {display_phone or phone_id} ({verified_name or 'Connected'}). Live incoming/outgoing messages are operational immediately with zero server restart required.", "success")
+    return redirect(url_for("admin_bp.whatsapp_view"))
+
+
+@admin_bp.route("/admin/whatsapp/test-send", methods=["POST"])
+@login_required
+def whatsapp_test_send():
+    """Dispatch a live test message from the browser to confirm outbound messaging is working."""
+    business_id = _current_business_id()
+    wa_account = ClinicWhatsAppAccount.query.filter_by(business_id=business_id).first()
+    token = (wa_account.access_token if wa_account else None) or current_app.config.get("WHATSAPP_ACCESS_TOKEN") or Config.WHATSAPP_ACCESS_TOKEN
+    phone_id = (wa_account.phone_number_id if wa_account else None) or Config.WHATSAPP_PHONE_NUMBER_ID
+
+    dest_phone = request.form.get("test_phone", "").strip()
+    if not dest_phone:
+        flash("Please enter a valid recipient phone number (e.g. 923187538771).", "danger")
+        return redirect(url_for("admin_bp.whatsapp_view"))
+
+    from services.whatsapp_service import WhatsAppService
+    res = WhatsAppService.send_text_message(
+        to_phone=dest_phone,
+        text="👋 Hello! This is a test message from ClinicConnect AI. Your WhatsApp API token is active and working perfectly!",
+        phone_number_id=phone_id,
+        access_token=token
+    )
+
+    if res.get("success"):
+        flash(f"✅ Test message sent successfully to {dest_phone}!", "success")
+    else:
+        err = res.get("error", "Unknown delivery error")
+        flash(f"❌ Failed to send test message: {err}", "danger")
+
+    return redirect(url_for("admin_bp.whatsapp_view"))
+
 
 
