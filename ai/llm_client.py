@@ -2711,7 +2711,21 @@ class MockAdapter(BaseLLMAdapter):
             spoken_d_u = _fmt_spoken_date_urdu(effective_date)
             spoken_t_u = _fmt_spoken_time_urdu(effective_time)
             spoken_d_r = _fmt_spoken_date_roman(effective_date)
-            spoken_t_r = _fmt_spoken_time_roman(effective_time)
+            if effective_name and effective_phone:
+                if lang == "urdu":
+                    return {
+                        "content": f"بہترین، {effective_name} صاحب! میں نے {doc_name} کے ساتھ {spoken_d_u} بوقت {spoken_t_u} کا وقت محفوظ کر لیا ہے۔ کیا میں یہ بکنگ کنفرم کر دوں؟",
+                        "tool_calls": []
+                    }
+                elif lang == "roman_urdu":
+                    return {
+                        "content": f"Behtareen, {effective_name}! Maine {doc_name} ke sath {spoken_d_r} ko {spoken_t_r} ka slot reserve kar liya hai. Kya main yeh appointment confirm kar doon?",
+                        "tool_calls": []
+                    }
+                return {
+                    "content": f"Perfect, {effective_name}! I have reserved the {_fmt_time_ampm(effective_time)} slot on {effective_date} with {doc_name} for you.\n\nShall I go ahead and confirm this appointment?",
+                    "tool_calls": []
+                }
 
             if effective_name and not effective_phone:
                 if lang == "urdu":
@@ -2778,6 +2792,11 @@ class MockAdapter(BaseLLMAdapter):
             if not doc_id:
                 return _prompt_doctor_choice(doctor_roster, lang, effective_name)
 
+            doc_services = [s for s in service_roster if s.get("doctor_id") == doc_id] if doc_id else service_roster
+            effective_svc_id = svc_id or (doc_services[0]["id"] if doc_services else None)
+            effective_doc_id = doc_id
+            effective_doc_name = doc_name or "our practicing dentist"
+
             # GUARD: Never book an appointment if the user did NOT choose a time and did NOT confirm!
             if not has_time and not (is_confirm and doc_slots):
                 if is_question:
@@ -2797,25 +2816,11 @@ class MockAdapter(BaseLLMAdapter):
                             "content": f"I apologize for the confusion! The clinic schedule is indeed until 05:00 PM; however, certain slots (such as 03:00 PM) were unavailable due to existing bookings. Please let me know which of the available slots on {effective_date} works best for you!",
                             "tool_calls": []
                         }
-                if lang == "urdu":
-                    return {
-                        "content": f"شکریہ {effective_name}! براہ کرم {effective_date} کے لیے اپنا پسندیدہ وقت (ٹائم سلاٹ) منتخب کریں۔",
-                        "tool_calls": []
-                    }
-                elif lang == "roman_urdu":
-                    return {
-                        "content": f"Shukriya {effective_name}! Barah-e-karam {effective_date} ke liye apna preferred time slot select karein.",
-                        "tool_calls": []
-                    }
                 return {
-                    "content": f"Thank you, {effective_name}! Please choose which available time slot works best for your appointment on {effective_date}.",
-                    "tool_calls": []
+                    "content": f"Checking open slots for {effective_doc_name} on {effective_date}...",
+                    "tool_calls": [{"name": "check_availability", "arguments": {"date": effective_date, "doctor_id": doc_id, "service_id": effective_svc_id}}]
                 }
 
-            doc_services = [s for s in service_roster if s.get("doctor_id") == doc_id] if doc_id else service_roster
-            effective_svc_id = svc_id or (doc_services[0]["id"] if doc_services else None)
-            effective_doc_id = doc_id
-            effective_doc_name = doc_name or "our practicing dentist"
             chosen_time = time_token or req_time or (doc_slots[0] if doc_slots else "09:00")
 
             return _make_booking_or_reschedule_tool(
