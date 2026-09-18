@@ -10,6 +10,169 @@
     <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
 </head>
 <body>
+    {% set is_admin_view = session.get('user_id') and session.get('business_id') and (request.path.startswith('/admin') or request.path.startswith('/platform')) and not request.path.startswith('/admin/login') and not request.path.startswith('/admin/forgot-password') and not request.path.startswith('/admin/reset-password') %}
+
+    {% if is_admin_view %}
+    <!-- ====================================================================
+         HEALTHCARE SAAS ADMIN SHELL
+         ==================================================================== -->
+    <div class="admin-app-layout">
+        <!-- Off-canvas Mobile Backdrop -->
+        <div class="admin-sidebar-backdrop" id="adminSidebarBackdrop" onclick="toggleAdminSidebar()"></div>
+
+        <!-- Persistent Left Sidebar -->
+        <aside class="admin-sidebar" id="adminSidebar">
+            <!-- Brand & Clinic Header -->
+            <div class="admin-sidebar-header">
+                <a href="/admin" class="admin-brand">
+                    <div class="brand-avatar-icon">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M12 6v12m-6-6h12"/>
+                        </svg>
+                    </div>
+                    <div class="brand-text-wrap">
+                        <span class="brand-title">{{ (business.name if business else session.get('clinic_name', 'ClinicConnect AI')) | e }}</span>
+                        <span class="brand-subtitle">
+                            <span class="live-status-dot"></span> AI Receptionist
+                        </span>
+                    </div>
+                </a>
+            </div>
+
+            <!-- Navigation Menu -->
+            <nav class="admin-nav-menu">
+                <div class="nav-section-label">OVERVIEW</div>
+                <a href="/admin" class="nav-item {% if request.path == '/admin' %}active{% endif %}">
+                    <span class="nav-item-icon">
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>
+                    </span>
+                    <span class="nav-item-text">Dashboard</span>
+                </a>
+                <a href="/admin/appointments" class="nav-item {% if request.path.startswith('/admin/appointments') %}active{% endif %}">
+                    <span class="nav-item-icon">
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+                    </span>
+                    <span class="nav-item-text">Appointments</span>
+                </a>
+                <a href="/admin/conversations" class="nav-item {% if request.path.startswith('/admin/conversations') %}active{% endif %}">
+                    <span class="nav-item-icon">
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+                    </span>
+                    <span class="nav-item-text">AI Conversations</span>
+                </a>
+
+                <div class="nav-section-label">CLINIC MANAGEMENT</div>
+                <a href="/admin/doctors" class="nav-item {% if request.path == '/admin/doctors' %}active{% endif %}">
+                    <span class="nav-item-icon">
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+                    </span>
+                    <span class="nav-item-text">Doctors</span>
+                </a>
+                <a href="/admin/doctors#schedules" class="nav-item">
+                    <span class="nav-item-icon">
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+                    </span>
+                    <span class="nav-item-text">Doctor Schedules</span>
+                </a>
+                <a href="/admin/services" class="nav-item {% if request.path.startswith('/admin/services') %}active{% endif %}">
+                    <span class="nav-item-icon">
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
+                    </span>
+                    <span class="nav-item-text">Services &amp; Pricing</span>
+                </a>
+
+                <div class="nav-section-label">INSIGHTS</div>
+                <a href="/admin/slots" class="nav-item {% if request.path.startswith('/admin/slots') %}active{% endif %}">
+                    <span class="nav-item-icon">
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 20V10"/><path d="M12 20V4"/><path d="M6 20v-6"/></svg>
+                    </span>
+                    <span class="nav-item-text">Slot Occupancy</span>
+                </a>
+                <a href="/admin/reminders" class="nav-item {% if request.path.startswith('/admin/reminders') %}active{% endif %}">
+                    <span class="nav-item-icon">
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
+                    </span>
+                    <span class="nav-item-text">Reminders</span>
+                </a>
+
+                <div class="nav-section-label">SETTINGS</div>
+                <a href="/admin/services#clinic-settings" class="nav-item">
+                    <span class="nav-item-icon">
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+                    </span>
+                    <span class="nav-item-text">Clinic Settings</span>
+                </a>
+                <a href="/admin/subscription" class="nav-item {% if request.path.startswith('/admin/subscription') %}active{% endif %}">
+                    <span class="nav-item-icon">
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="1" y="4" width="22" height="16" rx="2" ry="2"/><line x1="10" y1="2" x2="10" y2="23"/><line x1="4" y1="10" x2="22" y2="10"/></svg>
+                    </span>
+                    <span class="nav-item-text">Subscription</span>
+                </a>
+
+                {% if session.get('is_platform_admin') %}
+                <div class="nav-section-label">PLATFORM</div>
+                <a href="/platform/dashboard" class="nav-item {% if request.path.startswith('/platform') %}active{% endif %}" style="color: #6366f1; font-weight: 700;">
+                    <span class="nav-item-icon">🛡️</span>
+                    <span class="nav-item-text">Platform Console</span>
+                </a>
+                {% endif %}
+            </nav>
+
+            <!-- Sidebar Footer & Admin Profile -->
+            <div class="admin-sidebar-footer">
+                <div class="admin-profile-card">
+                    <div class="admin-avatar">
+                        {{ (session.get('admin_user', 'A')[:1]) | upper }}
+                    </div>
+                    <div class="admin-profile-info">
+                        <span class="admin-profile-name">{{ session.get('admin_user', 'Administrator') }}</span>
+                        <span class="admin-profile-role">Clinic Admin</span>
+                    </div>
+                    <a href="/admin/logout" class="admin-logout-btn" title="Sign out of admin session">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
+                    </a>
+                </div>
+            </div>
+        </aside>
+
+        <!-- Main Workspace Wrapper -->
+        <div class="admin-main-wrapper">
+            <!-- Top Navigation Bar -->
+            <header class="admin-topbar">
+                <div class="topbar-left">
+                    <button type="button" class="topbar-menu-toggle" onclick="toggleAdminSidebar()" aria-label="Toggle navigation">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
+                    </button>
+                    <div class="topbar-search-box">
+                        <svg class="search-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+                        <input type="text" class="topbar-search-input" placeholder="Search appointments, chats, doctors..." aria-label="Search">
+                    </div>
+                </div>
+
+                <div class="topbar-right">
+                    <div class="topbar-date-display" id="topbarDateBadge">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+                        <span id="adminCurrentDate">Today</span>
+                    </div>
+
+                    <a href="{% if business and business.id != 1 and request.path.startswith('/chat/') %}/chat/{{ business.id }}{% elif session.get('business_id') %}/chat/{{ session.get('business_id') }}{% else %}/chat{% endif %}" target="_blank" class="topbar-live-chat-link" title="Open patient AI webchat">
+                        <span class="live-dot-pulse"></span>
+                        <span>AI Webchat</span>
+                    </a>
+
+                    <div class="topbar-user-pill" title="Logged in as {{ session.get('admin_user', 'admin') }}">
+                        <span class="user-pill-avatar">{{ (session.get('admin_user', 'A')[:1]) | upper }}</span>
+                        <span class="user-pill-name">{{ session.get('admin_user', 'admin') }}</span>
+                    </div>
+                </div>
+            </header>
+
+            <!-- Admin Viewport -->
+            <main class="main-content admin-content-viewport">
+    {% else %}
+    <!-- ====================================================================
+         PUBLIC / CUSTOMER-FACING NAVBAR & SKELETON
+         ==================================================================== -->
     <nav class="navbar">
         <div class="nav-container">
             <a href="{% if business and business.id != 1 %}?clinic={{ business.id }}{% elif session.get('active_clinic_id') and session.get('active_clinic_id') != 1 %}?clinic={{ session.get('active_clinic_id') }}{% else %}/{% endif %}" class="nav-brand">
@@ -52,6 +215,8 @@
     </nav>
 
     <main class="main-content">
+    {% endif %}
+
         {% with messages = get_flashed_messages(with_categories=true) %}
             {% if messages %}
                 <div class="flash-container">
@@ -63,6 +228,16 @@
         {% endwith %}
 
         {% block content %}{% endblock %}
+
+    {% if is_admin_view %}
+            </main>
+
+            <footer class="admin-footer">
+                <p>© 2026 {{ (business.name if business else session.get('clinic_name', 'ClinicConnect AI')) | e }} • Powered by <strong>ClinicConnect AI SaaS</strong></p>
+            </footer>
+        </div>
+    </div>
+    {% else %}
     </main>
 
     <footer class="footer">
@@ -71,9 +246,30 @@
             <p class="footer-sub">Multi-Specialty Polyclinic Architecture • Dynamic Specialization &amp; Services Discovery</p>
         </div>
     </footer>
+    {% endif %}
 
     {% block scripts %}{% endblock %}
     <script>
+    function toggleAdminSidebar() {
+        const sidebar = document.getElementById('adminSidebar');
+        const backdrop = document.getElementById('adminSidebarBackdrop');
+        if (sidebar) sidebar.classList.toggle('mobile-open');
+        if (backdrop) backdrop.classList.toggle('active');
+    }
+
+    // Format topbar date on client side
+    (function initTopbarDate() {
+        const dateEl = document.getElementById('adminCurrentDate');
+        if (dateEl) {
+            const options = { weekday: 'short', day: 'numeric', month: 'short', year: 'numeric' };
+            try {
+                dateEl.textContent = new Date().toLocaleDateString(undefined, options);
+            } catch (e) {
+                dateEl.textContent = 'Today';
+            }
+        }
+    })();
+
     function togglePasswordVisibility(fieldId, btn) {
         const input = document.getElementById(fieldId);
         if (!input) return;
