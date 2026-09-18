@@ -3,21 +3,45 @@
 {% block title %}Appointments Management - {{ business.name }}{% endblock %}
 
 {% block content %}
-<div class="dashboard-header">
+<div class="dashboard-header mb-4">
     <div>
-        <h1 class="page-title">Appointments Directory</h1>
-        <p class="page-subtitle">Track, filter, reschedule, or cancel patient appointments.</p>
+        <h1 class="page-title">Appointments</h1>
+        <p class="page-subtitle">Manage and monitor all clinic appointments and patient bookings.</p>
     </div>
-    <div class="header-actions header-actions-group">
-        <a href="/admin/appointments/export" class="header-btn" title="Export all appointments as Excel-compatible CSV">📥 Export to Excel</a>
-        <button type="button" class="header-btn header-btn-danger" onclick="openApptCleanupModal()" title="Clean up past or cancelled appointments">🧹 Clean Up Data</button>
-        <a href="/admin/slots" class="header-btn" title="Inspect doctor availability and slot occupancy">📊 View Slot Occupancy</a>
-        <a href="{% if session.get('business_id') %}/chat/{{ session.get('business_id') }}{% else %}/chat{% endif %}" target="_blank" class="header-btn header-btn-primary" title="Book appointment via AI assistant">➕ Book New via AI Chat</a>
+    <div class="header-actions" style="display: flex; gap: 8px; align-items: center; flex-wrap: wrap;">
+        <a href="/admin/appointments/export" class="btn btn-secondary btn-sm" title="Export all appointments as Excel-compatible CSV">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+            Export Excel
+        </a>
+        <button type="button" class="btn btn-secondary btn-sm" onclick="openApptCleanupModal()" title="Clean up past or cancelled appointments">
+            🧹 Clean Up Data
+        </button>
+        <a href="/admin/slots" class="btn btn-secondary btn-sm" title="Inspect doctor availability and slot occupancy">
+            📊 Slot Occupancy
+        </a>
+        <a href="{% if session.get('business_id') %}/chat/{{ session.get('business_id') }}{% else %}/chat{% endif %}" target="_blank" class="btn btn-primary btn-sm" title="Book appointment via AI assistant">
+            ➕ New Appointment
+        </a>
     </div>
 </div>
 
 <div class="section-card">
     {% if appointments %}
+    <!-- Status Segmented Tabs (Screen 2) -->
+    {% set confirmed_count = appointments|selectattr('status', 'equalto', 'CONFIRMED')|list|length %}
+    {% set cancelled_count = appointments|selectattr('status', 'equalto', 'CANCELLED')|list|length %}
+    <div class="schedule-segmented-tabs mb-3" style="background: #f1f5f9; padding: 4px; border-radius: 8px; display: inline-flex; gap: 4px;">
+        <button type="button" class="tab-btn active" id="tabStatusAll" onclick="setStatusTab('')" style="border: none; cursor: pointer; padding: 5px 14px; border-radius: 6px; font-weight: 600; font-size: 0.82rem;">
+            All ({{ appointments|length }})
+        </button>
+        <button type="button" class="tab-btn" id="tabStatusConfirmed" onclick="setStatusTab('CONFIRMED')" style="border: none; cursor: pointer; padding: 5px 14px; border-radius: 6px; font-weight: 600; font-size: 0.82rem;">
+            Confirmed ({{ confirmed_count }})
+        </button>
+        <button type="button" class="tab-btn" id="tabStatusCancelled" onclick="setStatusTab('CANCELLED')" style="border: none; cursor: pointer; padding: 5px 14px; border-radius: 6px; font-weight: 600; font-size: 0.82rem;">
+            Cancelled ({{ cancelled_count }})
+        </button>
+    </div>
+
     <!-- Filter Toolbar -->
     <div class="filter-toolbar">
         <div class="filter-search-box">
@@ -40,7 +64,7 @@
             
             <div class="filter-control-item">
                 <label for="apptStatusFilter" class="filter-label">Status:</label>
-                <select id="apptStatusFilter" class="filter-select" onchange="filterAppointments()">
+                <select id="apptStatusFilter" class="filter-select" onchange="filterAppointments(); syncStatusTabs();">
                     <option value="">All Statuses</option>
                     <option value="CONFIRMED">Confirmed</option>
                     <option value="CANCELLED">Cancelled</option>
@@ -48,7 +72,7 @@
             </div>
             
             <div class="filter-control-item filter-calendar-control">
-                <label for="apptDatePicker" class="filter-label">📅 Calendar:</label>
+                <label for="apptDatePicker" class="filter-label">📅 Date:</label>
                 <div class="filter-date-input-wrap">
                     <input type="date" id="apptDatePicker" class="filter-date-input" title="Pick a specific date from calendar" autocomplete="off" onchange="onApptDatePicked()" oninput="onApptDatePicked()">
                     <button type="button" id="apptClearDateBtn" class="filter-date-clear-icon" style="display: none;" onclick="clearApptDatePicker()" title="Clear calendar date">✕</button>
@@ -73,21 +97,21 @@
     
     <div class="filter-status-bar">
         <span id="apptCounterText" class="filter-counter">Showing <strong>{{ appointments|length }}</strong> of {{ appointments|length }} appointments</span>
+        <span style="font-size: 0.78rem; color: #94a3b8;">💡 Click any row to open appointment details drawer</span>
     </div>
 
     <div class="table-responsive">
         <table class="data-table" id="appointmentsTable">
             <thead>
                 <tr>
-                    <th>ID</th>
-                    <th>Date & Time</th>
-                    <th>Patient Name</th>
-                    <th>Phone</th>
-                    <th>Doctor</th>
-                    <th>Service</th>
-                    <th>Price</th>
-                    <th>Status</th>
-                    <th style="text-align: right; width: 65px;">Actions</th>
+                    <th>DATE &amp; TIME</th>
+                    <th>PATIENT</th>
+                    <th>DOCTOR</th>
+                    <th>SERVICE</th>
+                    <th>DURATION</th>
+                    <th>STATUS</th>
+                    <th>SOURCE</th>
+                    <th style="text-align: right; width: 65px;">ACTIONS</th>
                 </tr>
             </thead>
             <tbody>
@@ -102,22 +126,31 @@
                     data-service="{{ (appt.service.name if appt.service else '') | lower }}"
                     data-status="{{ appt.status | upper }}"
                     data-date="{{ appt.appointment_date }}"
-                    data-time="{{ (appt.appointment_time or '') | lower }}">
-                    <td><strong>#{{ appt.id }}</strong></td>
-                    <td><strong>{{ appt.appointment_date }}</strong> at {{ appt.appointment_time }}</td>
+                    data-time="{{ (appt.appointment_time or '') | lower }}"
+                    data-raw-price="{{ '{:,.0f}'.format(appt.service.price) if appt.service else '0' }}"
+                    data-raw-duration="{{ appt.service.duration if appt.service else 30 }}"
+                    data-cid="{{ appt.conversation_id or '' }}"
+                    style="cursor: pointer;"
+                    onclick="onApptRowClick(event, this)">
                     <td>
-                        {% if appt.conversation_id %}
-                            <a href="/admin/conversations?cid={{ appt.conversation_id }}" style="color: #4f46e5; font-weight: 600; text-decoration: none; display: inline-flex; align-items: center; gap: 4px;" title="Open patient conversation">
-                                <span>💬</span> <span>{{ appt.customer.name if appt.customer else "N/A" }}</span>
-                            </a>
-                        {% else %}
-                            {{ appt.customer.name if appt.customer else "N/A" }}
-                        {% endif %}
+                        <div style="font-weight: 700; color: var(--text-main);">{{ appt.appointment_date }}</div>
+                        <div style="font-size: 0.78rem; color: #64748b;">{{ appt.appointment_time }}</div>
                     </td>
-                    <td>{{ appt.customer.phone if appt.customer else "N/A" }}</td>
-                    <td>{{ appt.doctor.name if appt.doctor else "N/A" }}</td>
-                    <td>{{ appt.service.name if appt.service else "N/A" }}</td>
-                    <td>PKR {{ "{:,.0f}".format(appt.service.price) if appt.service else "0" }}</td>
+                    <td>
+                        <div style="font-weight: 600; color: var(--text-main);">{{ appt.customer.name if appt.customer else "Walk-in Patient" }}</div>
+                        <div style="font-size: 0.78rem; color: #64748b;">{{ appt.customer.phone if appt.customer else "N/A" }}</div>
+                    </td>
+                    <td>
+                        <div style="font-weight: 600; color: var(--text-main);">{{ appt.doctor.name if appt.doctor else "N/A" }}</div>
+                        <div style="font-size: 0.75rem; color: #64748b;">{{ appt.doctor.specialization if appt.doctor else "" }}</div>
+                    </td>
+                    <td>
+                        <div style="font-weight: 500; color: var(--text-main);">{{ appt.service.name if appt.service else "Consultation" }}</div>
+                        <div style="font-size: 0.75rem; color: #64748b;">PKR {{ "{:,.0f}".format(appt.service.price) if appt.service else "0" }}</div>
+                    </td>
+                    <td>
+                        <span style="font-size: 0.82rem; color: #475569; font-weight: 500;">{{ appt.service.duration if appt.service else 30 }} min</span>
+                    </td>
                     <td>
                         {% if appt.status == 'CONFIRMED' %}
                             <span class="badge badge-success">CONFIRMED</span>
@@ -127,7 +160,18 @@
                             <span class="badge badge-secondary">{{ appt.status }}</span>
                         {% endif %}
                     </td>
-                    <td style="text-align: right; position: relative;">
+                    <td>
+                        {% if appt.conversation_id %}
+                            <span class="badge badge-info" style="font-size: 0.75rem; display: inline-flex; align-items: center; gap: 4px;">
+                                🤖 AI
+                            </span>
+                        {% else %}
+                            <span class="badge badge-secondary" style="font-size: 0.75rem; display: inline-flex; align-items: center; gap: 4px;">
+                                👤 Manual
+                            </span>
+                        {% endif %}
+                    </td>
+                    <td style="text-align: right; position: relative;" onclick="event.stopPropagation();">
                         <div class="action-menu-wrap">
                             <button type="button" class="action-menu-btn" title="Appointment Actions" onclick="toggleActionMenu(this, event)">
                                 <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><circle cx="12" cy="5" r="2.2"/><circle cx="12" cy="12" r="2.2"/><circle cx="12" cy="19" r="2.2"/></svg>
@@ -153,12 +197,12 @@
                 </tr>
                 {% endfor %}
                 <tr id="apptNoMatchRow" style="display: none;">
-                    <td colspan="9" style="text-align: center; padding: 2.8rem 1.5rem;">
+                    <td colspan="8" style="text-align: center; padding: 2.8rem 1.5rem;">
                         <div style="max-width: 440px; margin: 0 auto; color: var(--text-muted);">
                             <div style="font-size: 2.2rem; margin-bottom: 0.5rem;">🔍</div>
                             <h3 style="font-size: 1.1rem; font-weight: 700; color: var(--text-main); margin-bottom: 0.35rem;">No matching appointments</h3>
                             <p id="apptNoMatchDetail" style="font-size: 0.86rem; margin-bottom: 1.1rem; line-height: 1.45;">No appointments matched your current filter criteria.</p>
-                            <button type="button" class="header-btn header-btn-primary" onclick="resetApptFilters()">
+                            <button type="button" class="btn btn-primary btn-sm" onclick="resetApptFilters()">
                                 ↺ Reset All Filters
                             </button>
                         </div>
@@ -172,6 +216,81 @@
         <p>No appointments found in the database.</p>
     </div>
     {% endif %}
+</div>
+
+<!-- ============================================================== -->
+<!-- SCREEN 2: APPOINTMENT DETAILS SLIDE-OVER DRAWER                -->
+<!-- ============================================================== -->
+<div class="slide-over-backdrop" id="apptDrawerBackdrop" onclick="closeApptDrawer()"></div>
+<div class="slide-over-drawer" id="apptDrawerPanel">
+    <div class="slide-over-header">
+        <div style="display: flex; align-items: center; gap: 8px;">
+            <h3 class="slide-over-title">Appointment Details</h3>
+            <span id="drawerStatusBadge" class="badge badge-success">CONFIRMED</span>
+        </div>
+        <button type="button" class="saas-modal-close" onclick="closeApptDrawer()">✕</button>
+    </div>
+
+    <div class="slide-over-body">
+        <div class="drawer-section">
+            <div class="drawer-section-title">Schedule</div>
+            <div style="background: #f8fafc; padding: 12px 14px; border-radius: 8px; border: 1px solid #e2e8f0;">
+                <div style="font-size: 1rem; font-weight: 700; color: var(--text-main);" id="drawerDateTime">23 Sep 2025 • 09:30 AM</div>
+                <div style="font-size: 0.8rem; color: #64748b; margin-top: 2px;" id="drawerDuration">Duration: 30 minutes</div>
+            </div>
+        </div>
+
+        <div class="drawer-section">
+            <div class="drawer-section-title">Patient Information</div>
+            <div class="drawer-field-row">
+                <span class="drawer-field-label">Name</span>
+                <span class="drawer-field-val" id="drawerPatientName">Haroon</span>
+            </div>
+            <div class="drawer-field-row">
+                <span class="drawer-field-label">Phone</span>
+                <span class="drawer-field-val" id="drawerPatientPhone">0300 1234567</span>
+            </div>
+            <div class="drawer-field-row" id="drawerChatLinkRow" style="display: none;">
+                <span class="drawer-field-label">AI Chat</span>
+                <span class="drawer-field-val">
+                    <a id="drawerChatLink" href="#" style="color: var(--primary); font-weight: 600; text-decoration: none;">💬 View WhatsApp Chat &rarr;</a>
+                </span>
+            </div>
+        </div>
+
+        <div class="drawer-section">
+            <div class="drawer-section-title">Doctor &amp; Service</div>
+            <div class="drawer-field-row">
+                <span class="drawer-field-label">Doctor</span>
+                <span class="drawer-field-val" id="drawerDoctorName">Dr. Sara Malik</span>
+            </div>
+            <div class="drawer-field-row">
+                <span class="drawer-field-label">Service</span>
+                <span class="drawer-field-val" id="drawerServiceName">General Consultation</span>
+            </div>
+            <div class="drawer-field-row">
+                <span class="drawer-field-label">Fee</span>
+                <span class="drawer-field-val" id="drawerPrice">PKR 2,000</span>
+            </div>
+        </div>
+
+        <div class="drawer-section">
+            <div class="drawer-section-title">Channel / Source</div>
+            <div class="drawer-field-row">
+                <span class="drawer-field-label">Booked Via</span>
+                <span class="drawer-field-val" id="drawerSource">🤖 AI Receptionist</span>
+            </div>
+            <div class="drawer-field-row">
+                <span class="drawer-field-label">Appointment ID</span>
+                <span class="drawer-field-val" id="drawerApptId">#12</span>
+            </div>
+        </div>
+    </div>
+
+    <div class="slide-over-footer">
+        <a href="/admin/slots" class="btn btn-secondary" style="flex: 1; text-align: center;">Reschedule</a>
+        <button type="button" id="drawerCancelBtn" class="btn btn-danger" style="flex: 1;" onclick="drawerExecuteCancel()">Cancel</button>
+    </div>
 </div>
 
 <!-- Appointment Cleanup Modal -->
@@ -462,7 +581,118 @@ function resetApptFilters() {
     if (datePicker) datePicker.value = '';
     if (datePreset) datePreset.value = 'all';
 
+    syncStatusTabs();
     filterAppointments();
+}
+
+function setStatusTab(status) {
+    const statusFilter = document.getElementById('apptStatusFilter');
+    if (statusFilter) {
+        statusFilter.value = status;
+    }
+    syncStatusTabs();
+    filterAppointments();
+}
+
+function syncStatusTabs() {
+    const statusVal = (document.getElementById('apptStatusFilter')?.value || '').trim().toUpperCase();
+    const tabAll = document.getElementById('tabStatusAll');
+    const tabConf = document.getElementById('tabStatusConfirmed');
+    const tabCanc = document.getElementById('tabStatusCancelled');
+
+    [tabAll, tabConf, tabCanc].forEach(t => {
+        if (t) {
+            t.classList.remove('active');
+            t.style.background = 'transparent';
+            t.style.color = '#475569';
+        }
+    });
+
+    if (statusVal === 'CONFIRMED' && tabConf) {
+        tabConf.classList.add('active');
+        tabConf.style.background = '#ffffff';
+        tabConf.style.color = 'var(--primary)';
+    } else if (statusVal === 'CANCELLED' && tabCanc) {
+        tabCanc.classList.add('active');
+        tabCanc.style.background = '#ffffff';
+        tabCanc.style.color = 'var(--primary)';
+    } else if (tabAll) {
+        tabAll.classList.add('active');
+        tabAll.style.background = '#ffffff';
+        tabAll.style.color = 'var(--primary)';
+    }
+}
+
+let activeDrawerApptId = null;
+
+function onApptRowClick(e, row) {
+    if (e.target.closest('.action-menu-wrap') || e.target.closest('a') || e.target.closest('button')) {
+        return;
+    }
+    openApptDrawer(row);
+}
+
+function openApptDrawer(row) {
+    activeDrawerApptId = row.getAttribute('data-id');
+    const patient = row.querySelector('td:nth-child(2) div:first-child')?.innerText || 'Patient';
+    const phone = row.getAttribute('data-phone') || 'N/A';
+    const doctor = row.querySelector('td:nth-child(3) div:first-child')?.innerText || 'Doctor';
+    const service = row.querySelector('td:nth-child(4) div:first-child')?.innerText || 'Consultation';
+    const date = row.getAttribute('data-date') || '';
+    const time = row.getAttribute('data-time') || '';
+    const status = row.getAttribute('data-status') || 'CONFIRMED';
+    const price = row.getAttribute('data-raw-price') || '0';
+    const duration = row.getAttribute('data-raw-duration') || '30';
+    const cid = row.getAttribute('data-cid') || '';
+
+    document.getElementById('drawerApptId').innerText = '#' + activeDrawerApptId;
+    document.getElementById('drawerPatientName').innerText = patient;
+    document.getElementById('drawerPatientPhone').innerText = phone;
+    document.getElementById('drawerDoctorName').innerText = doctor;
+    document.getElementById('drawerServiceName').innerText = service;
+    document.getElementById('drawerPrice').innerText = 'PKR ' + price;
+    document.getElementById('drawerDateTime').innerText = date + ' • ' + time.toUpperCase();
+    document.getElementById('drawerDuration').innerText = 'Duration: ' + duration + ' minutes';
+    
+    const statusBadge = document.getElementById('drawerStatusBadge');
+    if (statusBadge) {
+        statusBadge.innerText = status;
+        statusBadge.className = 'badge ' + (status === 'CONFIRMED' ? 'badge-success' : (status === 'CANCELLED' ? 'badge-danger' : 'badge-secondary'));
+    }
+
+    const sourceEl = document.getElementById('drawerSource');
+    if (sourceEl) {
+        sourceEl.innerText = cid ? '🤖 AI Receptionist (WhatsApp)' : '👤 Manual / Desk Booking';
+    }
+
+    const chatRow = document.getElementById('drawerChatLinkRow');
+    const chatLink = document.getElementById('drawerChatLink');
+    if (cid && chatRow && chatLink) {
+        chatLink.href = '/admin/conversations?cid=' + cid;
+        chatRow.style.display = 'flex';
+    } else if (chatRow) {
+        chatRow.style.display = 'none';
+    }
+
+    const cancelBtn = document.getElementById('drawerCancelBtn');
+    if (cancelBtn) {
+        cancelBtn.style.display = (status === 'CONFIRMED') ? 'block' : 'none';
+    }
+
+    document.getElementById('apptDrawerBackdrop')?.classList.add('active');
+    document.getElementById('apptDrawerPanel')?.classList.add('active');
+}
+
+function closeApptDrawer() {
+    document.getElementById('apptDrawerBackdrop')?.classList.remove('active');
+    document.getElementById('apptDrawerPanel')?.classList.remove('active');
+    activeDrawerApptId = null;
+}
+
+function drawerExecuteCancel() {
+    if (activeDrawerApptId) {
+        cancelAppointment(activeDrawerApptId);
+    }
 }
 
 // Bind event listeners

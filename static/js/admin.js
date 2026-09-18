@@ -11,8 +11,10 @@ async function selectConversation(convId) {
 
     const emptyNotice = document.getElementById('convEmptyNotice');
     const activeView = document.getElementById('convActiveView');
+    const metaSidebar = document.getElementById('convMetaSidebar');
     if (emptyNotice) emptyNotice.style.display = 'none';
     if (activeView) activeView.style.display = 'flex';
+    if (metaSidebar) metaSidebar.style.display = 'block';
 
     // Always scroll to bottom when opening a different conversation.
     // When refreshing the SAME conversation (e.g. after a reply/takeover),
@@ -42,6 +44,18 @@ async function loadConversationDetails(convId, options = {}) {
         const nameInfo = (data.customer_name && data.customer_name !== data.customer_phone) ? ` (${data.customer_name})` : '';
         document.getElementById('activeConvTitle').textContent = `Conversation #${data.conversation_id}${phoneInfo}${nameInfo}`;
         
+        // Populate Right Info Panel
+        const metaPhone = document.getElementById('metaPhone');
+        if (metaPhone) metaPhone.textContent = data.customer_phone || 'Not available';
+        const metaName = document.getElementById('metaName');
+        if (metaName) metaName.textContent = data.customer_name || 'Walk-in Patient';
+        const metaStatus = document.getElementById('metaStatus');
+        if (metaStatus) metaStatus.textContent = data.status === 'HUMAN' ? '👨‍💼 Staff Takeover' : '🤖 AI Active';
+        const metaState = document.getElementById('metaState');
+        if (metaState) metaState.textContent = data.workflow_state || 'START';
+        const metaMsgCount = document.getElementById('metaMsgCount');
+        if (metaMsgCount) metaMsgCount.textContent = (data.messages || []).length;
+
         // Status Badge
         const statusBadge = document.getElementById('activeConvStatusBadge');
         if (data.status === 'HUMAN') {

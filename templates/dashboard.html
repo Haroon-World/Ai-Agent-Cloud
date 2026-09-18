@@ -1,48 +1,54 @@
 {% extends "base.html" %}
 
-{% block title %}Admin Dashboard - {{ business.name }}{% endblock %}
+{% block title %}Clinic Operations Dashboard - {{ business.name }}{% endblock %}
 
 {% block content %}
-<div class="dashboard-header">
+<!-- Dashboard Header matching Reference Design -->
+<div class="dashboard-header" style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 1.5rem; flex-wrap: wrap; gap: 1rem;">
     <div>
-        <h1 class="page-title">Clinic Operations Dashboard</h1>
-        <p class="page-subtitle">Real-time AI Business Agent metrics, appointments schedule, and conversation control.</p>
+        <h1 class="page-title" style="font-size: 1.6rem; font-weight: 800; color: #0f172a; margin: 0; font-family: var(--font-heading);">Good morning, {{ session.get('admin_user', 'Admin') }}</h1>
+        <p class="page-subtitle" style="font-size: 0.88rem; color: #64748b; margin: 4px 0 0 0;">Here's what's happening at your clinic today.</p>
     </div>
-    <div class="header-actions">
-        <a href="/admin/appointments" class="btn btn-outline">📅 Manage Appointments</a>
-        <a href="/admin/slots" class="btn btn-outline">📊 Slot Occupancy</a>
-        <a href="/admin/conversations" class="btn btn-outline">💬 View Live Chats</a>
-        <a href="/admin/logout" class="btn btn-outline" style="color: #dc2626; border-color: #fca5a5; font-weight: 600;">🚪 Log Out</a>
+    <div class="header-actions" style="display: flex; align-items: center; gap: 10px; flex-wrap: wrap;">
+        <div class="topbar-date-display" style="background: #ffffff; border: 1px solid #e2e8f0; font-weight: 600; color: #334155; padding: 0.45rem 0.9rem;">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+            <span id="dashboardDateDisplay">Today</span>
+        </div>
+        <a href="/admin/appointments" class="btn btn-outline btn-sm" style="border-radius: 8px; font-weight: 600;">📅 Appointments</a>
+        <a href="{% if session.get('business_id') %}/chat/{{ session.get('business_id') }}{% else %}/chat{% endif %}" target="_blank" class="btn btn-primary btn-sm" style="border-radius: 8px; font-weight: 600; display: inline-flex; align-items: center; gap: 6px;">
+            <span class="live-dot-pulse" style="background-color: #ffffff;"></span>
+            <span>+ Book via AI</span>
+        </a>
     </div>
 </div>
 
 {% if rejection_notice %}
-<div id="subscriptionRejectionAlert" style="background: #fef2f2; border: 2px solid #ef4444; border-radius: 12px; padding: 20px 24px; margin-bottom: 24px; box-shadow: 0 4px 12px rgba(239, 68, 68, 0.15); display: flex; justify-content: space-between; align-items: flex-start; gap: 16px;">
+<div id="subscriptionRejectionAlert" style="background: #fef2f2; border: 2px solid #ef4444; border-radius: 12px; padding: 18px 22px; margin-bottom: 24px; box-shadow: 0 4px 12px rgba(239, 68, 68, 0.12); display: flex; justify-content: space-between; align-items: flex-start; gap: 16px;">
     <div style="display: flex; gap: 14px; align-items: flex-start;">
-        <span style="font-size: 2rem; line-height: 1;">⚠️</span>
+        <span style="font-size: 1.8rem; line-height: 1;">⚠️</span>
         <div>
-            <div style="font-size: 1.1rem; font-weight: 800; color: #991b1b; margin-bottom: 4px;">
+            <div style="font-size: 1.05rem; font-weight: 800; color: #991b1b; margin-bottom: 4px;">
                 Subscription Request Rejected by Platform Administration
             </div>
-            <p style="margin: 0 0 8px 0; font-size: 0.93rem; color: #7f1d1d; line-height: 1.5;">
+            <p style="margin: 0 0 8px 0; font-size: 0.9rem; color: #7f1d1d; line-height: 1.45;">
                 Your recent subscription request for <strong>{{ rejection_notice.plan_display_name }}</strong> submitted on {{ rejection_notice.created_at or 'recently' }} was reviewed and <strong>rejected</strong> by the platform team.
             </p>
             {% if rejection_notice.notes %}
-            <div style="background: #ffffff; border-left: 4px solid #dc2626; padding: 8px 12px; border-radius: 4px; font-size: 0.88rem; color: #450a0a; margin-bottom: 12px;">
+            <div style="background: #ffffff; border-left: 4px solid #dc2626; padding: 8px 12px; border-radius: 4px; font-size: 0.85rem; color: #450a0a; margin-bottom: 12px;">
                 <strong>Reason / Reviewer Notes:</strong> {{ rejection_notice.notes }}
             </div>
             {% endif %}
             <div style="display: flex; gap: 10px; align-items: center; flex-wrap: wrap;">
-                <a href="/admin/subscription" class="btn btn-sm btn-primary" style="background: #dc2626; border-color: #dc2626; color: white; padding: 6px 14px; font-weight: 700; text-decoration: none; border-radius: 6px;">
-                    💳 Review Subscription &amp; Resubmit Request →
+                <a href="/admin/subscription" class="btn btn-sm btn-primary" style="background: #dc2626; border-color: #dc2626; color: white; padding: 5px 12px; font-weight: 700; text-decoration: none; border-radius: 6px;">
+                    💳 Review Subscription &amp; Resubmit →
                 </a>
-                <button type="button" onclick="dismissRejectionNotice({{ rejection_notice.id }})" style="background: transparent; border: 1px solid #fca5a5; color: #991b1b; padding: 6px 12px; border-radius: 6px; font-size: 0.85rem; cursor: pointer; font-weight: 600;">
+                <button type="button" onclick="dismissRejectionNotice({{ rejection_notice.id }})" style="background: transparent; border: 1px solid #fca5a5; color: #991b1b; padding: 5px 10px; border-radius: 6px; font-size: 0.82rem; cursor: pointer; font-weight: 600;">
                     Dismiss Notification
                 </button>
             </div>
         </div>
     </div>
-    <button type="button" onclick="dismissRejectionNotice({{ rejection_notice.id }})" style="background: transparent; border: none; font-size: 1.4rem; color: #991b1b; cursor: pointer; line-height: 1;" title="Close">&times;</button>
+    <button type="button" onclick="dismissRejectionNotice({{ rejection_notice.id }})" style="background: transparent; border: none; font-size: 1.3rem; color: #991b1b; cursor: pointer; line-height: 1;" title="Close">&times;</button>
 </div>
 <script>
 function dismissRejectionNotice(reqId) {
@@ -55,132 +61,229 @@ function dismissRejectionNotice(reqId) {
 </script>
 {% endif %}
 
-<!-- KPI Cards Grid -->
+<!-- Real Data Calculation for AI Bookings -->
+{% set today_ai_booked = (today_appointments | selectattr('conversation_id') | list | length) if today_appointments else 0 %}
+
+<!-- KPI Cards Grid (Matching Reference Screen 1) -->
 <div class="kpi-grid">
+    <!-- Card 1: Today's Appointments -->
     <div class="kpi-card">
-        <div class="kpi-icon icon-blue">📅</div>
+        <div class="kpi-icon icon-blue">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+        </div>
         <div class="kpi-content">
-            <span class="kpi-value">{{ today_count }}</span>
             <span class="kpi-label">Today's Appointments</span>
+            <span class="kpi-value">{{ today_count }}</span>
+            <span class="kpi-trend positive">
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="18 15 12 9 6 15"/></svg>
+                <span>Live Active</span>
+            </span>
         </div>
     </div>
 
+    <!-- Card 2: AI Conversations -->
     <div class="kpi-card">
-        <div class="kpi-icon icon-purple">💬</div>
+        <div class="kpi-icon icon-purple">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+        </div>
         <div class="kpi-content">
+            <span class="kpi-label">AI Conversations</span>
             <span class="kpi-value">{{ total_conversations }}</span>
-            <span class="kpi-label">Total AI Conversations</span>
+            <span class="kpi-trend positive">
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="18 15 12 9 6 15"/></svg>
+                <span>Automated</span>
+            </span>
         </div>
     </div>
 
-    <div class="kpi-card {% if human_handoff_count > 0 %}kpi-card-alert{% endif %}">
-        <div class="kpi-icon icon-orange">👨‍💼</div>
-        <div class="kpi-content">
-            <span class="kpi-value">{{ human_handoff_count }}</span>
-            <span class="kpi-label">Human Handoff Requests</span>
-        </div>
-    </div>
-
+    <!-- Card 3: Appointments Booked by AI -->
     <div class="kpi-card">
-        <div class="kpi-icon icon-green">⏰</div>
+        <div class="kpi-icon icon-green">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
+        </div>
         <div class="kpi-content">
-            <span class="kpi-value">{{ reminder_count }}</span>
-            <span class="kpi-label">Scheduled Reminders</span>
+            <span class="kpi-label">Appointments Booked by AI</span>
+            <span class="kpi-value">{{ today_ai_booked }}</span>
+            <span class="kpi-trend positive">
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="18 15 12 9 6 15"/></svg>
+                <span>Verified</span>
+            </span>
+        </div>
+    </div>
+
+    <!-- Card 4: Human Handoff Requests -->
+    <div class="kpi-card {% if human_handoff_count > 0 %}kpi-card-alert{% endif %}">
+        <div class="kpi-icon icon-orange">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><line x1="19" y1="8" x2="19" y2="14"/><line x1="22" y1="11" x2="16" y2="11"/></svg>
+        </div>
+        <div class="kpi-content">
+            <span class="kpi-label">Human Handoff Requests</span>
+            <span class="kpi-value">{{ human_handoff_count }}</span>
+            <span class="kpi-trend {% if human_handoff_count > 0 %}alert{% else %}neutral{% endif %}">
+                <span>{% if human_handoff_count > 0 %}Needs Staff{% else %}Normal{% endif %}</span>
+            </span>
         </div>
     </div>
 </div>
 
-<!-- Human Handoff Alerts -->
-{% if human_handoff_count > 0 %}
-<div class="section-card alert-section">
-    <div class="section-header">
-        <div class="alert-title-wrap">
-            <span class="pulse-dot"></span>
-            <h2>⚠️ Immediate Staff Attention Required ({{ human_handoff_count }})</h2>
+<!-- Two-Column Operational Split Grid (Matching Reference Screen 1) -->
+<div class="dashboard-split-grid">
+    <!-- Left Column (60%): Upcoming Appointments -->
+    <div class="dashboard-card">
+        <div class="dashboard-card-header">
+            <h2 class="dashboard-card-title">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+                <span>Upcoming Appointments</span>
+            </h2>
+            <a href="/admin/appointments" class="dashboard-view-all">
+                <span>View All</span>
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>
+            </a>
         </div>
-        <a href="/admin/conversations" class="btn btn-sm btn-primary">Open Chat Manager</a>
+
+        {% if upcoming_appointments %}
+        <div class="table-responsive" style="border: none; box-shadow: none;">
+            <table class="data-table">
+                <thead>
+                    <tr>
+                        <th style="font-size: 0.72rem;">TIME</th>
+                        <th style="font-size: 0.72rem;">PATIENT</th>
+                        <th style="font-size: 0.72rem;">DOCTOR</th>
+                        <th style="font-size: 0.72rem;">SERVICE</th>
+                        <th style="font-size: 0.72rem;">STATUS</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for appt in upcoming_appointments %}
+                    <tr>
+                        <td style="font-weight: 700; color: #0f172a; white-space: nowrap;">
+                            {{ appt.appointment_time }}
+                            <div style="font-size: 0.74rem; font-weight: 500; color: #64748b;">{{ appt.appointment_date }}</div>
+                        </td>
+                        <td>
+                            {% if appt.conversation_id %}
+                                <a href="/admin/conversations?cid={{ appt.conversation_id }}" style="color: inherit; text-decoration: none;" title="Open conversation">
+                                    <strong style="color: #4f46e5;">{{ appt.customer.name if appt.customer else (appt.patient_name or "Visitor") }}</strong>
+                                </a>
+                            {% else %}
+                                <strong>{{ appt.customer.name if appt.customer else (appt.patient_name or "Visitor") }}</strong>
+                            {% endif %}
+                            <div style="font-size: 0.75rem; color: #64748b;">{{ appt.customer.phone if appt.customer else "" }}</div>
+                        </td>
+                        <td style="color: #334155; font-weight: 500;">
+                            {{ appt.doctor.name if appt.doctor else "General Doctor" }}
+                        </td>
+                        <td style="color: #475569;">
+                            {{ appt.service.name if appt.service else "Consultation" }}
+                        </td>
+                        <td>
+                            {% if appt.status == 'CONFIRMED' %}
+                                <span class="badge badge-success">Confirmed</span>
+                            {% elif appt.status == 'PENDING' %}
+                                <span class="badge badge-warning">Pending</span>
+                            {% elif appt.status == 'CANCELLED' %}
+                                <span class="badge badge-danger">Cancelled</span>
+                            {% else %}
+                                <span class="badge badge-info">{{ appt.status }}</span>
+                            {% endif %}
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% else %}
+        <div class="empty-state" style="padding: 2.5rem 1rem;">
+            <div class="empty-state-icon">📅</div>
+            <div class="empty-state-title">No upcoming appointments</div>
+            <p style="font-size: 0.82rem; color: #64748b; margin: 0 0 1rem 0;">New patient appointments booked via AI or staff will appear here.</p>
+            <a href="{% if session.get('business_id') %}/chat/{{ session.get('business_id') }}{% else %}/chat{% endif %}" class="btn btn-sm btn-primary" target="_blank">Test AI Booking Chat</a>
+        </div>
+        {% endif %}
     </div>
-    <div class="table-responsive">
-        <table class="data-table">
-            <thead>
-                <tr>
-                    <th>Conv ID</th>
-                    <th>Customer</th>
-                    <th>Reason / Trigger</th>
-                    <th>Workflow State</th>
-                    <th>Action</th>
-                </tr>
-            </thead>
-            <tbody>
-                {% for conv in human_handoffs %}
-                <tr>
-                    <td><strong>#{{ conv.id }}</strong></td>
-                    <td>{{ conv.customer.name if conv.customer else "Visitor" }} ({{ conv.customer.phone if conv.customer else "No phone" }})</td>
-                    <td><span class="tag tag-orange">{{ conv.handoff_reason or "Customer requested staff" }}</span></td>
-                    <td><code>{{ conv.workflow_state }}</code></td>
-                    <td>
-                        <a href="/admin/conversations?cid={{ conv.id }}" class="btn btn-sm btn-primary">Take Over Chat</a>
-                    </td>
-                </tr>
+
+    <!-- Right Column (40%): AI Receptionist Activity Feed (Real Events Only) -->
+    <div class="dashboard-card">
+        <div class="dashboard-card-header">
+            <h2 class="dashboard-card-title">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
+                <span>AI Receptionist Activity</span>
+            </h2>
+            <a href="/admin/conversations" class="dashboard-view-all">
+                <span>View All</span>
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>
+            </a>
+        </div>
+
+        <div class="activity-feed">
+            {% set has_activity = false %}
+
+            <!-- 1. Real Human Handoff Events -->
+            {% if human_handoffs %}
+                {% set has_activity = true %}
+                {% for handoff in human_handoffs[:3] %}
+                <div class="activity-item">
+                    <div class="activity-icon icon-handoff">👨‍💼</div>
+                    <div class="activity-content">
+                        <div class="activity-title">Human handoff request</div>
+                        <div class="activity-subtitle">{{ handoff.customer.name if handoff.customer else "Patient" }} requested staff assistance ({{ handoff.handoff_reason or "Staff requested" }})</div>
+                    </div>
+                    <div class="activity-time">Active</div>
+                </div>
                 {% endfor %}
-            </tbody>
-        </table>
+            {% endif %}
+
+            <!-- 2. Real Confirmed Bookings -->
+            {% if today_appointments %}
+                {% set has_activity = true %}
+                {% for appt in today_appointments[:4] %}
+                <div class="activity-item">
+                    <div class="activity-icon icon-booking">📅</div>
+                    <div class="activity-content">
+                        <div class="activity-title">Appointment scheduled</div>
+                        <div class="activity-subtitle">Patient: {{ appt.customer.name if appt.customer else "Patient" }} • {{ appt.doctor.name if appt.doctor else "Doctor" }} at {{ appt.appointment_time }}</div>
+                    </div>
+                    <div class="activity-time">Today</div>
+                </div>
+                {% endfor %}
+            {% elif upcoming_appointments %}
+                {% set has_activity = true %}
+                {% for appt in upcoming_appointments[:3] %}
+                <div class="activity-item">
+                    <div class="activity-icon icon-booking">📅</div>
+                    <div class="activity-content">
+                        <div class="activity-title">Upcoming appointment</div>
+                        <div class="activity-subtitle">{{ appt.customer.name if appt.customer else "Patient" }} with {{ appt.doctor.name if appt.doctor else "Doctor" }} ({{ appt.appointment_date }})</div>
+                    </div>
+                    <div class="activity-time">{{ appt.appointment_time }}</div>
+                </div>
+                {% endfor %}
+            {% endif %}
+
+            <!-- If zero real activity exists -->
+            {% if not has_activity %}
+            <div class="empty-state" style="padding: 2.5rem 1rem;">
+                <div class="empty-state-icon">🤖</div>
+                <div class="empty-state-title">AI Receptionist is Active</div>
+                <p style="font-size: 0.82rem; color: #64748b; margin: 0;">Currently listening for incoming patient messages and booking inquiries.</p>
+            </div>
+            {% endif %}
+        </div>
     </div>
 </div>
-{% endif %}
 
-<!-- Upcoming Appointments Section -->
-<div class="section-card">
-    <div class="section-header">
-        <h2>Upcoming Confirmed Appointments</h2>
-        <a href="/admin/appointments" class="view-all-link">View Full Calendar →</a>
-    </div>
-
-    {% if upcoming_appointments %}
-    <div class="table-responsive">
-        <table class="data-table">
-            <thead>
-                <tr>
-                    <th>ID</th>
-                    <th>Date & Time</th>
-                    <th>Patient</th>
-                    <th>Doctor</th>
-                    <th>Treatment / Service</th>
-                    <th>Duration</th>
-                    <th>Status</th>
-                </tr>
-            </thead>
-            <tbody>
-                {% for appt in upcoming_appointments %}
-                <tr>
-                    <td>#{{ appt.id }}</td>
-                    <td><strong>{{ appt.appointment_date }}</strong> at {{ appt.appointment_time }}</td>
-                    <td>
-                        {% if appt.conversation_id %}
-                            <a href="/admin/conversations?cid={{ appt.conversation_id }}" style="color: inherit; text-decoration: none;" title="Open patient conversation">
-                                <strong>💬 {{ appt.customer.name if appt.customer else "N/A" }}</strong>
-                            </a>
-                        {% else %}
-                            <strong>{{ appt.customer.name if appt.customer else "N/A" }}</strong>
-                        {% endif %}
-                        <div class="text-muted">{{ appt.customer.phone if appt.customer else "" }}</div>
-                    </td>
-                    <td>{{ appt.doctor.name if appt.doctor else "Doctor" }}</td>
-                    <td>{{ appt.service.name if appt.service else "Dental Treatment" }}</td>
-                    <td>{{ appt.service.duration if appt.service else 30 }} mins</td>
-                    <td>
-                        <span class="badge badge-success">{{ appt.status }}</span>
-                    </td>
-                </tr>
-                {% endfor %}
-            </tbody>
-        </table>
-    </div>
-    {% else %}
-    <div class="empty-state">
-        <p>No upcoming appointments scheduled yet. Try booking one through the customer chat!</p>
-        <a href="{% if session.get('business_id') %}/chat/{{ session.get('business_id') }}{% else %}/chat{% endif %}" class="btn btn-sm btn-primary" target="_blank">Book in Customer Chat</a>
-    </div>
-    {% endif %}
-</div>
+<script>
+(function initDashboardDate() {
+    const el = document.getElementById('dashboardDateDisplay');
+    if (el) {
+        const options = { weekday: 'short', day: 'numeric', month: 'short', year: 'numeric' };
+        try {
+            el.textContent = new Date().toLocaleDateString(undefined, options);
+        } catch (e) {
+            el.textContent = 'Today';
+        }
+    }
+})();
+</script>
 {% endblock %}
+

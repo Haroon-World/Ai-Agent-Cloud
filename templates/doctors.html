@@ -1,133 +1,458 @@
 {% extends "base.html" %}
 
-{% block title %}Doctor Schedules & Availability - {{ business.name }}{% endblock %}
+{% block title %}{% if request.args.get('tab') == 'schedules' %}Doctor Schedules{% else %}Doctors Directory{% endif %} - {{ business.name }}{% endblock %}
 
 {% block content %}
-<div class="dashboard-header">
+<div class="schedule-segmented-tabs mb-4">
+    <a href="/admin/doctors" class="tab-btn {% if request.args.get('tab') != 'schedules' %}active{% endif %}">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+        Doctors Directory
+    </a>
+    <a href="/admin/doctors?tab=schedules" class="tab-btn {% if request.args.get('tab') == 'schedules' %}active{% endif %}">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+        Doctor Schedules (Weekly)
+    </a>
+</div>
+
+{% if request.args.get('tab') != 'schedules' %}
+<!-- ============================================================== -->
+<!-- SCREEN 5: DOCTORS DIRECTORY                                    -->
+<!-- ============================================================== -->
+<div class="dashboard-header mb-4">
     <div>
-        <h1 class="page-title">Doctor Weekly Schedules & Leave Management</h1>
-        <p class="page-subtitle">Configure day-by-day availability (Monday–Sunday), practicing hours, lunch breaks, and blocked leave periods per doctor.</p>
+        <h1 class="page-title">Doctors</h1>
+        <p class="page-subtitle">Manage your clinic doctors, practicing profiles, and availability.</p>
     </div>
     <div class="header-actions">
-        <button class="btn btn-primary" onclick="toggleAddForm()">➕ Add New Doctor</button>
+        <button type="button" class="btn btn-primary" onclick="openModal('addDoctorModal')">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+            Add Doctor
+        </button>
     </div>
 </div>
 
-<!-- Add Doctor Form (Hidden by default) -->
-<div id="addDoctorCard" class="section-card" style="display: none; margin-bottom: 24px; border: 2px solid #2563eb;">
-    <h3 style="margin-top: 0; margin-bottom: 16px; color: #1e293b;">Add Doctor & Set Weekly Schedule</h3>
-    <form action="/admin/doctors/add" method="POST">
-        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 16px; margin-bottom: 16px;">
-            <div>
-                <label style="display: block; font-weight: 600; margin-bottom: 6px;">Doctor Full Name</label>
-                <input type="text" name="name" class="form-control" placeholder="Dr. Jane Doe" required style="width: 100%; padding: 8px 12px; border-radius: 6px; border: 1px solid #cbd5e1;">
-            </div>
-            <div>
-                <label style="display: block; font-weight: 600; margin-bottom: 6px;">Specialization</label>
-                <input type="text" name="specialization" class="form-control" placeholder="e.g. Cardiologist, Dermatologist, Dentist, Pediatrician" required style="width: 100%; padding: 8px 12px; border-radius: 6px; border: 1px solid #cbd5e1;">
-            </div>
-            <div>
-                <label style="display: block; font-weight: 600; margin-bottom: 6px;">Slot Gap Step (Minutes)</label>
-                <select name="slot_interval" style="width: 100%; padding: 8px 12px; border-radius: 6px; border: 1px solid #cbd5e1;">
-                    <option value="15">15 Minutes</option>
-                    <option value="30" selected>30 Minutes (Default)</option>
-                    <option value="45">45 Minutes</option>
-                    <option value="60">60 Minutes (1 Hour)</option>
-                </select>
-            </div>
-            <div>
-                <label style="display: block; font-weight: 600; margin-bottom: 6px;">Lunch Break Range (Optional)</label>
-                <div style="display: flex; gap: 8px;">
-                    <input type="time" name="break_start_time" placeholder="13:00" style="flex: 1; padding: 8px; border-radius: 6px; border: 1px solid #cbd5e1;">
-                    <span style="align-self: center;">to</span>
-                    <input type="time" name="break_end_time" placeholder="14:00" style="flex: 1; padding: 8px; border-radius: 6px; border: 1px solid #cbd5e1;">
-                </div>
-            </div>
+<!-- Search & Quick Filters -->
+<div class="filter-card mb-4">
+    <div style="display: flex; gap: 12px; align-items: center; flex-wrap: wrap;">
+        <div style="flex: 1; min-width: 260px; position: relative;">
+            <input type="text" id="doctorSearchInput" class="form-control" placeholder="Search doctor by name or specialization..." onkeyup="filterDoctorsGrid()" style="padding-left: 2.2rem;">
+            <span style="position: absolute; left: 12px; top: 50%; transform: translateY(-50%); color: #94a3b8;">
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+            </span>
         </div>
-
-        <div style="margin-top: 16px; background: #f8fafc; padding: 16px; border-radius: 8px; border: 1px solid #e2e8f0;">
-            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; flex-wrap: wrap; gap: 8px;">
-                <h4 style="margin: 0; color: #1e293b;">📅 Weekly Schedule Configuration</h4>
-                <span style="font-size: 0.8rem; color: #64748b;">Supports dual-shift schedules per day</span>
-            </div>
-            <div style="display: grid; gap: 10px;">
-                {% for day in days_of_week %}
-                <div style="display: flex; align-items: center; justify-content: space-between; background: #ffffff; padding: 10px 14px; border-radius: 8px; border: 1px solid #cbd5e1; flex-wrap: wrap; gap: 10px;">
-                    <label style="font-weight: 600; min-width: 110px; margin: 0; display: flex; align-items: center; gap: 8px; cursor: pointer; color: #1e293b;">
-                        <input type="checkbox" name="is_available_{{ day }}" {% if day != 'Sunday' %}checked{% endif %} style="accent-color: #2563eb; width: 16px; height: 16px;">
-                        {{ day }}
-                    </label>
-                    <div style="display: flex; align-items: center; flex-wrap: wrap; gap: 10px;">
-                        <div style="display: inline-flex; align-items: center; gap: 6px; background: #f0fdf4; padding: 4px 10px; border-radius: 6px; border: 1px solid #bbf7d0;">
-                            <span style="font-size: 0.78rem; font-weight: 700; color: #166534; white-space: nowrap;">🌅 Shift 1</span>
-                            <span style="font-size: 0.75rem; color: #64748b;">From</span>
-                            <input type="time" name="start_time_{{ day }}" value="09:00" style="padding: 3px 6px; border-radius: 4px; border: 1px solid #cbd5e1; font-size: 0.82rem; background: #fff;">
-                            <span style="font-size: 0.75rem; color: #64748b;">To</span>
-                            <input type="time" name="end_time_{{ day }}" value="17:00" style="padding: 3px 6px; border-radius: 4px; border: 1px solid #cbd5e1; font-size: 0.82rem; background: #fff;">
-                        </div>
-                        <!-- Shift 2 (Added via + button) -->
-                        <div id="add_shift2_{{ day }}" style="display: none; align-items: center; gap: 6px; background: #fffbeb; padding: 4px 10px; border-radius: 6px; border: 1px dashed #fcd34d;">
-                            <span style="font-size: 0.78rem; font-weight: 700; color: #b45309; white-space: nowrap;">🌆 Shift 2</span>
-                            <span style="font-size: 0.75rem; color: #64748b;">From</span>
-                            <input type="time" name="shift_2_start_time_{{ day }}" value="" placeholder="17:00" style="padding: 3px 6px; border-radius: 4px; border: 1px solid #cbd5e1; font-size: 0.82rem; background: #fff;">
-                            <span style="font-size: 0.75rem; color: #64748b;">To</span>
-                            <input type="time" name="shift_2_end_time_{{ day }}" value="" placeholder="21:00" style="padding: 3px 6px; border-radius: 4px; border: 1px solid #cbd5e1; font-size: 0.82rem; background: #fff;">
-                            <button type="button" onclick="hideShift2('add_shift2_{{ day }}', 'add_btn_shift2_{{ day }}')" title="Remove extra shift" style="border: none; background: #fee2e2; color: #dc2626; border-radius: 4px; padding: 2px 6px; font-size: 0.75rem; font-weight: bold; cursor: pointer; line-height: 1;">✕</button>
-                        </div>
-                        <button type="button" id="add_btn_shift2_{{ day }}" onclick="showShift2('add_shift2_{{ day }}', 'add_btn_shift2_{{ day }}')" style="display: inline-flex; align-items: center; gap: 4px; background: #f8fafc; border: 1px dashed #94a3b8; color: #475569; padding: 4px 10px; border-radius: 6px; font-size: 0.75rem; font-weight: 600; cursor: pointer; transition: all 0.2s;" onmouseover="this.style.borderColor='#2563eb'; this.style.color='#2563eb';" onmouseout="this.style.borderColor='#94a3b8'; this.style.color='#475569';" title="Add an extra shift for {{ day }}">
-                            <span style="font-size: 0.85rem; font-weight: 800; color: #2563eb;">+</span> Add Shift
-                        </button>
-                    </div>
-                </div>
-                {% endfor %}
-            </div>
+        <div style="font-size: 0.85rem; color: #64748b; font-weight: 500;">
+            Showing <strong id="doctorCountText">{{ doctors|length }}</strong> doctors
         </div>
-
-        <div style="margin-top: 20px; display: flex; gap: 10px;">
-            <button type="submit" class="btn btn-primary">Save Doctor Profile & Schedule</button>
-            <button type="button" class="btn btn-secondary" onclick="toggleAddForm()">Cancel</button>
-        </div>
-    </form>
+    </div>
 </div>
 
-<!-- Doctors List -->
-<div class="section-card">
-    {% if doctors %}
-    <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(520px, 1fr)); gap: 24px;">
-        {% for doc in doctors %}
-        <div style="background: #ffffff; border: 1px solid #cbd5e1; border-radius: 12px; padding: 20px; box-shadow: 0 2px 4px rgba(0,0,0,0.05);">
-            <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 12px;">
-                <div>
-                    <h2 style="margin: 0; font-size: 1.3rem; color: #0f172a;">👨‍⚕️ {{ doc.name }}</h2>
-                    <span style="color: #475569; font-size: 0.95rem; font-weight: 500;">{{ doc.specialization }}</span>
+<!-- Doctor Cards Grid -->
+{% if doctors %}
+<div class="doc-cards-grid" id="doctorsGridContainer">
+    {% for doc in doctors %}
+    <div class="doc-card" data-name="{{ doc.name|lower }}" data-spec="{{ doc.specialization|lower }}">
+        <div>
+            <div class="doc-header">
+                <div class="doc-avatar">
+                    {{ doc.name[4] if doc.name.startswith('Dr. ') and doc.name|length > 4 else doc.name[0] }}
                 </div>
-                <form action="/admin/doctors/toggle/{{ doc.id }}" method="POST" style="margin: 0;">
+                <div class="doc-info">
+                    <div class="doc-name">{{ doc.name }}</div>
+                    <div class="doc-specialty">{{ doc.specialization }}</div>
+                </div>
+                <div>
                     {% if doc.is_active %}
-                        <button type="submit" class="badge badge-success" style="border: none; cursor: pointer;" title="Click to deactivate">ACTIVE</button>
+                        <span class="badge badge-success">● Available Today</span>
                     {% else %}
-                        <button type="submit" class="badge badge-danger" style="border: none; cursor: pointer;" title="Click to activate">INACTIVE</button>
+                        <span class="badge badge-secondary">● Inactive</span>
                     {% endif %}
-                </form>
+                </div>
             </div>
 
-            <hr style="border: None; border-top: 1px solid #e2e8f0; margin: 12px 0;">
+            <!-- Doctor Metrics -->
+            <div class="doc-metrics-row">
+                <div class="doc-metric">
+                    <div class="doc-metric-num">{{ doc.appointments|length }}</div>
+                    <div class="doc-metric-lbl">Appointments</div>
+                </div>
+                <div class="doc-metric">
+                    <div class="doc-metric-num">{{ doc.slot_interval or 30 }}m</div>
+                    <div class="doc-metric-lbl">Slot Step</div>
+                </div>
+                <div class="doc-metric">
+                    {% set active_days = doc.schedules|selectattr('is_available')|list|length if doc.schedules else 6 %}
+                    <div class="doc-metric-num">{{ active_days }} / 7</div>
+                    <div class="doc-metric-lbl">Active Days</div>
+                </div>
+            </div>
 
-            <form action="/admin/doctors/edit/{{ doc.id }}" method="POST">
-                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 12px;">
+            <div style="font-size: 0.8rem; color: #64748b; margin-bottom: 1.25rem; background: #fafbfc; padding: 8px 12px; border-radius: 6px; border: 1px solid #f1f5f9;">
+                <div>⏰ <strong>Hours:</strong> {{ doc.start_time or '09:00' }} – {{ doc.end_time or '17:00' }}</div>
+                {% if doc.break_start_time and doc.break_end_time %}
+                <div style="margin-top: 2px;">☕ <strong>Lunch:</strong> {{ doc.break_start_time }} – {{ doc.break_end_time }}</div>
+                {% endif %}
+                {% if doc.leaves %}
+                <div style="margin-top: 2px; color: #b91c1c;">🚫 <strong>Blocked:</strong> {{ doc.leaves|length }} leave date(s)</div>
+                {% endif %}
+            </div>
+        </div>
+
+        <div style="display: flex; gap: 8px; align-items: center; justify-content: space-between; border-top: 1px solid #f1f5f9; padding-top: 1rem;">
+            <a href="/admin/doctors?tab=schedules&doc_id={{ doc.id }}" class="btn btn-outline btn-sm" style="flex: 1; text-align: center;">
+                📅 View Schedule
+            </a>
+            <button type="button" class="btn btn-secondary btn-sm" onclick="openModal('editDoctorModal_{{ doc.id }}')" title="Edit profile & working hours">
+                ✏️ Edit
+            </button>
+            <form action="/admin/doctors/toggle/{{ doc.id }}" method="POST" style="margin: 0;">
+                <button type="submit" class="btn btn-ghost btn-sm" style="color: {% if doc.is_active %}#dc2626{% else %}#16a34a{% endif %}; font-weight: 600;" title="{% if doc.is_active %}Deactivate doctor{% else %}Activate doctor{% endif %}">
+                    {% if doc.is_active %}Deactivate{% else %}Activate{% endif %}
+                </button>
+            </form>
+        </div>
+    </div>
+    {% endfor %}
+</div>
+{% else %}
+<div class="section-card text-center" style="padding: 3rem 1rem;">
+    <div style="font-size: 2.5rem; margin-bottom: 1rem;">👨‍⚕️</div>
+    <h3 style="color: var(--text-main); margin-bottom: 0.5rem;">No Doctors Added Yet</h3>
+    <p style="color: var(--text-muted); max-width: 420px; margin: 0 auto 1.5rem;">Get started by adding your clinic's doctors, specialties, and their weekly working shifts.</p>
+    <button type="button" class="btn btn-primary" onclick="openModal('addDoctorModal')">➕ Add First Doctor</button>
+</div>
+{% endif %}
+
+{% else %}
+<!-- ============================================================== -->
+<!-- SCREEN 6: DOCTOR SCHEDULES (WEEKLY CALENDAR)                   -->
+<!-- ============================================================== -->
+{% set selected_doc_id = request.args.get('doc_id')|int if request.args.get('doc_id') else (doctors[0].id if doctors else None) %}
+{% set active_doc = None %}
+{% for d in doctors %}
+    {% if d.id == selected_doc_id %}
+        {% set active_doc = d %}
+    {% endif %}
+{% endfor %}
+{% if not active_doc and doctors %}
+    {% set active_doc = doctors[0] %}
+{% endif %}
+
+<div class="dashboard-header mb-4">
+    <div>
+        <h1 class="page-title">Doctor Schedules</h1>
+        <p class="page-subtitle">View and manage doctor weekly availability, practicing hours, and breaks.</p>
+    </div>
+    <div class="header-actions" style="display: flex; gap: 10px; align-items: center; flex-wrap: wrap;">
+        {% if active_doc %}
+        <button type="button" class="btn btn-secondary" onclick="openModal('editDoctorModal_{{ active_doc.id }}')">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+            Edit Schedule
+        </button>
+        <button type="button" class="btn btn-primary" onclick="openModal('addLeaveModal')">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+            Add Blocked Date
+        </button>
+        {% endif %}
+    </div>
+</div>
+
+<!-- Controls Bar: Doctor Selector, Week Info, and Legend -->
+<div class="filter-card mb-4">
+    <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 1rem;">
+        <div style="display: flex; align-items: center; gap: 12px; flex-wrap: wrap;">
+            <label style="font-size: 0.85rem; font-weight: 700; color: #475569; margin: 0;">Doctor:</label>
+            <select id="scheduleDocSelect" class="form-control" style="font-weight: 600; min-width: 220px;" onchange="window.location.href='/admin/doctors?tab=schedules&doc_id=' + this.value;">
+                {% for d in doctors %}
+                <option value="{{ d.id }}" {% if active_doc and d.id == active_doc.id %}selected{% endif %}>
+                    {{ d.name }} ({{ d.specialization }})
+                </option>
+                {% endfor %}
+            </select>
+            <span class="badge badge-info" style="font-size: 0.8rem; padding: 5px 10px;">
+                🗓️ Standard Weekly Template
+            </span>
+        </div>
+
+        <div class="cal-legend" style="margin: 0;">
+            <div class="legend-item"><span class="legend-dot dot-available"></span> Available</div>
+            <div class="legend-item"><span class="legend-dot dot-break"></span> Lunch Break</div>
+            <div class="legend-item"><span class="legend-dot dot-unavailable"></span> Closed / Off</div>
+            <div class="legend-item"><span class="legend-dot dot-leave"></span> Leave / Blocked</div>
+        </div>
+    </div>
+</div>
+
+{% if active_doc %}
+<!-- Map active doctor schedules -->
+{% set sched_map = {} %}
+{% if active_doc.schedules %}
+    {% for s in active_doc.schedules %}
+        {% set _ = sched_map.update({s.day_of_week: s}) %}
+    {% endfor %}
+{% endif %}
+
+<!-- Weekly Calendar Grid Table (Screen 6) -->
+<div class="calendar-table-wrap mb-4">
+    <table class="calendar-grid-table">
+        <thead>
+            <tr>
+                <th class="cal-time-col" style="background: #f8fafc; border-radius: 8px; padding: 8px;">Time</th>
+                {% for day in days_of_week %}
+                {% set day_sched = sched_map.get(day) %}
+                {% set is_avail = day_sched.is_available if day_sched else (day in (active_doc.working_days.split(',') if active_doc.working_days else [])) %}
+                <th class="cal-day-header">
+                    <div>{{ day }}</div>
+                    <div style="font-size: 0.72rem; font-weight: normal; margin-top: 2px;">
+                        {% if is_avail %}
+                            <span style="color: #16a34a; font-weight: 700;">Open</span>
+                        {% else %}
+                            <span style="color: #94a3b8;">Closed</span>
+                        {% endif %}
+                    </div>
+                </th>
+                {% endfor %}
+            </tr>
+        </thead>
+        <tbody>
+            {% set hours = [
+                ('09:00', '09:00 AM'),
+                ('10:00', '10:00 AM'),
+                ('11:00', '11:00 AM'),
+                ('12:00', '12:00 PM'),
+                ('13:00', '01:00 PM'),
+                ('14:00', '02:00 PM'),
+                ('15:00', '03:00 PM'),
+                ('16:00', '04:00 PM'),
+                ('17:00', '05:00 PM'),
+                ('18:00', '06:00 PM'),
+                ('19:00', '07:00 PM'),
+                ('20:00', '08:00 PM')
+            ] %}
+
+            {% for h_code, h_label in hours %}
+            <tr>
+                <td class="cal-time-col">{{ h_label }}</td>
+                {% for day in days_of_week %}
+                    {% set day_sched = sched_map.get(day) %}
+                    {% set is_avail = day_sched.is_available if day_sched else (day in (active_doc.working_days.split(',') if active_doc.working_days else [])) %}
+                    {% set s_start = day_sched.start_time if day_sched else active_doc.start_time %}
+                    {% set s_end = day_sched.end_time if day_sched else active_doc.end_time %}
+                    {% set s2_start = day_sched.shift_2_start_time if day_sched else active_doc.shift_2_start_time %}
+                    {% set s2_end = day_sched.shift_2_end_time if day_sched else active_doc.shift_2_end_time %}
+                    {% set b_start = active_doc.break_start_time %}
+                    {% set b_end = active_doc.break_end_time %}
+
+                    {% set is_break = (b_start and b_end and h_code >= b_start and h_code < b_end) %}
+                    {% set is_shift1 = (s_start and s_end and h_code >= s_start and h_code < s_end and not is_break) %}
+                    {% set is_shift2 = (s2_start and s2_end and h_code >= s2_start and h_code < s2_end) %}
+
+                    {% if not is_avail %}
+                        <td class="cal-slot cal-slot-unavailable">Off</td>
+                    {% elif is_break %}
+                        <td class="cal-slot cal-slot-break">☕ Break</td>
+                    {% elif is_shift1 or is_shift2 %}
+                        <td class="cal-slot cal-slot-available">Available</td>
+                    {% else %}
+                        <td class="cal-slot cal-slot-unavailable">—</td>
+                    {% endif %}
+                {% endfor %}
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+
+<!-- Detailed Day-by-Day Schedule Summary -->
+<div class="section-card mb-4">
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
+        <h3 style="margin: 0; font-size: 1.05rem; color: var(--text-main);">📋 Working Hours Breakdown: {{ active_doc.name }}</h3>
+        <button type="button" class="btn btn-secondary btn-sm" onclick="openModal('editDoctorModal_{{ active_doc.id }}')">Edit Times</button>
+    </div>
+    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 12px;">
+        {% for day in days_of_week %}
+            {% set day_sched = sched_map.get(day) %}
+            {% set is_avail = day_sched.is_available if day_sched else (day in (active_doc.working_days.split(',') if active_doc.working_days else [])) %}
+            {% set s_start = day_sched.start_time if day_sched else active_doc.start_time %}
+            {% set s_end = day_sched.end_time if day_sched else active_doc.end_time %}
+            {% set s2_start = day_sched.shift_2_start_time if day_sched else active_doc.shift_2_start_time %}
+            {% set s2_end = day_sched.shift_2_end_time if day_sched else active_doc.shift_2_end_time %}
+            <div style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 12px; text-align: center;">
+                <div style="font-weight: 700; color: var(--text-main); font-size: 0.9rem; margin-bottom: 4px;">{{ day[:3] }}</div>
+                {% if is_avail %}
+                    <span class="badge badge-success" style="font-size: 0.7rem; margin-bottom: 6px;">Available</span>
+                    <div style="font-size: 0.78rem; color: #475569; font-weight: 600;">{{ s_start or '09:00' }} – {{ s_end or '17:00' }}</div>
+                    {% if s2_start and s2_end %}
+                    <div style="font-size: 0.72rem; color: #b45309; margin-top: 4px;">Shift 2: {{ s2_start }}–{{ s2_end }}</div>
+                    {% endif %}
+                {% else %}
+                    <span class="badge badge-secondary" style="font-size: 0.7rem; margin-bottom: 6px;">Closed</span>
+                    <div style="font-size: 0.78rem; color: #94a3b8;">Day Off</div>
+                {% endif %}
+            </div>
+        {% endfor %}
+    </div>
+</div>
+
+<!-- Blocked Leaves & Vacation Management for Selected Doctor -->
+<div class="section-card">
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem; flex-wrap: wrap; gap: 8px;">
+        <div>
+            <h3 style="margin: 0; font-size: 1.05rem; color: var(--text-main);">🚫 Blocked Dates & Leaves: {{ active_doc.name }}</h3>
+            <p style="margin: 2px 0 0 0; font-size: 0.8rem; color: var(--text-muted);">Slots on these dates are automatically blocked and prevented from being booked by the AI receptionist.</p>
+        </div>
+        <button type="button" class="btn btn-secondary btn-sm" onclick="openModal('addLeaveModal')">
+            + Add Blocked Date
+        </button>
+    </div>
+
+    {% if active_doc.leaves %}
+    <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 12px; margin-bottom: 1.25rem;">
+        {% for leave in active_doc.leaves %}
+        <div style="background: #ffffff; border: 1px solid #fee2e2; border-radius: 8px; padding: 12px; display: flex; justify-content: space-between; align-items: center;">
+            <div>
+                <div style="font-weight: 700; color: #991b1b; font-size: 0.88rem;">📅 {{ leave.leave_date }}</div>
+                <div style="font-size: 0.8rem; color: #475569; margin-top: 2px;">
+                    {% if leave.is_all_day %}All Day{% else %}{{ leave.start_time }} – {{ leave.end_time }}{% endif %}
+                    {% if leave.reason %} • {{ leave.reason }}{% endif %}
+                </div>
+            </div>
+            <form action="/admin/doctors/leave/delete/{{ leave.id }}" method="POST" style="margin: 0;">
+                <button type="submit" class="btn btn-ghost btn-sm" style="color: #ef4444; padding: 4px 8px;" title="Remove this blocked date">✕ Delete</button>
+            </form>
+        </div>
+        {% endfor %}
+    </div>
+    {% else %}
+    <p style="font-size: 0.85rem; color: #64748b; margin-bottom: 1.25rem;">No blocked leave dates currently scheduled for this doctor.</p>
+    {% endif %}
+
+    <!-- Quick Inline Add Leave Form -->
+    <div style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 12px;">
+        <div style="font-size: 0.82rem; font-weight: 700; color: #334155; margin-bottom: 8px;">Quick Add Blocked Date for {{ active_doc.name }}:</div>
+        <form action="/admin/doctors/leave/add" method="POST" style="display: flex; flex-wrap: wrap; gap: 8px; align-items: center;">
+            <input type="hidden" name="doctor_id" value="{{ active_doc.id }}">
+            <input type="date" name="leave_date" required style="padding: 6px 10px; border-radius: 6px; border: 1px solid #cbd5e1; font-size: 0.85rem;">
+            <input type="text" name="reason" placeholder="Reason (e.g. Vacation, Medical Leave)" style="padding: 6px 10px; border-radius: 6px; border: 1px solid #cbd5e1; font-size: 0.85rem; flex: 1; min-width: 160px;">
+            <label style="font-size: 0.82rem; cursor: pointer; display: flex; align-items: center; gap: 4px; font-weight: 600; color: #475569;">
+                <input type="checkbox" name="is_all_day" checked style="accent-color: var(--primary);"> All Day
+            </label>
+            <button type="submit" class="btn btn-primary btn-sm">+ Save Blocked Date</button>
+        </form>
+    </div>
+</div>
+{% endif %}
+
+{% endif %}
+
+<!-- ============================================================== -->
+<!-- MODALS                                                         -->
+<!-- ============================================================== -->
+
+<!-- 1. ADD DOCTOR MODAL -->
+<div class="saas-modal-backdrop" id="addDoctorModal">
+    <div class="saas-modal-card modal-lg">
+        <div class="saas-modal-header">
+            <h3 class="saas-modal-title">
+                <span>➕</span> Add New Doctor & Weekly Schedule
+            </h3>
+            <button type="button" class="saas-modal-close" onclick="closeModal('addDoctorModal')">✕</button>
+        </div>
+        <form action="/admin/doctors/add" method="POST">
+            <div class="saas-modal-body">
+                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 16px; margin-bottom: 16px;">
                     <div>
-                        <label style="font-size: 0.8rem; font-weight: 600; color: #475569; display: block; margin-bottom: 4px;">Doctor Name</label>
-                        <input type="text" name="name" value="{{ doc.name }}" required style="width: 100%; padding: 6px 10px; border-radius: 6px; border: 1px solid #cbd5e1; font-size: 0.9rem;">
+                        <label style="display: block; font-size: 0.82rem; font-weight: 700; color: #334155; margin-bottom: 6px;">Doctor Full Name</label>
+                        <input type="text" name="name" class="form-control" placeholder="Dr. Jane Doe" required>
                     </div>
                     <div>
-                        <label style="font-size: 0.8rem; font-weight: 600; color: #475569; display: block; margin-bottom: 4px;">Specialization</label>
-                        <input type="text" name="specialization" value="{{ doc.specialization }}" required style="width: 100%; padding: 6px 10px; border-radius: 6px; border: 1px solid #cbd5e1; font-size: 0.9rem;">
+                        <label style="display: block; font-size: 0.82rem; font-weight: 700; color: #334155; margin-bottom: 6px;">Specialization</label>
+                        <input type="text" name="specialization" class="form-control" placeholder="e.g. General Physician, Dentist, Cardiologist" required>
+                    </div>
+                    <div>
+                        <label style="display: block; font-size: 0.82rem; font-weight: 700; color: #334155; margin-bottom: 6px;">Slot Gap Step (Minutes)</label>
+                        <select name="slot_interval" class="form-control">
+                            <option value="15">15 Minutes</option>
+                            <option value="30" selected>30 Minutes (Default)</option>
+                            <option value="45">45 Minutes</option>
+                            <option value="60">60 Minutes (1 Hour)</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label style="display: block; font-size: 0.82rem; font-weight: 700; color: #334155; margin-bottom: 6px;">Lunch Break (Optional)</label>
+                        <div style="display: flex; gap: 8px; align-items: center;">
+                            <input type="time" name="break_start_time" value="13:00" class="form-control" style="flex: 1;">
+                            <span style="font-size: 0.8rem; color: #64748b;">to</span>
+                            <input type="time" name="break_end_time" value="14:00" class="form-control" style="flex: 1;">
+                        </div>
                     </div>
                 </div>
 
-                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 12px;">
+                <div style="background: #f8fafc; padding: 14px; border-radius: 8px; border: 1px solid #e2e8f0;">
+                    <div style="font-size: 0.85rem; font-weight: 700; color: #1e293b; margin-bottom: 10px;">
+                        🗓️ Weekly Schedule Configuration (Per Day)
+                    </div>
+                    <div style="display: grid; gap: 8px;">
+                        {% for day in days_of_week %}
+                        <div style="display: flex; align-items: center; justify-content: space-between; background: #ffffff; padding: 8px 12px; border-radius: 6px; border: 1px solid #cbd5e1; flex-wrap: wrap; gap: 8px;">
+                            <label style="font-weight: 600; min-width: 100px; margin: 0; display: flex; align-items: center; gap: 8px; cursor: pointer; color: #1e293b; font-size: 0.85rem;">
+                                <input type="checkbox" name="is_available_{{ day }}" {% if day != 'Sunday' %}checked{% endif %} style="accent-color: var(--primary);">
+                                {{ day }}
+                            </label>
+                            <div style="display: flex; align-items: center; flex-wrap: wrap; gap: 8px;">
+                                <div style="display: inline-flex; align-items: center; gap: 6px; background: #f0fdf4; padding: 3px 8px; border-radius: 4px; border: 1px solid #bbf7d0;">
+                                    <span style="font-size: 0.75rem; font-weight: 700; color: #166534;">Shift 1</span>
+                                    <input type="time" name="start_time_{{ day }}" value="09:00" style="padding: 2px 6px; border-radius: 4px; border: 1px solid #cbd5e1; font-size: 0.8rem; background: #fff;">
+                                    <span style="font-size: 0.75rem; color: #64748b;">–</span>
+                                    <input type="time" name="end_time_{{ day }}" value="17:00" style="padding: 2px 6px; border-radius: 4px; border: 1px solid #cbd5e1; font-size: 0.8rem; background: #fff;">
+                                </div>
+                                <div id="add_shift2_{{ day }}" style="display: none; align-items: center; gap: 6px; background: #fffbeb; padding: 3px 8px; border-radius: 4px; border: 1px dashed #fcd34d;">
+                                    <span style="font-size: 0.75rem; font-weight: 700; color: #b45309;">Shift 2</span>
+                                    <input type="time" name="shift_2_start_time_{{ day }}" value="" placeholder="17:00" style="padding: 2px 6px; border-radius: 4px; border: 1px solid #cbd5e1; font-size: 0.8rem; background: #fff;">
+                                    <span style="font-size: 0.75rem; color: #64748b;">–</span>
+                                    <input type="time" name="shift_2_end_time_{{ day }}" value="" placeholder="21:00" style="padding: 2px 6px; border-radius: 4px; border: 1px solid #cbd5e1; font-size: 0.8rem; background: #fff;">
+                                    <button type="button" onclick="hideShift2('add_shift2_{{ day }}', 'add_btn_shift2_{{ day }}')" style="border: none; background: #fee2e2; color: #dc2626; border-radius: 4px; padding: 2px 5px; font-size: 0.75rem; font-weight: bold; cursor: pointer;">✕</button>
+                                </div>
+                                <button type="button" id="add_btn_shift2_{{ day }}" onclick="showShift2('add_shift2_{{ day }}', 'add_btn_shift2_{{ day }}')" style="background: #f8fafc; border: 1px dashed #94a3b8; color: #475569; padding: 3px 8px; border-radius: 4px; font-size: 0.75rem; font-weight: 600; cursor: pointer;">
+                                    + Add Shift 2
+                                </button>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </div>
+                </div>
+            </div>
+            <div class="saas-modal-footer">
+                <button type="button" class="btn btn-secondary" onclick="closeModal('addDoctorModal')">Cancel</button>
+                <button type="submit" class="btn btn-primary">Save Doctor Profile & Schedule</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- 2. EDIT DOCTOR MODALS (Generated for each doctor) -->
+{% for doc in doctors %}
+<div class="saas-modal-backdrop" id="editDoctorModal_{{ doc.id }}">
+    <div class="saas-modal-card modal-lg">
+        <div class="saas-modal-header">
+            <h3 class="saas-modal-title">
+                <span>✏️</span> Edit Doctor Profile & Schedule: {{ doc.name }}
+            </h3>
+            <button type="button" class="saas-modal-close" onclick="closeModal('editDoctorModal_{{ doc.id }}')">✕</button>
+        </div>
+        <form action="/admin/doctors/edit/{{ doc.id }}" method="POST">
+            <div class="saas-modal-body">
+                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 14px; margin-bottom: 16px;">
                     <div>
-                        <label style="font-size: 0.8rem; font-weight: 600; color: #475569; display: block; margin-bottom: 4px;">Slot Gap / Step (Mins)</label>
-                        <select name="slot_interval" style="width: 100%; padding: 6px 10px; border-radius: 6px; border: 1px solid #cbd5e1; font-size: 0.9rem;">
+                        <label style="display: block; font-size: 0.82rem; font-weight: 700; color: #334155; margin-bottom: 4px;">Doctor Full Name</label>
+                        <input type="text" name="name" value="{{ doc.name }}" class="form-control" required>
+                    </div>
+                    <div>
+                        <label style="display: block; font-size: 0.82rem; font-weight: 700; color: #334155; margin-bottom: 4px;">Specialization</label>
+                        <input type="text" name="specialization" value="{{ doc.specialization }}" class="form-control" required>
+                    </div>
+                    <div>
+                        <label style="display: block; font-size: 0.82rem; font-weight: 700; color: #334155; margin-bottom: 4px;">Slot Gap Step</label>
+                        <select name="slot_interval" class="form-control">
                             <option value="15" {% if doc.slot_interval == 15 %}selected{% endif %}>15 Minutes</option>
                             <option value="30" {% if doc.slot_interval == 30 or not doc.slot_interval %}selected{% endif %}>30 Minutes</option>
                             <option value="45" {% if doc.slot_interval == 45 %}selected{% endif %}>45 Minutes</option>
@@ -135,61 +460,60 @@
                         </select>
                     </div>
                     <div>
-                        <label style="font-size: 0.8rem; font-weight: 600; color: #475569; display: block; margin-bottom: 4px;">Lunch Break Range</label>
-                        <div style="display: flex; gap: 4px; align-items: center;">
-                            <input type="time" name="break_start_time" value="{{ doc.break_start_time or '' }}" placeholder="13:00" style="flex: 1; padding: 6px; border-radius: 6px; border: 1px solid #cbd5e1; font-size: 0.85rem;">
-                            <span>to</span>
-                            <input type="time" name="break_end_time" value="{{ doc.break_end_time or '' }}" placeholder="14:00" style="flex: 1; padding: 6px; border-radius: 6px; border: 1px solid #cbd5e1; font-size: 0.85rem;">
+                        <label style="display: block; font-size: 0.82rem; font-weight: 700; color: #334155; margin-bottom: 4px;">Lunch Break Range</label>
+                        <div style="display: flex; gap: 6px; align-items: center;">
+                            <input type="time" name="break_start_time" value="{{ doc.break_start_time or '' }}" class="form-control" placeholder="13:00">
+                            <span style="font-size: 0.8rem; color: #64748b;">to</span>
+                            <input type="time" name="break_end_time" value="{{ doc.break_end_time or '' }}" class="form-control" placeholder="14:00">
                         </div>
                     </div>
                 </div>
 
                 <!-- Per-Day Weekly Schedule Grid -->
-                <div style="margin-bottom: 16px; background: #f8fafc; padding: 12px; border-radius: 8px; border: 1px solid #e2e8f0;">
-                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; flex-wrap: wrap; gap: 6px;">
-                        <label style="font-size: 0.85rem; font-weight: 700; color: #1e293b; margin: 0;">🗓️ Per-Day Weekly Working Hours</label>
-                        <span style="font-size: 0.75rem; color: #64748b;">Supports dual-shift schedules per day</span>
+                <div style="background: #f8fafc; padding: 14px; border-radius: 8px; border: 1px solid #e2e8f0; margin-bottom: 16px;">
+                    <div style="font-size: 0.85rem; font-weight: 700; color: #1e293b; margin-bottom: 10px;">
+                        🗓️ Per-Day Working Hours Configuration
                     </div>
-                    
-                    {% set sched_map = {} %}
+
+                    {% set doc_sched_map = {} %}
                     {% if doc.schedules %}
                         {% for s in doc.schedules %}
-                            {% set _ = sched_map.update({s.day_of_week: s}) %}
+                            {% set _ = doc_sched_map.update({s.day_of_week: s}) %}
                         {% endfor %}
                     {% endif %}
 
                     <div style="display: grid; gap: 8px;">
                         {% for day in days_of_week %}
-                            {% set day_sched = sched_map.get(day) %}
+                            {% set day_sched = doc_sched_map.get(day) %}
                             {% set is_avail = day_sched.is_available if day_sched else (day in (doc.working_days.split(',') if doc.working_days else [])) %}
                             {% set s_time = day_sched.start_time if day_sched else doc.start_time %}
                             {% set e_time = day_sched.end_time if day_sched else doc.end_time %}
                             {% set s2_start = (day_sched.shift_2_start_time if (day_sched and day_sched.shift_2_start_time) else '') %}
                             {% set s2_end = (day_sched.shift_2_end_time if (day_sched and day_sched.shift_2_end_time) else '') %}
                             <div style="display: flex; align-items: center; justify-content: space-between; background: #ffffff; padding: 8px 12px; border-radius: 6px; border: 1px solid #e2e8f0; font-size: 0.85rem; flex-wrap: wrap; gap: 8px;">
-                                <label style="font-weight: 600; min-width: 105px; margin: 0; display: flex; align-items: center; gap: 6px; cursor: pointer;">
-                                    <input type="checkbox" name="is_available_{{ day }}" {% if is_avail %}checked{% endif %} style="accent-color: #2563eb;">
-                                    {{ day[:3] }} {% if is_avail %}<span style="color: #16a34a; font-size: 0.75rem; font-weight: 700;">(Available)</span>{% else %}<span style="color: #dc2626; font-size: 0.75rem;">(Closed)</span>{% endif %}
+                                <label style="font-weight: 600; min-width: 100px; margin: 0; display: flex; align-items: center; gap: 6px; cursor: pointer;">
+                                    <input type="checkbox" name="is_available_{{ day }}" {% if is_avail %}checked{% endif %} style="accent-color: var(--primary);">
+                                    {{ day[:3] }} {% if is_avail %}<span style="color: #16a34a; font-size: 0.75rem; font-weight: 700;">(Open)</span>{% else %}<span style="color: #94a3b8; font-size: 0.75rem;">(Off)</span>{% endif %}
                                 </label>
                                 <div style="display: flex; align-items: center; flex-wrap: wrap; gap: 8px;">
                                     <!-- Shift 1 -->
                                     <div style="display: inline-flex; align-items: center; gap: 4px; background: #f0fdf4; padding: 3px 8px; border-radius: 4px; border: 1px solid #bbf7d0;">
-                                        <span style="font-size: 0.75rem; font-weight: 700; color: #166534; white-space: nowrap;">🌅 Shift 1</span>
+                                        <span style="font-size: 0.75rem; font-weight: 700; color: #166534; white-space: nowrap;">Shift 1</span>
                                         <input type="time" name="start_time_{{ day }}" value="{{ s_time or '09:00' }}" style="padding: 2px 6px; border-radius: 4px; border: 1px solid #cbd5e1; font-size: 0.8rem; background: #fff;">
                                         <span style="font-size: 0.75rem; color: #64748b;">–</span>
                                         <input type="time" name="end_time_{{ day }}" value="{{ e_time or '17:00' }}" style="padding: 2px 6px; border-radius: 4px; border: 1px solid #cbd5e1; font-size: 0.8rem; background: #fff;">
                                     </div>
-                                    <!-- Shift 2 (Revealed if configured, or added via + button) -->
+                                    <!-- Shift 2 -->
                                     {% set has_shift_2 = (s2_start and s2_end) %}
                                     <div id="edit_shift2_{{ doc.id }}_{{ day }}" style="display: {% if has_shift_2 %}inline-flex{% else %}none{% endif %}; align-items: center; gap: 4px; background: #fffbeb; padding: 3px 8px; border-radius: 4px; border: 1px dashed #fcd34d;">
-                                        <span style="font-size: 0.75rem; font-weight: 700; color: #b45309; white-space: nowrap;">🌆 Shift 2</span>
+                                        <span style="font-size: 0.75rem; font-weight: 700; color: #b45309; white-space: nowrap;">Shift 2</span>
                                         <input type="time" name="shift_2_start_time_{{ day }}" value="{{ s2_start }}" placeholder="17:00" style="padding: 2px 6px; border-radius: 4px; border: 1px solid #cbd5e1; font-size: 0.8rem; background: #fff;">
                                         <span style="font-size: 0.75rem; color: #64748b;">–</span>
                                         <input type="time" name="shift_2_end_time_{{ day }}" value="{{ s2_end }}" placeholder="21:00" style="padding: 2px 6px; border-radius: 4px; border: 1px solid #cbd5e1; font-size: 0.8rem; background: #fff;">
-                                        <button type="button" onclick="hideShift2('edit_shift2_{{ doc.id }}_{{ day }}', 'edit_btn_shift2_{{ doc.id }}_{{ day }}')" title="Remove extra shift" style="border: none; background: #fee2e2; color: #dc2626; border-radius: 4px; padding: 2px 5px; font-size: 0.75rem; font-weight: bold; cursor: pointer; line-height: 1;">✕</button>
+                                        <button type="button" onclick="hideShift2('edit_shift2_{{ doc.id }}_{{ day }}', 'edit_btn_shift2_{{ doc.id }}_{{ day }}')" style="border: none; background: #fee2e2; color: #dc2626; border-radius: 4px; padding: 2px 5px; font-size: 0.75rem; font-weight: bold; cursor: pointer;">✕</button>
                                     </div>
-                                    <button type="button" id="edit_btn_shift2_{{ doc.id }}_{{ day }}" onclick="showShift2('edit_shift2_{{ doc.id }}_{{ day }}', 'edit_btn_shift2_{{ doc.id }}_{{ day }}')" style="display: {% if has_shift_2 %}none{% else %}inline-flex{% endif %}; align-items: center; gap: 4px; background: #f8fafc; border: 1px dashed #94a3b8; color: #475569; padding: 3px 8px; border-radius: 4px; font-size: 0.75rem; font-weight: 600; cursor: pointer; transition: all 0.2s;" onmouseover="this.style.borderColor='#2563eb'; this.style.color='#2563eb';" onmouseout="this.style.borderColor='#94a3b8'; this.style.color='#475569';" title="Add an extra shift for {{ day }}">
-                                        <span style="font-size: 0.85rem; font-weight: 800; color: #2563eb;">+</span> Add Shift
+                                    <button type="button" id="edit_btn_shift2_{{ doc.id }}_{{ day }}" onclick="showShift2('edit_shift2_{{ doc.id }}_{{ day }}', 'edit_btn_shift2_{{ doc.id }}_{{ day }}')" style="display: {% if has_shift_2 %}none{% else %}inline-flex{% endif %}; align-items: center; gap: 4px; background: #f8fafc; border: 1px dashed #94a3b8; color: #475569; padding: 3px 8px; border-radius: 4px; font-size: 0.75rem; font-weight: 600; cursor: pointer;">
+                                        + Add Shift 2
                                     </button>
                                 </div>
                             </div>
@@ -197,67 +521,86 @@
                     </div>
                 </div>
 
-                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
-                    <label style="font-size: 0.85rem; font-weight: 600; cursor: pointer; display: flex; align-items: center; gap: 6px;">
-                        <input type="checkbox" name="is_active" {% if doc.is_active %}checked{% endif %}>
+                <div style="display: flex; justify-content: space-between; align-items: center;">
+                    <label style="font-size: 0.85rem; font-weight: 600; cursor: pointer; display: flex; align-items: center; gap: 8px;">
+                        <input type="checkbox" name="is_active" {% if doc.is_active %}checked{% endif %} style="accent-color: var(--primary);">
                         Active & Accepting Bookings
                     </label>
-                    <button type="submit" class="btn btn-sm btn-primary">Save Schedule Changes</button>
                 </div>
-            </form>
-
-            <!-- Doctor Blocked Leave Dates Section -->
-            <div style="background: #f1f5f9; padding: 12px; border-radius: 8px; border: 1px solid #cbd5e1; margin-top: 12px;">
-                <h4 style="margin: 0 0 8px 0; font-size: 0.9rem; color: #334155;">🚫 Blocked Dates / Leave Periods</h4>
-                
-                {% if doc.leaves %}
-                <div style="margin-bottom: 10px; display: flex; flex-wrap: wrap; gap: 6px;">
-                    {% for leave in doc.leaves %}
-                    <div style="background: #ffffff; border: 1px solid #cbd5e1; border-radius: 6px; padding: 4px 8px; font-size: 0.8rem; display: flex; align-items: center; gap: 6px;">
-                        <span>📅 <strong>{{ leave.leave_date }}</strong> ({% if leave.is_all_day %}All Day{% else %}{{ leave.start_time }}-{{ leave.end_time }}{% endif %}) - {{ leave.reason }}</span>
-                        <form action="/admin/doctors/leave/delete/{{ leave.id }}" method="POST" style="margin: 0;">
-                            <button type="submit" style="border: none; background: none; color: #ef4444; cursor: pointer; font-weight: bold;">✕</button>
-                        </form>
-                    </div>
-                    {% endfor %}
-                </div>
-                {% else %}
-                <p style="margin: 0 0 8px 0; font-size: 0.8rem; color: #64748b;">No blocked leave dates configured.</p>
-                {% endif %}
-
-                <!-- Form to Add Leave -->
-                <form action="/admin/doctors/leave/add" method="POST" style="display: flex; flex-wrap: wrap; gap: 6px; align-items: center;">
-                    <input type="hidden" name="doctor_id" value="{{ doc.id }}">
-                    <input type="date" name="leave_date" required style="padding: 4px 8px; border-radius: 4px; border: 1px solid #cbd5e1; font-size: 0.8rem;">
-                    <input type="text" name="reason" placeholder="Reason (e.g. Vacation)" style="padding: 4px 8px; border-radius: 4px; border: 1px solid #cbd5e1; font-size: 0.8rem; flex: 1; min-width: 120px;">
-                    <label style="font-size: 0.8rem; cursor: pointer; display: flex; align-items: center; gap: 4px;">
-                        <input type="checkbox" name="is_all_day" checked> All Day
-                    </label>
-                    <button type="submit" class="btn btn-sm btn-secondary" style="font-size: 0.8rem; padding: 4px 8px;">+ Add Leave</button>
-                </form>
             </div>
-
-        </div>
-        {% endfor %}
+            <div class="saas-modal-footer">
+                <button type="button" class="btn btn-secondary" onclick="closeModal('editDoctorModal_{{ doc.id }}')">Cancel</button>
+                <button type="submit" class="btn btn-primary">Save Schedule Changes</button>
+            </div>
+        </form>
     </div>
-    {% else %}
-    <div class="empty-state">
-        <p>No doctor records found in the database.</p>
-    </div>
-    {% endif %}
 </div>
+{% endfor %}
+
+<!-- 3. ADD LEAVE MODAL -->
+{% if active_doc %}
+<div class="saas-modal-backdrop" id="addLeaveModal">
+    <div class="saas-modal-card">
+        <div class="saas-modal-header">
+            <h3 class="saas-modal-title">
+                <span>🚫</span> Add Blocked Date / Leave
+            </h3>
+            <button type="button" class="saas-modal-close" onclick="closeModal('addLeaveModal')">✕</button>
+        </div>
+        <form action="/admin/doctors/leave/add" method="POST">
+            <div class="saas-modal-body">
+                <div style="margin-bottom: 12px;">
+                    <label style="display: block; font-size: 0.82rem; font-weight: 700; color: #334155; margin-bottom: 4px;">Doctor</label>
+                    <select name="doctor_id" class="form-control" required>
+                        {% for d in doctors %}
+                        <option value="{{ d.id }}" {% if d.id == active_doc.id %}selected{% endif %}>{{ d.name }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div style="margin-bottom: 12px;">
+                    <label style="display: block; font-size: 0.82rem; font-weight: 700; color: #334155; margin-bottom: 4px;">Leave Date</label>
+                    <input type="date" name="leave_date" class="form-control" required>
+                </div>
+                <div style="margin-bottom: 12px;">
+                    <label style="display: block; font-size: 0.82rem; font-weight: 700; color: #334155; margin-bottom: 4px;">Reason (Optional)</label>
+                    <input type="text" name="reason" placeholder="e.g. Conference, Personal Vacation, Holiday" class="form-control">
+                </div>
+                <div>
+                    <label style="font-size: 0.85rem; font-weight: 600; cursor: pointer; display: flex; align-items: center; gap: 8px;">
+                        <input type="checkbox" name="is_all_day" checked style="accent-color: var(--primary);">
+                        Block Entire Day (All Day)
+                    </label>
+                </div>
+            </div>
+            <div class="saas-modal-footer">
+                <button type="button" class="btn btn-secondary" onclick="closeModal('addLeaveModal')">Cancel</button>
+                <button type="submit" class="btn btn-primary">Save Blocked Date</button>
+            </div>
+        </form>
+    </div>
+</div>
+{% endif %}
+
 {% endblock %}
 
 {% block scripts %}
 <script>
-function toggleAddForm() {
-    const card = document.getElementById('addDoctorCard');
-    if (card.style.display === 'none' || !card.style.display) {
-        card.style.display = 'block';
-    } else {
-        card.style.display = 'none';
-    }
+function openModal(modalId) {
+    const el = document.getElementById(modalId);
+    if (el) el.classList.add('active');
 }
+
+function closeModal(modalId) {
+    const el = document.getElementById(modalId);
+    if (el) el.classList.remove('active');
+}
+
+// Close modal when clicking backdrop
+document.addEventListener('click', function(e) {
+    if (e.target.classList.contains('saas-modal-backdrop')) {
+        e.target.classList.remove('active');
+    }
+});
 
 function showShift2(containerId, btnId) {
     const container = document.getElementById(containerId);
@@ -281,6 +624,24 @@ function hideShift2(containerId, btnId) {
         inputs.forEach(input => input.value = '');
     }
     if (btn) btn.style.display = 'inline-flex';
+}
+
+function filterDoctorsGrid() {
+    const query = document.getElementById('doctorSearchInput').value.toLowerCase().trim();
+    const cards = document.querySelectorAll('.doc-card');
+    let visibleCount = 0;
+    cards.forEach(card => {
+        const name = card.getAttribute('data-name') || '';
+        const spec = card.getAttribute('data-spec') || '';
+        if (name.includes(query) || spec.includes(query)) {
+            card.style.display = 'flex';
+            visibleCount++;
+        } else {
+            card.style.display = 'none';
+        }
+    });
+    const countEl = document.getElementById('doctorCountText');
+    if (countEl) countEl.innerText = visibleCount;
 }
 </script>
 {% endblock %}

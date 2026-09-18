@@ -188,6 +188,45 @@
                 </form>
             </div>
         </div>
+    </div>
+
+    <!-- Right Column: Conversation & Patient Info Panel (Screen 3) -->
+    <div class="conv-meta-sidebar" id="convMetaSidebar" style="display: none; width: 280px; min-width: 260px; border-left: 1px solid #e2e8f0; background: #fafbfc; padding: 1.25rem; overflow-y: auto;">
+        <h4 style="margin: 0 0 1rem 0; font-size: 0.95rem; font-weight: 700; color: var(--text-main); border-bottom: 1px solid #e2e8f0; padding-bottom: 0.75rem;">
+            Conversation Info
+        </h4>
+        <div class="drawer-section">
+            <div class="drawer-field-row">
+                <span class="drawer-field-label">Phone</span>
+                <span class="drawer-field-val" id="metaPhone">N/A</span>
+            </div>
+            <div class="drawer-field-row">
+                <span class="drawer-field-label">Patient</span>
+                <span class="drawer-field-val" id="metaName">N/A</span>
+            </div>
+            <div class="drawer-field-row">
+                <span class="drawer-field-label">Status</span>
+                <span class="drawer-field-val" id="metaStatus">AI</span>
+            </div>
+            <div class="drawer-field-row">
+                <span class="drawer-field-label">Channel</span>
+                <span class="drawer-field-val">📱 WhatsApp</span>
+            </div>
+            <div class="drawer-field-row">
+                <span class="drawer-field-label">Workflow State</span>
+                <span class="drawer-field-val" id="metaState">START</span>
+            </div>
+            <div class="drawer-field-row">
+                <span class="drawer-field-label">Total Messages</span>
+                <span class="drawer-field-val" id="metaMsgCount">0</span>
+            </div>
+        </div>
+
+        <div style="margin-top: 1.5rem; padding-top: 1rem; border-top: 1px solid #e2e8f0; display: flex; flex-direction: column; gap: 8px;">
+            <button type="button" class="btn btn-secondary btn-sm" onclick="copyConvLink(currentConvId)">📋 Copy Chat Link</button>
+            <button type="button" class="btn btn-ghost btn-sm" style="color: #ef4444;" onclick="deleteActiveConversation()">🗑️ Delete Conversation</button>
+        </div>
+    </div>
 </div>
 
 <!-- Conversation Cleanup Modal -->

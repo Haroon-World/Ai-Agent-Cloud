@@ -1,219 +1,313 @@
 {% extends "base.html" %}
 
-{% block title %}Services & Pricing Management - {{ business.name }}{% endblock %}
+{% block title %}Services & Pricing - {{ business.name }}{% endblock %}
 
 {% block content %}
-<div class="dashboard-header">
+<div class="dashboard-header mb-4">
     <div>
-        <h1 class="page-title">Services & Pricing Control</h1>
-        <p class="page-subtitle">Administer clinical treatments, prices, consultation fees, and business knowledge used dynamically by the AI.</p>
+        <h1 class="page-title">Services & Pricing</h1>
+        <p class="page-subtitle">Manage clinical treatments, consultation fees, duration, and clinic information used dynamically by the AI.</p>
     </div>
-    <div class="header-actions">
-        <button class="btn btn-primary" onclick="document.getElementById('addServiceModal').style.display='flex'">➕ Add New Service</button>
+    <div class="header-actions" style="display: flex; gap: 8px; align-items: center;">
+        <button type="button" class="btn btn-primary" onclick="openAddModal()">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+            Add New Service
+        </button>
     </div>
 </div>
 
-<!-- Business Settings & Consultation Fee Card -->
-<div class="section-card" style="margin-bottom: 24px;">
-    <div class="section-header">
-        <h2>🏥 Business Information & General Consultation Fee</h2>
-    </div>
-    <form method="POST" action="/admin/settings/edit" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 16px;">
-        <div class="form-group">
-            <label>Clinic Name</label>
-            <input type="text" name="name" class="form-control" value="{{ business.name }}" required>
-        </div>
-        <div class="form-group">
-            <label>Phone Number</label>
-            <input type="text" name="phone" class="form-control" value="{{ business.phone }}" required>
-        </div>
-        <div class="form-group">
-            <label>Official Contact &amp; Account Email</label>
-            <input type="email" name="email" class="form-control" value="{{ business.email or '' }}" placeholder="e.g. admin@clinic.com">
-            <small class="text-muted" style="font-size: 0.76rem;">Used for password resets, subscription notices, and billing alerts.</small>
-        </div>
-        <div class="form-group">
-            <label>Default Consultation / General Fee (PKR)</label>
-            <input type="number" step="100" name="consultation_fee" class="form-control" value="{{ business.consultation_fee or 2000 }}" required>
-        </div>
-        <div class="form-group" style="grid-column: 1 / -1;">
-            <label>Clinic Address</label>
-            <input type="text" name="address" class="form-control" value="{{ business.address }}" required>
-        </div>
-        <div class="form-group" style="grid-column: 1 / -1;">
-            <label>Operating Hours</label>
-            <input type="text" name="opening_hours" class="form-control" value="{{ business.opening_hours }}" required>
-        </div>
-        <div class="form-group" style="grid-column: 1 / -1;">
-            <label>Clinic Policies & Information</label>
-            <textarea name="policies" class="form-control" rows="2">{{ business.policies }}</textarea>
-        </div>
-        <div style="grid-column: 1 / -1;">
-            <button type="submit" class="btn btn-primary">💾 Save Business & Pricing Settings</button>
-        </div>
-    </form>
+<!-- Segmented Navigation Tabs -->
+<div class="schedule-segmented-tabs mb-4">
+    <button type="button" class="tab-btn active" id="btnTabServices" onclick="switchServicesView('services')">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/></svg>
+        Services &amp; Pricing Directory
+    </button>
+    <button type="button" class="tab-btn" id="btnTabSettings" onclick="switchServicesView('settings')">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+        Clinic Information &amp; Settings
+    </button>
 </div>
 
-<!-- Services Directory Grouped by Doctor -->
-<div style="display: flex; flex-direction: column; gap: 24px; margin-bottom: 30px;">
+<!-- ============================================================== -->
+<!-- SECTION 1: SERVICES & PRICING DIRECTORY (Screen 7)              -->
+<!-- ============================================================== -->
+<div id="servicesDirectoryView">
+    <!-- KPI Summary Row -->
+    {% set total_active_services = 0 %}
     {% for doc_item in doctors_data %}
-    {% set doc = doc_item.doctor %}
-    <div class="section-card" id="doctor-section-{{ doc.id }}">
-        <div class="section-header" style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px;">
-            <div>
-                <h2 style="display: flex; align-items: center; gap: 10px; margin: 0;">
-                    <span>👨‍⚕️ {{ doc.name }}</span>
-                    <span class="badge badge-secondary" style="font-size: 0.8rem; font-weight: normal;">{{ doc.specialization }}</span>
-                </h2>
-                <small class="text-muted">Working Days: {{ doc.working_days }} • Slot Duration: {{ doc.slot_interval or 30 }} mins</small>
-            </div>
-            <div style="display: flex; align-items: center; gap: 10px;">
-                <span class="badge badge-success" id="doc-active-count-{{ doc.id }}">{{ doc_item.active_count }} Active Services</span>
-                <button class="btn btn-sm btn-primary" onclick="openAddModal('{{ doc.id }}')">➕ Add Service</button>
-            </div>
-        </div>
-
-        {% if not doc_item.has_consultation %}
-        <div style="background: rgba(0, 168, 132, 0.08); border-left: 4px solid #00a884; padding: 10px 14px; border-radius: 4px; margin-bottom: 16px; font-size: 0.9rem; color: #1f2937;">
-            🩺 <strong>Default Consultation Service Active:</strong> General Checkup & Consultation is automatically available for Dr. {{ doc.name }} using the clinic fee of <strong>PKR {{ "{:,.0f}".format(doc_item.default_consultation_fee) }}</strong>.
-        </div>
-        {% endif %}
-
-        {% if doc_item.services %}
-        <div class="table-responsive">
-            <table class="data-table">
-                <thead>
-                    <tr>
-                        <th style="width: 60px;">ID</th>
-                        <th>Service / Treatment</th>
-                        <th>Description</th>
-                        <th style="width: 100px;">Duration</th>
-                        <th style="width: 120px;">Price</th>
-                        <th style="width: 100px;">Status</th>
-                        <th style="width: 200px;">Actions</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    {% for svc in doc_item.services %}
-                    <tr id="service-row-{{ svc.id }}">
-                        <td><strong>#{{ svc.id }}</strong></td>
-                        <td><strong>{{ svc.name }}</strong></td>
-                        <td style="max-width: 320px;"><small class="text-muted">{{ svc.description or 'Standard clinical treatment.' }}</small></td>
-                        <td>{{ svc.duration }} mins</td>
-                        <td><strong style="color: #00a884;">PKR {{ "{:,.0f}".format(svc.price) }}</strong></td>
-                        <td>
-                            <span id="status-badge-{{ svc.id }}" class="badge {{ 'badge-success' if svc.is_active else 'badge-secondary' }}">
-                                {{ 'ACTIVE' if svc.is_active else 'INACTIVE' }}
-                            </span>
-                        </td>
-                        <td>
-                            <div style="display: flex; gap: 6px; align-items: center;">
-                                <button class="btn btn-sm btn-secondary" onclick="openEditModal('{{ svc.id }}', '{{ svc.name|escape }}', '{{ svc.description|escape }}', '{{ svc.duration }}', '{{ svc.price }}', {{ 'true' if svc.is_active else 'false' }})">Edit</button>
-                                <button type="button" id="toggle-btn-{{ svc.id }}" class="btn btn-sm {{ 'btn-danger' if svc.is_active else 'btn-primary' }}" onclick="toggleServiceAjax(this, '{{ svc.id }}')">
-                                    {{ 'Deactivate' if svc.is_active else 'Activate' }}
-                                </button>
-                                <button type="button" class="btn btn-sm" style="background: #ef4444; color: white;" onclick="deleteServiceAjax('{{ svc.id }}', '{{ svc.name|escape }}')">
-                                    🗑️ Delete
-                                </button>
-                            </div>
-                        </td>
-                    </tr>
-                    {% endfor %}
-                </tbody>
-            </table>
-        </div>
-        {% else %}
-        <div class="empty-state" style="padding: 20px; text-align: center;">
-            <p class="text-muted" style="margin-bottom: 8px;">No custom services configured for Dr. {{ doc.name }} yet.</p>
-            <button class="btn btn-sm btn-primary" onclick="openAddModal('{{ doc.id }}')">➕ Add Service for Dr. {{ doc.name }}</button>
-        </div>
-        {% endif %}
-    </div>
+        {% set total_active_services = total_active_services + doc_item.active_count %}
     {% endfor %}
+
+    <div class="kpi-grid mb-4">
+        <div class="kpi-card">
+            <div class="kpi-header">
+                <span class="kpi-label">Active Services</span>
+                <div class="kpi-icon-box">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+                </div>
+            </div>
+            <div class="kpi-value">{{ total_active_services }}</div>
+            <div class="kpi-subtext" style="color: #16a34a; font-weight: 600;">Visible to AI Receptionist</div>
+        </div>
+
+        <div class="kpi-card">
+            <div class="kpi-header">
+                <span class="kpi-label">Default Consultation</span>
+                <div class="kpi-icon-box">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
+                </div>
+            </div>
+            <div class="kpi-value">PKR {{ "{:,.0f}".format(business.consultation_fee or 2000) }}</div>
+            <div class="kpi-subtext">General Checkup standard rate</div>
+        </div>
+
+        <div class="kpi-card">
+            <div class="kpi-header">
+                <span class="kpi-label">Practitioners</span>
+                <div class="kpi-icon-box">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+                </div>
+            </div>
+            <div class="kpi-value">{{ doctors_data|length }}</div>
+            <div class="kpi-subtext">Doctors with service offerings</div>
+        </div>
+    </div>
+
+    <!-- Quick Search -->
+    <div class="filter-card mb-4">
+        <div style="position: relative;">
+            <input type="text" id="serviceSearchInput" class="form-control" placeholder="Search service name, description, or doctor..." onkeyup="filterServicesTable()" style="padding-left: 2.2rem;">
+            <span style="position: absolute; left: 12px; top: 50%; transform: translateY(-50%); color: #94a3b8;">
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+            </span>
+        </div>
+    </div>
+
+    <!-- Services Grouped by Doctor -->
+    <div style="display: flex; flex-direction: column; gap: 20px; margin-bottom: 30px;">
+        {% for doc_item in doctors_data %}
+        {% set doc = doc_item.doctor %}
+        <div class="section-card" id="doctor-section-{{ doc.id }}">
+            <div class="section-header" style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px; margin-bottom: 1rem; border-bottom: 1px solid #f1f5f9; padding-bottom: 0.85rem;">
+                <div style="display: flex; align-items: center; gap: 10px;">
+                    <div class="doc-avatar" style="width: 36px; height: 36px; font-size: 0.9rem;">
+                        {{ doc.name[4] if doc.name.startswith('Dr. ') and doc.name|length > 4 else doc.name[0] }}
+                    </div>
+                    <div>
+                        <h2 style="font-size: 1.05rem; font-weight: 700; color: var(--text-main); margin: 0;">{{ doc.name }}</h2>
+                        <div style="font-size: 0.78rem; color: #64748b;">{{ doc.specialization }} • Slot Step: {{ doc.slot_interval or 30 }}m</div>
+                    </div>
+                </div>
+                <div style="display: flex; align-items: center; gap: 10px;">
+                    <span class="badge badge-success" id="doc-active-count-{{ doc.id }}">{{ doc_item.active_count }} Active</span>
+                    <button type="button" class="btn btn-sm btn-primary" onclick="openAddModal('{{ doc.id }}')">+ Add Service</button>
+                </div>
+            </div>
+
+            {% if not doc_item.has_consultation %}
+            <div style="background: #eff6ff; border-left: 4px solid var(--primary); padding: 10px 14px; border-radius: 6px; margin-bottom: 16px; font-size: 0.85rem; color: #1e3a8a;">
+                🩺 <strong>Default Consultation Active:</strong> General Checkup &amp; Consultation is automatically available for Dr. {{ doc.name }} using the clinic fee of <strong>PKR {{ "{:,.0f}".format(doc_item.default_consultation_fee) }}</strong>.
+            </div>
+            {% endif %}
+
+            {% if doc_item.services %}
+            <div class="table-responsive">
+                <table class="data-table">
+                    <thead>
+                        <tr>
+                            <th style="width: 60px;">ID</th>
+                            <th>SERVICE / TREATMENT</th>
+                            <th>DESCRIPTION</th>
+                            <th style="width: 100px;">DURATION</th>
+                            <th style="width: 130px;">PRICE</th>
+                            <th style="width: 110px;">VISIBLE TO AI</th>
+                            <th style="width: 180px; text-align: right;">ACTIONS</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for svc in doc_item.services %}
+                        <tr id="service-row-{{ svc.id }}" class="service-table-row" data-name="{{ svc.name|lower }}" data-desc="{{ (svc.description or '')|lower }}" data-doc="{{ doc.name|lower }}">
+                            <td><strong>#{{ svc.id }}</strong></td>
+                            <td>
+                                <div style="font-weight: 700; color: var(--text-main);">{{ svc.name }}</div>
+                            </td>
+                            <td style="max-width: 320px;">
+                                <div style="font-size: 0.8rem; color: #64748b;">{{ svc.description or 'Standard clinical service.' }}</div>
+                            </td>
+                            <td>
+                                <span class="badge badge-info" style="font-size: 0.78rem;">{{ svc.duration }} min</span>
+                            </td>
+                            <td>
+                                <strong style="color: var(--primary); font-size: 0.92rem;">PKR {{ "{:,.0f}".format(svc.price) }}</strong>
+                            </td>
+                            <td>
+                                <span id="status-badge-{{ svc.id }}" class="badge {{ 'badge-success' if svc.is_active else 'badge-secondary' }}">
+                                    {{ 'VISIBLE' if svc.is_active else 'HIDDEN' }}
+                                </span>
+                            </td>
+                            <td style="text-align: right;">
+                                <div style="display: inline-flex; gap: 6px; align-items: center;">
+                                    <button type="button" class="btn btn-sm btn-secondary" onclick="openEditModal('{{ svc.id }}', '{{ svc.name|escape }}', '{{ (svc.description or '')|escape }}', '{{ svc.duration }}', '{{ svc.price }}', {{ 'true' if svc.is_active else 'false' }})">Edit</button>
+                                    <button type="button" id="toggle-btn-{{ svc.id }}" class="btn btn-sm {{ 'btn-secondary' if svc.is_active else 'btn-primary' }}" onclick="toggleServiceAjax(this, '{{ svc.id }}')">
+                                        {{ 'Hide' if svc.is_active else 'Show' }}
+                                    </button>
+                                    <button type="button" class="btn btn-sm btn-ghost" style="color: #ef4444;" onclick="deleteServiceAjax('{{ svc.id }}', '{{ svc.name|escape }}')">
+                                        🗑️
+                                    </button>
+                                </div>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            {% else %}
+            <div class="empty-state" style="padding: 24px; text-align: center;">
+                <p style="color: var(--text-muted); margin-bottom: 10px; font-size: 0.88rem;">No custom services configured for Dr. {{ doc.name }} yet.</p>
+                <button type="button" class="btn btn-sm btn-primary" onclick="openAddModal('{{ doc.id }}')">+ Add Service for Dr. {{ doc.name }}</button>
+            </div>
+            {% endif %}
+        </div>
+        {% endfor %}
+    </div>
 </div>
 
-<!-- Add Service Modal -->
-<div id="addServiceModal" style="display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.5); z-index: 999; align-items: center; justify-content: center;">
-    <div class="section-card" style="width: 100%; max-width: 500px; margin: 20px;">
-        <div class="section-header">
-            <h2>Add New Clinic Service</h2>
-            <button type="button" class="btn btn-sm btn-secondary" onclick="document.getElementById('addServiceModal').style.display='none'">✕</button>
+<!-- ============================================================== -->
+<!-- SECTION 2: CLINIC SETTINGS (Screen 9)                          -->
+<!-- ============================================================== -->
+<div id="clinicSettingsView" style="display: none;">
+    <div class="section-card" id="clinic-settings">
+        <div class="section-header mb-3">
+            <h2 style="font-size: 1.15rem; font-weight: 700; color: var(--text-main); margin: 0;">🏥 Clinic Information &amp; Practice Settings</h2>
+            <p style="font-size: 0.82rem; color: var(--text-muted); margin: 4px 0 0 0;">These details are directly used by the AI Receptionist to answer patient inquiries on WhatsApp and Web Chat.</p>
+        </div>
+
+        <form method="POST" action="/admin/settings/edit" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 16px;">
+            <div class="form-group">
+                <label style="display: block; font-size: 0.82rem; font-weight: 700; color: #334155; margin-bottom: 6px;">Clinic Name</label>
+                <input type="text" name="name" class="form-control" value="{{ business.name }}" required>
+            </div>
+            <div class="form-group">
+                <label style="display: block; font-size: 0.82rem; font-weight: 700; color: #334155; margin-bottom: 6px;">Official Phone Number</label>
+                <input type="text" name="phone" class="form-control" value="{{ business.phone }}" required>
+            </div>
+            <div class="form-group">
+                <label style="display: block; font-size: 0.82rem; font-weight: 700; color: #334155; margin-bottom: 6px;">Official Email Address</label>
+                <input type="email" name="email" class="form-control" value="{{ business.email or '' }}" placeholder="e.g. contact@clinic.com">
+                <small class="text-muted" style="font-size: 0.74rem;">Used for alerts, password recovery, and notices.</small>
+            </div>
+            <div class="form-group">
+                <label style="display: block; font-size: 0.82rem; font-weight: 700; color: #334155; margin-bottom: 6px;">Default General Consultation Fee (PKR)</label>
+                <input type="number" step="100" name="consultation_fee" class="form-control" value="{{ business.consultation_fee or 2000 }}" required>
+            </div>
+            <div class="form-group" style="grid-column: 1 / -1;">
+                <label style="display: block; font-size: 0.82rem; font-weight: 700; color: #334155; margin-bottom: 6px;">Clinic Physical Address</label>
+                <input type="text" name="address" class="form-control" value="{{ business.address }}" required>
+            </div>
+            <div class="form-group" style="grid-column: 1 / -1;">
+                <label style="display: block; font-size: 0.82rem; font-weight: 700; color: #334155; margin-bottom: 6px;">Operating Hours</label>
+                <input type="text" name="opening_hours" class="form-control" value="{{ business.opening_hours }}" required>
+            </div>
+            <div class="form-group" style="grid-column: 1 / -1;">
+                <label style="display: block; font-size: 0.82rem; font-weight: 700; color: #334155; margin-bottom: 6px;">Clinic Policies &amp; Patient Guidelines</label>
+                <textarea name="policies" class="form-control" rows="3">{{ business.policies }}</textarea>
+                <small class="text-muted" style="font-size: 0.74rem;">The AI will cite these guidelines when answering FAQs regarding payment, cancellations, or visit requirements.</small>
+            </div>
+            <div style="grid-column: 1 / -1; display: flex; justify-content: flex-end;">
+                <button type="submit" class="btn btn-primary">💾 Save Settings &amp; Pricing</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- ============================================================== -->
+<!-- MODALS                                                         -->
+<!-- ============================================================== -->
+
+<!-- 1. ADD SERVICE MODAL -->
+<div class="saas-modal-backdrop" id="addServiceModal">
+    <div class="saas-modal-card">
+        <div class="saas-modal-header">
+            <h3 class="saas-modal-title">
+                <span>➕</span> Add New Clinical Service
+            </h3>
+            <button type="button" class="saas-modal-close" onclick="document.getElementById('addServiceModal').classList.remove('active')">✕</button>
         </div>
         <form method="POST" action="/admin/services/add">
-            <div class="form-group" style="margin-bottom: 12px;">
-                <label>Assigned Doctor</label>
-                <select name="doctor_id" id="addServiceDoctorSelect" class="form-control" required>
-                    {% for doc in doctors %}
-                        <option value="{{ doc.id }}">{{ doc.name }} ({{ doc.specialization }})</option>
-                    {% endfor %}
-                </select>
-            </div>
-            <div class="form-group" style="margin-bottom: 12px;">
-                <label>Service Name</label>
-                <input type="text" name="name" class="form-control" placeholder="e.g. Neurological Consultation / Dental Cleaning" required>
-            </div>
-            <div class="form-group" style="margin-bottom: 12px;">
-                <label>Description</label>
-                <textarea name="description" class="form-control" rows="2" placeholder="Short description of procedure or treatment..."></textarea>
-            </div>
-            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 12px;">
-                <div class="form-group">
-                    <label>Duration (minutes)</label>
-                    <input type="number" name="duration" class="form-control" value="30" min="10" step="5" required>
+            <div class="saas-modal-body">
+                <div class="form-group" style="margin-bottom: 14px;">
+                    <label style="display: block; font-size: 0.82rem; font-weight: 700; color: #334155; margin-bottom: 4px;">Assigned Doctor</label>
+                    <select name="doctor_id" id="addServiceDoctorSelect" class="form-control" required>
+                        {% for doc in doctors %}
+                            <option value="{{ doc.id }}">{{ doc.name }} ({{ doc.specialization }})</option>
+                        {% endfor %}
+                    </select>
                 </div>
-                <div class="form-group">
-                    <label>Price (PKR)</label>
-                    <input type="number" name="price" class="form-control" value="2000" step="100" min="0" required>
+                <div class="form-group" style="margin-bottom: 14px;">
+                    <label style="display: block; font-size: 0.82rem; font-weight: 700; color: #334155; margin-bottom: 4px;">Service / Treatment Name</label>
+                    <input type="text" name="name" class="form-control" placeholder="e.g. Scaling &amp; Polishing, Dental X-Ray" required>
+                </div>
+                <div class="form-group" style="margin-bottom: 14px;">
+                    <label style="display: block; font-size: 0.82rem; font-weight: 700; color: #334155; margin-bottom: 4px;">Description (Optional)</label>
+                    <textarea name="description" class="form-control" rows="2" placeholder="Brief clinical description used by the AI..."></textarea>
+                </div>
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">
+                    <div class="form-group">
+                        <label style="display: block; font-size: 0.82rem; font-weight: 700; color: #334155; margin-bottom: 4px;">Duration (Minutes)</label>
+                        <input type="number" name="duration" class="form-control" value="30" step="5" required>
+                    </div>
+                    <div class="form-group">
+                        <label style="display: block; font-size: 0.82rem; font-weight: 700; color: #334155; margin-bottom: 4px;">Price (PKR)</label>
+                        <input type="number" name="price" class="form-control" placeholder="2500" step="100" required>
+                    </div>
                 </div>
             </div>
-            <div class="form-group" style="margin-bottom: 16px;">
-                <label style="display: flex; align-items: center; gap: 8px;">
-                    <input type="checkbox" name="is_active" checked>
-                    <span>Active for Booking & AI Inquiries</span>
-                </label>
-            </div>
-            <div style="display: flex; justify-content: flex-end; gap: 8px;">
-                <button type="button" class="btn btn-secondary" onclick="document.getElementById('addServiceModal').style.display='none'">Cancel</button>
+            <div class="saas-modal-footer">
+                <button type="button" class="btn btn-secondary" onclick="document.getElementById('addServiceModal').classList.remove('active')">Cancel</button>
                 <button type="submit" class="btn btn-primary">Save Service</button>
             </div>
         </form>
     </div>
 </div>
 
-<!-- Edit Service Modal -->
-<div id="editServiceModal" style="display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.5); z-index: 999; align-items: center; justify-content: center;">
-    <div class="section-card" style="width: 100%; max-width: 500px; margin: 20px;">
-        <div class="section-header">
-            <h2>Edit Service & Pricing</h2>
-            <button type="button" class="btn btn-sm btn-secondary" onclick="document.getElementById('editServiceModal').style.display='none'">✕</button>
+<!-- 2. EDIT SERVICE MODAL -->
+<div class="saas-modal-backdrop" id="editServiceModal">
+    <div class="saas-modal-card">
+        <div class="saas-modal-header">
+            <h3 class="saas-modal-title">
+                <span>✏️</span> Edit Service &amp; Pricing
+            </h3>
+            <button type="button" class="saas-modal-close" onclick="document.getElementById('editServiceModal').classList.remove('active')">✕</button>
         </div>
-        <form id="editServiceForm" method="POST" action="">
-            <div class="form-group" style="margin-bottom: 12px;">
-                <label>Service Name</label>
-                <input type="text" name="name" id="editServiceName" class="form-control" required>
-            </div>
-            <div class="form-group" style="margin-bottom: 12px;">
-                <label>Description</label>
-                <textarea name="description" id="editServiceDesc" class="form-control" rows="2"></textarea>
-            </div>
-            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 12px;">
-                <div class="form-group">
-                    <label>Duration (minutes)</label>
-                    <input type="number" name="duration" id="editServiceDuration" class="form-control" required>
+        <form method="POST" id="editServiceForm" action="">
+            <div class="saas-modal-body">
+                <div class="form-group" style="margin-bottom: 14px;">
+                    <label style="display: block; font-size: 0.82rem; font-weight: 700; color: #334155; margin-bottom: 4px;">Service Name</label>
+                    <input type="text" name="name" id="editServiceName" class="form-control" required>
+                </div>
+                <div class="form-group" style="margin-bottom: 14px;">
+                    <label style="display: block; font-size: 0.82rem; font-weight: 700; color: #334155; margin-bottom: 4px;">Description</label>
+                    <textarea name="description" id="editServiceDesc" class="form-control" rows="2"></textarea>
+                </div>
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 14px;">
+                    <div class="form-group">
+                        <label style="display: block; font-size: 0.82rem; font-weight: 700; color: #334155; margin-bottom: 4px;">Duration (Minutes)</label>
+                        <input type="number" name="duration" id="editServiceDuration" class="form-control" required>
+                    </div>
+                    <div class="form-group">
+                        <label style="display: block; font-size: 0.82rem; font-weight: 700; color: #334155; margin-bottom: 4px;">Price (PKR)</label>
+                        <input type="number" name="price" id="editServicePrice" class="form-control" step="100" required>
+                    </div>
                 </div>
                 <div class="form-group">
-                    <label>Price (PKR)</label>
-                    <input type="number" name="price" id="editServicePrice" class="form-control" step="100" required>
+                    <label style="display: flex; align-items: center; gap: 8px; font-size: 0.85rem; font-weight: 600; cursor: pointer;">
+                        <input type="checkbox" name="is_active" id="editServiceActive" style="accent-color: var(--primary);">
+                        <span>Active for Booking &amp; AI Inquiries</span>
+                    </label>
                 </div>
             </div>
-            <div class="form-group" style="margin-bottom: 16px;">
-                <label style="display: flex; align-items: center; gap: 8px;">
-                    <input type="checkbox" name="is_active" id="editServiceActive">
-                    <span>Active for Booking & AI Inquiries</span>
-                </label>
-            </div>
-            <div style="display: flex; justify-content: flex-end; gap: 8px;">
-                <button type="button" class="btn btn-secondary" onclick="document.getElementById('editServiceModal').style.display='none'">Cancel</button>
+            <div class="saas-modal-footer">
+                <button type="button" class="btn btn-secondary" onclick="document.getElementById('editServiceModal').classList.remove('active')">Cancel</button>
                 <button type="submit" class="btn btn-primary">Update Pricing</button>
             </div>
         </form>
@@ -223,12 +317,39 @@
 
 {% block scripts %}
 <script>
+function switchServicesView(view) {
+    const dirView = document.getElementById('servicesDirectoryView');
+    const setView = document.getElementById('clinicSettingsView');
+    const btnDir = document.getElementById('btnTabServices');
+    const btnSet = document.getElementById('btnTabSettings');
+
+    if (view === 'settings') {
+        if (dirView) dirView.style.display = 'none';
+        if (setView) setView.style.display = 'block';
+        if (btnDir) btnDir.classList.remove('active');
+        if (btnSet) btnSet.classList.add('active');
+    } else {
+        if (dirView) dirView.style.display = 'block';
+        if (setView) setView.style.display = 'none';
+        if (btnDir) btnDir.classList.add('active');
+        if (btnSet) btnSet.classList.remove('active');
+    }
+}
+
+// Check hash on page load
+document.addEventListener('DOMContentLoaded', () => {
+    if (window.location.hash === '#clinic-settings') {
+        switchServicesView('settings');
+    }
+});
+
 function openAddModal(doctorId) {
     if (doctorId) {
         const select = document.getElementById('addServiceDoctorSelect');
         if (select) select.value = doctorId;
     }
-    document.getElementById('addServiceModal').style.display = 'flex';
+    const modal = document.getElementById('addServiceModal');
+    if (modal) modal.classList.add('active');
 }
 
 function openEditModal(id, name, desc, duration, price, isActive) {
@@ -238,7 +359,23 @@ function openEditModal(id, name, desc, duration, price, isActive) {
     document.getElementById('editServiceDuration').value = duration;
     document.getElementById('editServicePrice').value = price;
     document.getElementById('editServiceActive').checked = isActive;
-    document.getElementById('editServiceModal').style.display = 'flex';
+    const modal = document.getElementById('editServiceModal');
+    if (modal) modal.classList.add('active');
+}
+
+function filterServicesTable() {
+    const query = document.getElementById('serviceSearchInput').value.toLowerCase().trim();
+    const rows = document.querySelectorAll('.service-table-row');
+    rows.forEach(row => {
+        const name = row.getAttribute('data-name') || '';
+        const desc = row.getAttribute('data-desc') || '';
+        const doc = row.getAttribute('data-doc') || '';
+        if (name.includes(query) || desc.includes(query) || doc.includes(query)) {
+            row.style.display = '';
+        } else {
+            row.style.display = 'none';
+        }
+    });
 }
 
 // In-place AJAX toggle without full page refresh
@@ -262,17 +399,17 @@ async function toggleServiceAjax(btn, serviceId) {
             if (data.is_active) {
                 if (badge) {
                     badge.className = 'badge badge-success';
-                    badge.textContent = 'ACTIVE';
+                    badge.textContent = 'VISIBLE';
                 }
-                btn.className = 'btn btn-sm btn-danger';
-                btn.textContent = 'Deactivate';
+                btn.className = 'btn btn-sm btn-secondary';
+                btn.textContent = 'Hide';
             } else {
                 if (badge) {
                     badge.className = 'badge badge-secondary';
-                    badge.textContent = 'INACTIVE';
+                    badge.textContent = 'HIDDEN';
                 }
                 btn.className = 'btn btn-sm btn-primary';
-                btn.textContent = 'Activate';
+                btn.textContent = 'Show';
             }
         } else {
             alert(data.error || 'Failed to toggle service status.');
