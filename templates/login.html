@@ -6,19 +6,22 @@
 <div class="login-wrapper">
     <div class="login-card">
         <div class="login-header">
-            <div class="login-icon">🏥</div>
-            <h2>Clinic Client Portal Login</h2>
-            <p>Sign in to access your clinic's dashboard, appointments, doctors, and subscription.</p>
+            <div class="login-avatar-icon">
+                <img src="{{ url_for('static', filename='img/logo_icon.png') }}" alt="ClinicConnect" class="login-logo-img">
+            </div>
+            <h2>Clinic Admin Portal</h2>
+            <p>Sign in to access your clinic's dashboard, appointments, doctors, and practice settings.</p>
         </div>
 
         {% if already_logged_in %}
         <div style="background: #eff6ff; border: 1px solid #bfdbfe; color: #1e40af; border-radius: 10px; padding: 12px 16px; margin-bottom: 20px; font-size: 0.88rem; text-align: left;">
             <div style="display: flex; align-items: center; justify-content: space-between; gap: 10px; flex-wrap: wrap;">
-                <div>
-                    <strong>ℹ️ Active Session:</strong> Currently signed in as <strong>{{ current_user }}</strong>{% if session.get('clinic_name') %} (<em>{{ session.get('clinic_name') }}</em>){% endif %}.
+                <div style="display: flex; align-items: center; gap: 8px;">
+                    <span class="status-dot status-dot-success"></span>
+                    <span>Active session: <strong>{{ current_user }}</strong>{% if session.get('clinic_name') %} (<em>{{ session.get('clinic_name') }}</em>){% endif %}</span>
                 </div>
                 <div style="display: flex; gap: 8px;">
-                    <a href="/admin" class="btn btn-sm btn-primary" style="padding: 5px 12px; font-size: 0.82rem; text-decoration: none;">Dashboard →</a>
+                    <a href="/admin" class="btn btn-sm btn-primary" style="padding: 5px 12px; font-size: 0.82rem; text-decoration: none;">Dashboard</a>
                     <a href="/admin/logout" class="btn btn-sm" style="padding: 5px 12px; font-size: 0.82rem; text-decoration: none; color: #dc2626; border: 1px solid #fca5a5; background: #ffffff;">Log Out</a>
                 </div>
             </div>

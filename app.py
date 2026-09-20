@@ -34,6 +34,28 @@ def create_app(config_class=Config):
     # Initialize SQLAlchemy
     db.init_app(app)
 
+    @app.template_filter("format_12hr")
+    def format_12hr(time_str):
+        if not time_str:
+            return ""
+        time_str = str(time_str).strip()
+        upper = time_str.upper()
+        if "AM" in upper or "PM" in upper:
+            return time_str
+        try:
+            parts = time_str.split(":")
+            hr = int(parts[0])
+            minute = int(parts[1]) if len(parts) > 1 else 0
+            if hr == 24:
+                hr = 0
+            period = "AM" if hr < 12 else "PM"
+            hr12 = hr % 12
+            if hr12 == 0:
+                hr12 = 12
+            return f"{hr12:02d}:{minute:02d} {period}"
+        except Exception:
+            return time_str
+
     # Register Blueprints
     app.register_blueprint(chat_bp)
     app.register_blueprint(appointments_bp)
@@ -44,6 +66,12 @@ def create_app(config_class=Config):
     @app.route("/")
     @app.route("/clinic/<int:clinic_id>")
     def index(clinic_id=None):
+        # When an admin is already logged in and accesses the root URL, direct them straight to their dashboard
+        if not clinic_id and session.get("user_id"):
+            if session.get("is_platform_admin") and not session.get("business_id"):
+                return redirect(url_for("platform_bp.dashboard"))
+            return redirect(url_for("admin_bp.dashboard"))
+
         target_id = clinic_id or request.args.get("clinic") or request.args.get("business_id")
         business = None
         if target_id and str(target_id).isdigit():

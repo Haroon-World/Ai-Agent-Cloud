@@ -45,6 +45,58 @@ def login_required(f):
     return decorated_function
 
 
+def normalize_time_to_24h(time_str: str) -> str:
+    """Normalize '02:00 PM' or '2:00 PM' or '14:00' to standard 'HH:MM' 24-hour string."""
+    if not time_str:
+        return ""
+    time_str = str(time_str).strip()
+    upper = time_str.upper()
+    if "AM" in upper or "PM" in upper:
+        try:
+            is_pm = "PM" in upper
+            clean = upper.replace("AM", "").replace("PM", "").strip()
+            parts = clean.split(":")
+            hr = int(parts[0])
+            minute = int(parts[1]) if len(parts) > 1 else 0
+            if is_pm and hr < 12:
+                hr += 12
+            elif not is_pm and hr == 12:
+                hr = 0
+            return f"{hr:02d}:{minute:02d}"
+        except Exception:
+            return time_str
+    try:
+        parts = time_str.split(":")
+        hr = int(parts[0])
+        minute = int(parts[1]) if len(parts) > 1 else 0
+        return f"{hr:02d}:{minute:02d}"
+    except Exception:
+        return time_str
+
+
+def format_time_to_12h(time_str: str) -> str:
+    """Convert '14:00' to '02:00 PM'."""
+    if not time_str:
+        return ""
+    time_str = str(time_str).strip()
+    upper = time_str.upper()
+    if "AM" in upper or "PM" in upper:
+        return time_str
+    try:
+        parts = time_str.split(":")
+        hr = int(parts[0])
+        minute = int(parts[1]) if len(parts) > 1 else 0
+        if hr == 24:
+            hr = 0
+        period = "AM" if hr < 12 else "PM"
+        hr12 = hr % 12
+        if hr12 == 0:
+            hr12 = 12
+        return f"{hr12:02d}:{minute:02d} {period}"
+    except Exception:
+        return time_str
+
+
 def platform_admin_required(f):
     """Allow only verified platform admins; resilient against multi-tab clinic switching."""
     @wraps(f)
@@ -239,9 +291,21 @@ def dashboard():
         if not session.get(f"dismissed_rejection_{rej['id']}"):
             rejection_notice = rej
 
+    hour = datetime.now().hour
+    if 5 <= hour < 12:
+        time_greeting = "Good morning"
+    elif 12 <= hour < 17:
+        time_greeting = "Good afternoon"
+    else:
+        time_greeting = "Good evening"
+
+    today_str = datetime.now().strftime("%a, %d %b %Y")
+
     return render_template(
         "dashboard.html",
         business=business,
+        time_greeting=time_greeting,
+        today_str=today_str,
         today_count=len(today_appointments),
         today_appointments=today_appointments,
         upcoming_appointments=upcoming_appointments,
@@ -266,7 +330,19 @@ def appointments_view():
     all_appointments = Appointment.query.filter_by(business_id=business_id).order_by(
         Appointment.appointment_date.desc(), Appointment.appointment_time.asc()
     ).all()
-    return render_template("appointments.html", business=business, appointments=all_appointments)
+    today_str = datetime.now().strftime("%Y-%m-%d")
+    today_count = sum(1 for a in all_appointments if a.appointment_date == today_str)
+    confirmed_count = sum(1 for a in all_appointments if a.status == "CONFIRMED")
+    pending_count = sum(1 for a in all_appointments if a.status not in ("CONFIRMED", "CANCELLED"))
+    return render_template(
+        "appointments.html",
+        business=business,
+        appointments=all_appointments,
+        today_count=today_count,
+        confirmed_count=confirmed_count,
+        pending_count=pending_count,
+        today_str=today_str
+    )
 
 
 @admin_bp.route("/admin/appointments/export")
@@ -326,6 +402,157 @@ def export_appointments():
     response = Response(output.getvalue(), mimetype="text/csv; charset=utf-8")
     response.headers["Content-Disposition"] = f'attachment; filename="{filename}"'
     return response
+
+
+@admin_bp.route("/admin/api/search")
+@login_required
+def admin_global_search():
+    """Universal instant search for admin portal: appointments, chats, doctors, services."""
+    business_id = _current_business_id()
+    q = (request.args.get("q") or "").strip()
+    if not q:
+        return jsonify({
+            "success": True,
+            "query": "",
+            "results": {
+                "appointments": [],
+                "conversations": [],
+                "doctors": [],
+                "services": []
+            }
+        })
+
+    term = f"%{q}%"
+
+    # 1. Appointments (matching customer name, customer phone, booked_by_phone, doctor name, service name, or ID)
+    appt_matches = (
+        db.session.query(Appointment)
+        .outerjoin(Customer, Appointment.customer_id == Customer.id)
+        .outerjoin(Doctor, Appointment.doctor_id == Doctor.id)
+        .outerjoin(Service, Appointment.service_id == Service.id)
+        .filter(
+            Appointment.business_id == business_id,
+            db.or_(
+                Customer.name.ilike(term),
+                Customer.phone.ilike(term),
+                Appointment.booked_by_phone.ilike(term),
+                Doctor.name.ilike(term),
+                Service.name.ilike(term),
+                db.cast(Appointment.id, db.String).ilike(term)
+            )
+        )
+        .order_by(Appointment.appointment_date.desc(), Appointment.appointment_time.desc())
+        .limit(5)
+        .all()
+    )
+
+    appts_data = []
+    for a in appt_matches:
+        cust_name = a.customer.name if a.customer else "Patient"
+        cust_phone = a.customer.phone if a.customer else (a.booked_by_phone or "")
+        doc_name = a.doctor.name if a.doctor else "Doctor"
+        svc_name = a.service.name if a.service else "Consultation"
+        appts_data.append({
+            "id": a.id,
+            "patient_name": cust_name,
+            "phone": cust_phone,
+            "doctor": doc_name,
+            "service": svc_name,
+            "date": a.appointment_date,
+            "time": format_time_to_12h(a.appointment_time),
+            "raw_time": a.appointment_time,
+            "status": a.status,
+            "url": f"/admin/appointments?search={cust_name}"
+        })
+
+    # 2. Conversations (matching customer name, phone, pending name/phone, or conversation ID)
+    conv_matches = (
+        db.session.query(Conversation)
+        .outerjoin(Customer, Conversation.customer_id == Customer.id)
+        .filter(
+            Conversation.business_id == business_id,
+            db.or_(
+                Customer.name.ilike(term),
+                Customer.phone.ilike(term),
+                Conversation.pending_customer_name.ilike(term),
+                Conversation.pending_customer_phone.ilike(term),
+                db.cast(Conversation.id, db.String).ilike(term)
+            )
+        )
+        .order_by(Conversation.updated_at.desc())
+        .limit(5)
+        .all()
+    )
+
+    convs_data = []
+    for c in conv_matches:
+        name = c.customer.name if c.customer else (c.pending_customer_name or f"Chat #{c.id}")
+        phone = c.customer.phone if c.customer else (c.pending_customer_phone or "")
+        last_msg = ""
+        if c.messages:
+            last_content = c.messages[-1].content or ""
+            last_msg = (last_content[:55] + "...") if len(last_content) > 55 else last_content
+        convs_data.append({
+            "id": c.id,
+            "name": name,
+            "phone": phone,
+            "status": c.status,
+            "last_message": last_msg,
+            "url": f"/admin/conversations?cid={c.id}"
+        })
+
+    # 3. Doctors (matching doctor name or specialization)
+    doc_matches = (
+        Doctor.query.filter(
+            Doctor.business_id == business_id,
+            db.or_(
+                Doctor.name.ilike(term),
+                Doctor.specialization.ilike(term)
+            )
+        )
+        .limit(4)
+        .all()
+    )
+
+    docs_data = []
+    for d in doc_matches:
+        docs_data.append({
+            "id": d.id,
+            "name": d.name,
+            "specialization": d.specialization or "General Practice",
+            "url": "/admin/doctors"
+        })
+
+    # 4. Services (matching service name)
+    svc_matches = (
+        Service.query.filter(
+            Service.business_id == business_id,
+            Service.name.ilike(term)
+        )
+        .limit(4)
+        .all()
+    )
+
+    svcs_data = []
+    for s in svc_matches:
+        svcs_data.append({
+            "id": s.id,
+            "name": s.name,
+            "price": f"PKR {s.price:,.0f}" if s.price else "Free",
+            "duration": f"{s.duration} min" if s.duration else "",
+            "url": "/admin/services"
+        })
+
+    return jsonify({
+        "success": True,
+        "query": q,
+        "results": {
+            "appointments": appts_data,
+            "conversations": convs_data,
+            "doctors": docs_data,
+            "services": svcs_data
+        }
+    })
 
 
 def _build_appointment_cleanup_query(business_id, mode, specific_date=None, start_date=None, end_date=None, older_days=None, status_filter=None):
@@ -730,13 +957,112 @@ from models import DoctorSchedule, DoctorLeave, DAYS_OF_WEEK
 # Doctor Schedule & Profile Management Routes
 # ---------------------------------------------------------------------------
 
+def _calculate_doctor_schedule_hours(active_doc):
+    """Calculate the exact dynamic hour range (auto-fit) for active_doc with zero empty rows."""
+    from services.booking_service import _parse_time_str
+    if not active_doc:
+        start_h, end_h = 9, 17
+    else:
+        earliest_h = 24
+        latest_h = 0
+        
+        # Check base doctor hours
+        if active_doc.start_time:
+            sh, _ = _parse_time_str(active_doc.start_time, default=(9, 0))
+            earliest_h = min(earliest_h, sh)
+        if active_doc.end_time:
+            eh, em = _parse_time_str(active_doc.end_time, default=(17, 0))
+            if str(active_doc.end_time).strip() in ["00:00", "24:00", "23:59"]:
+                latest_h = max(latest_h, 23)
+            else:
+                latest_h = max(latest_h, eh + (1 if em > 0 else 0))
+        if active_doc.shift_2_start_time:
+            s2h, _ = _parse_time_str(active_doc.shift_2_start_time, default=(18, 0))
+            earliest_h = min(earliest_h, s2h)
+        if active_doc.shift_2_end_time:
+            s2eh, s2em = _parse_time_str(active_doc.shift_2_end_time, default=(21, 0))
+            if str(active_doc.shift_2_end_time).strip() in ["00:00", "24:00", "23:59"]:
+                latest_h = max(latest_h, 23)
+            else:
+                latest_h = max(latest_h, s2eh + (1 if s2em > 0 else 0))
+
+        # Check per-day schedules
+        for s in (active_doc.schedules or []):
+            if not s.is_available:
+                continue
+            if s.start_time:
+                sh, _ = _parse_time_str(s.start_time, default=(9, 0))
+                earliest_h = min(earliest_h, sh)
+            if s.end_time:
+                eh, em = _parse_time_str(s.end_time, default=(17, 0))
+                if str(s.end_time).strip() in ["00:00", "24:00", "23:59"]:
+                    latest_h = max(latest_h, 23)
+                else:
+                    latest_h = max(latest_h, eh + (1 if em > 0 else 0))
+            if s.shift_2_start_time:
+                s2h, _ = _parse_time_str(s.shift_2_start_time, default=(18, 0))
+                earliest_h = min(earliest_h, s2h)
+            if s.shift_2_end_time:
+                s2eh, s2em = _parse_time_str(s.shift_2_end_time, default=(21, 0))
+                if str(s.shift_2_end_time).strip() in ["00:00", "24:00", "23:59"]:
+                    latest_h = max(latest_h, 23)
+                else:
+                    latest_h = max(latest_h, s2eh + (1 if s2em > 0 else 0))
+
+        if earliest_h >= 24 or latest_h <= 0 or earliest_h > latest_h:
+            start_h, end_h = 9, 17
+        else:
+            start_h = max(0, earliest_h)
+            end_h = min(23, latest_h)
+
+    # Generate hours array [(code, label), ...]
+    hours = []
+    for h in range(start_h, end_h + 1):
+        code = f"{h:02d}:00"
+        ampm = "AM" if h < 12 else "PM"
+        display_h = 12 if h % 12 == 0 else h % 12
+        label = f"{display_h:02d}:00 {ampm}"
+        hours.append((code, label))
+
+    return hours, start_h, end_h
+
+
 @admin_bp.route("/admin/doctors")
+@admin_bp.route("/admin/schedules")
+@admin_bp.route("/admin/doctor-schedules")
 @login_required
 def doctors_view():
     business_id = _current_business_id()
     business = db.session.get(Business, business_id)
     doctors = Doctor.query.filter_by(business_id=business_id).all()
-    return render_template("doctors.html", business=business, doctors=doctors, days_of_week=DAYS_OF_WEEK)
+    default_tab = "schedules" if "schedule" in request.path else "directory"
+    active_tab = request.args.get("tab", default_tab)
+    
+    # Resolve active doctor from query parameters (doc_id or doctor_id)
+    doc_id_arg = request.args.get("doc_id") or request.args.get("doctor_id")
+    active_doc = None
+    if doc_id_arg:
+        try:
+            target_id = int(doc_id_arg)
+            active_doc = next((d for d in doctors if d.id == target_id), None)
+        except (ValueError, TypeError):
+            pass
+    if not active_doc and doctors:
+        active_doc = doctors[0]
+        
+    calendar_hours, auto_min_hour, auto_max_hour = _calculate_doctor_schedule_hours(active_doc)
+
+    return render_template(
+        "doctors.html",
+        business=business,
+        doctors=doctors,
+        days_of_week=DAYS_OF_WEEK,
+        active_tab=active_tab,
+        active_doc=active_doc,
+        calendar_hours=calendar_hours,
+        auto_min_hour=auto_min_hour,
+        auto_max_hour=auto_max_hour
+    )
 
 
 @admin_bp.route("/admin/doctors/add", methods=["POST"])
@@ -745,18 +1071,18 @@ def add_doctor():
     business_id = _current_business_id()
     name = request.form.get("name", "").strip()
     specialization = request.form.get("specialization", "").strip()
-    start_time_global = request.form.get("start_time", "09:00").strip()
-    end_time_global = request.form.get("end_time", "17:00").strip()
-    shift_2_start_global = request.form.get("shift_2_start_time", "").strip() or None
-    shift_2_end_global = request.form.get("shift_2_end_time", "").strip() or None
+    start_time_global = normalize_time_to_24h(request.form.get("start_time", "09:00").strip()) or "09:00"
+    end_time_global = normalize_time_to_24h(request.form.get("end_time", "17:00").strip()) or "17:00"
+    shift_2_start_global = normalize_time_to_24h(request.form.get("shift_2_start_time", "").strip()) or None
+    shift_2_end_global = normalize_time_to_24h(request.form.get("shift_2_end_time", "").strip()) or None
     working_days_form = request.form.getlist("working_days")
 
     try:
         slot_interval = int(request.form.get("slot_interval", "30"))
     except Exception:
         slot_interval = 30
-    break_start_time = request.form.get("break_start_time", "").strip() or None
-    break_end_time = request.form.get("break_end_time", "").strip() or None
+    break_start_time = normalize_time_to_24h(request.form.get("break_start_time", "").strip()) or None
+    break_end_time = normalize_time_to_24h(request.form.get("break_end_time", "").strip()) or None
 
     if break_start_time and break_end_time and break_start_time >= break_end_time:
         flash("Lunch break start time must be before end time.", "danger")
@@ -792,15 +1118,15 @@ def add_doctor():
         active_days = []
         for day in DAYS_OF_WEEK:
             is_avail = (f"is_available_{day}" in request.form) or (day in working_days_form)
-            s_time = request.form.get(f"start_time_{day}", start_time_global).strip()
-            e_time = request.form.get(f"end_time_{day}", end_time_global).strip()
+            s_time = normalize_time_to_24h(request.form.get(f"start_time_{day}", start_time_global).strip())
+            e_time = normalize_time_to_24h(request.form.get(f"end_time_{day}", end_time_global).strip())
             if s_time >= e_time and is_avail:
                 flash(f"End time for {day} must be after start time.", "danger")
                 db.session.rollback()
                 return redirect(url_for("admin_bp.doctors_view"))
 
-            s2_time = request.form.get(f"shift_2_start_time_{day}", "").strip() or None
-            e2_time = request.form.get(f"shift_2_end_time_{day}", "").strip() or None
+            s2_time = normalize_time_to_24h(request.form.get(f"shift_2_start_time_{day}", "").strip()) or None
+            e2_time = normalize_time_to_24h(request.form.get(f"shift_2_end_time_{day}", "").strip()) or None
 
             # Fallback to global shift 2 if not explicitly provided per-day but global was configured
             if not s2_time and not e2_time and f"shift_2_start_time_{day}" not in request.form:
@@ -852,8 +1178,8 @@ def edit_doctor(doctor_id):
         flash("Doctor not found.", "danger")
         return redirect(url_for("admin_bp.doctors_view"))
 
-    b_start = request.form.get("break_start_time", "").strip() or None
-    b_end = request.form.get("break_end_time", "").strip() or None
+    b_start = normalize_time_to_24h(request.form.get("break_start_time", "").strip()) or None
+    b_end = normalize_time_to_24h(request.form.get("break_end_time", "").strip()) or None
     if b_start and b_end and b_start >= b_end:
         flash("Lunch break start time must be before end time.", "danger")
         return redirect(url_for("admin_bp.doctors_view"))
@@ -861,16 +1187,16 @@ def edit_doctor(doctor_id):
     doctor.name = request.form.get("name", doctor.name).strip()
     doctor.specialization = request.form.get("specialization", doctor.specialization).strip()
     if "start_time" in request.form:
-        doctor.start_time = request.form.get("start_time").strip()
+        doctor.start_time = normalize_time_to_24h(request.form.get("start_time").strip())
     if "end_time" in request.form:
-        doctor.end_time = request.form.get("end_time").strip()
+        doctor.end_time = normalize_time_to_24h(request.form.get("end_time").strip())
 
     if doctor.start_time and doctor.end_time and doctor.start_time >= doctor.end_time:
         flash("Global end time must be after start time.", "danger")
         return redirect(url_for("admin_bp.doctors_view"))
 
-    shift_2_start_global = request.form.get("shift_2_start_time", "").strip() or None
-    shift_2_end_global = request.form.get("shift_2_end_time", "").strip() or None
+    shift_2_start_global = normalize_time_to_24h(request.form.get("shift_2_start_time", "").strip()) or None
+    shift_2_end_global = normalize_time_to_24h(request.form.get("shift_2_end_time", "").strip()) or None
 
     if shift_2_start_global and shift_2_end_global and shift_2_start_global >= shift_2_end_global:
         flash("Shift 2 start time must be before end time.", "danger")
@@ -892,15 +1218,15 @@ def edit_doctor(doctor_id):
     active_days = []
     for day in DAYS_OF_WEEK:
         is_avail = (f"is_available_{day}" in request.form) or (day in working_days_form)
-        s_time = request.form.get(f"start_time_{day}", request.form.get("start_time", doctor.start_time)).strip()
-        e_time = request.form.get(f"end_time_{day}", request.form.get("end_time", doctor.end_time)).strip()
+        s_time = normalize_time_to_24h(request.form.get(f"start_time_{day}", request.form.get("start_time", doctor.start_time)).strip())
+        e_time = normalize_time_to_24h(request.form.get(f"end_time_{day}", request.form.get("end_time", doctor.end_time)).strip())
 
         if is_avail and s_time >= e_time:
             flash(f"End time for {day} must be after start time.", "danger")
             return redirect(url_for("admin_bp.doctors_view"))
 
-        s2_time = request.form.get(f"shift_2_start_time_{day}", "").strip() or None
-        e2_time = request.form.get(f"shift_2_end_time_{day}", "").strip() or None
+        s2_time = normalize_time_to_24h(request.form.get(f"shift_2_start_time_{day}", "").strip()) or None
+        e2_time = normalize_time_to_24h(request.form.get(f"shift_2_end_time_{day}", "").strip()) or None
 
         # Fallback to global shift 2 if not explicitly provided per-day but global was configured
         if not s2_time and not e2_time and f"shift_2_start_time_{day}" not in request.form:
@@ -963,8 +1289,8 @@ def add_doctor_leave():
     leave_date = request.form.get("leave_date", "").strip()
     reason = request.form.get("reason", "").strip()
     is_all_day = "is_all_day" in request.form
-    start_time = request.form.get("start_time", "").strip() or None
-    end_time = request.form.get("end_time", "").strip() or None
+    start_time = normalize_time_to_24h(request.form.get("start_time", "").strip()) or None
+    end_time = normalize_time_to_24h(request.form.get("end_time", "").strip()) or None
 
     if not leave_date:
         flash("Leave date is required.", "danger")
@@ -1323,6 +1649,61 @@ def slots_view():
     )
 
 
+@admin_bp.route("/api/admin/doctor-slots")
+@login_required
+def get_doctor_slots():
+    """Return available and occupied slots formatted in 12-hour AM/PM for manual booking template."""
+    business_id = _current_business_id()
+    doc_id = request.args.get("doctor_id")
+    date_str = request.args.get("date", "").strip()
+    if not doc_id or not date_str:
+        return jsonify({"success": False, "error": "Doctor ID and date required."}), 400
+
+    try:
+        doc_id_int = int(doc_id)
+    except ValueError:
+        return jsonify({"success": False, "error": "Invalid doctor ID."}), 400
+
+    doc = Doctor.query.filter_by(id=doc_id_int, business_id=business_id).first()
+    if not doc:
+        return jsonify({"success": False, "error": "Doctor not found."}), 404
+
+    from services.booking_service import BookingService
+    avail_res = BookingService.check_availability(
+        business_id=business_id,
+        doctor_id=doc_id_int,
+        date_str=date_str
+    )
+    available_slots = set(avail_res.get("available_slots", []))
+
+    booked_appts = Appointment.query.filter_by(
+        business_id=business_id,
+        doctor_id=doc_id_int,
+        appointment_date=date_str,
+        status="CONFIRMED"
+    ).all()
+
+    booked_map = {a.appointment_time: (a.customer.name if a.customer else "Patient") for a in booked_appts}
+    all_times = sorted(list(available_slots.union(set(booked_map.keys()))))
+
+    slot_list = []
+    for t in all_times:
+        is_occ = t in booked_map
+        slot_list.append({
+            "time": t,
+            "time_12h": format_time_to_12h(t),
+            "status": "OCCUPIED" if is_occ else "AVAILABLE",
+            "patient": booked_map.get(t, "")
+        })
+
+    return jsonify({
+        "success": True,
+        "doctor_name": doc.name,
+        "date": date_str,
+        "slots": slot_list
+    })
+
+
 @admin_bp.route("/api/admin/appointments/manual-book", methods=["POST"])
 @login_required
 def admin_manual_book():
@@ -1333,7 +1714,8 @@ def admin_manual_book():
     doctor_id = data.get("doctor_id")
     service_id = data.get("service_id")
     appointment_date = data.get("appointment_date", "").strip()
-    appointment_time = data.get("appointment_time", "").strip()
+    appointment_time_raw = data.get("appointment_time", "").strip()
+    appointment_time = normalize_time_to_24h(appointment_time_raw)
     notes = data.get("notes", "Booked manually by Staff")
 
     try:
@@ -1342,6 +1724,7 @@ def admin_manual_book():
     except (ValueError, TypeError):
         return jsonify({"success": False, "error": "Valid Doctor and Service must be selected."}), 400
 
+    from services.booking_service import BookingService
     result = BookingService.book_appointment(
         business_id=business_id,
         customer_name=customer_name,
@@ -1352,8 +1735,21 @@ def admin_manual_book():
         appointment_time=appointment_time,
         notes=notes
     )
-    status_code = 200 if result.get("success") else 400
-    return jsonify(result), status_code
+
+    if not result.get("success"):
+        err_msg = result.get("error", "Failed to book appointment.")
+        formatted_time = format_time_to_12h(appointment_time)
+        doc = db.session.get(Doctor, doctor_id_int)
+        doc_name = doc.name if doc else "the doctor"
+        if "overlap" in err_msg.lower() or "already booked" in err_msg.lower() or "not available" in err_msg.lower() or "conflict" in err_msg.lower():
+            result["conflict"] = True
+            result["conflict_time"] = formatted_time
+            result["error"] = f"Conflict: {formatted_time} is already booked for {doc_name} on {appointment_date}. Please choose an available time slot."
+        status_code = 409 if result.get("conflict") else 400
+        return jsonify(result), status_code
+
+    return jsonify(result), 200
+
 
 
 # ---------------------------------------------------------------------------

@@ -14,7 +14,7 @@ async function selectConversation(convId) {
     const metaSidebar = document.getElementById('convMetaSidebar');
     if (emptyNotice) emptyNotice.style.display = 'none';
     if (activeView) activeView.style.display = 'flex';
-    if (metaSidebar) metaSidebar.style.display = 'block';
+    if (metaSidebar) metaSidebar.style.display = 'flex';
 
     // Always scroll to bottom when opening a different conversation.
     // When refreshing the SAME conversation (e.g. after a reply/takeover),
@@ -40,9 +40,7 @@ async function loadConversationDetails(convId, options = {}) {
     try {
         const res = await fetch(`/api/chat/history/${convId}`);
         const data = await res.json();
-        const phoneInfo = data.customer_phone ? ` • 📱 ${data.customer_phone}` : '';
-        const nameInfo = (data.customer_name && data.customer_name !== data.customer_phone) ? ` (${data.customer_name})` : '';
-        document.getElementById('activeConvTitle').textContent = `Conversation #${data.conversation_id}${phoneInfo}${nameInfo}`;
+        document.getElementById('activeConvTitle').textContent = `Conversation #${data.conversation_id}`;
         
         // Populate Right Info Panel
         const metaPhone = document.getElementById('metaPhone');
@@ -50,29 +48,37 @@ async function loadConversationDetails(convId, options = {}) {
         const metaName = document.getElementById('metaName');
         if (metaName) metaName.textContent = data.customer_name || 'Walk-in Patient';
         const metaStatus = document.getElementById('metaStatus');
-        if (metaStatus) metaStatus.textContent = data.status === 'HUMAN' ? '👨‍💼 Staff Takeover' : '🤖 AI Active';
+        if (metaStatus) metaStatus.innerHTML = data.status === 'HUMAN' ? '<span class="status-dot dot-warning"></span> Staff Takeover' : '<span class="status-dot dot-success"></span> AI Active';
         const metaState = document.getElementById('metaState');
         if (metaState) metaState.textContent = data.workflow_state || 'START';
         const metaMsgCount = document.getElementById('metaMsgCount');
         if (metaMsgCount) metaMsgCount.textContent = (data.messages || []).length;
 
-        // Status Badge
+        // Status & Handoff Controls
         const statusBadge = document.getElementById('activeConvStatusBadge');
+        const btnTakeover = document.getElementById('btnTakeover');
+        const btnRelease  = document.getElementById('btnRelease');
+
         if (data.status === 'HUMAN') {
-            statusBadge.className = 'badge badge-warning';
-            statusBadge.textContent = '👨‍💼 HUMAN STAFF';
-            document.getElementById('btnTakeover').style.display = 'none';
-            document.getElementById('btnRelease').style.display = 'inline-flex';
+            if (statusBadge) {
+                statusBadge.className = 'badge badge-warning';
+                statusBadge.innerHTML = '<span class="status-dot dot-warning"></span> Human Staff';
+            }
+            if (btnTakeover) btnTakeover.style.display = 'none';
+            if (btnRelease) btnRelease.style.display = 'inline-flex';
         } else {
-            statusBadge.className = 'badge badge-success';
-            statusBadge.textContent = '🤖 AI RECEPTIONIST';
-            document.getElementById('btnTakeover').style.display = 'inline-flex';
-            document.getElementById('btnRelease').style.display = 'none';
+            if (statusBadge) {
+                statusBadge.className = 'badge badge-success';
+                statusBadge.innerHTML = '<span class="status-dot dot-success"></span> AI Active';
+            }
+            if (btnTakeover) btnTakeover.style.display = 'inline-flex';
+            if (btnRelease) btnRelease.style.display = 'none';
         }
 
-        // State Badge
         const stateBadge = document.getElementById('activeConvStateBadge');
-        stateBadge.textContent = `State: ${data.workflow_state || 'START'}`;
+        if (stateBadge) {
+            stateBadge.textContent = `State: ${data.workflow_state || 'START'}`;
+        }
 
         // Stream messages
         const stream = document.getElementById('convMessagesStream');

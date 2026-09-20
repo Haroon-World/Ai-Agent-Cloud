@@ -4,13 +4,14 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>{% block title %}ClinicConnect AI{% endblock %}</title>
+    <link rel="icon" type="image/png" href="{{ url_for('static', filename='img/logo_icon_64.png') }}">
     <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
 </head>
 <body>
-    {% set is_admin_view = session.get('user_id') and session.get('business_id') and (request.path.startswith('/admin') or request.path.startswith('/platform')) and not request.path.startswith('/admin/login') and not request.path.startswith('/admin/forgot-password') and not request.path.startswith('/admin/reset-password') %}
+    {% set is_admin_view = session.get('user_id') and session.get('business_id') and request.path.startswith('/admin') and not request.path.startswith('/admin/login') and not request.path.startswith('/admin/forgot-password') and not request.path.startswith('/admin/reset-password') %}
 
     {% if is_admin_view %}
     <!-- ====================================================================
@@ -26,35 +27,36 @@
             <div class="admin-sidebar-header">
                 <a href="/admin" class="admin-brand">
                     <div class="brand-avatar-icon">
-                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-                            <path d="M12 6v12m-6-6h12"/>
-                        </svg>
+                        <img src="{{ url_for('static', filename='img/logo_icon.png') }}" alt="ClinicConnect" class="brand-logo-img">
                     </div>
                     <div class="brand-text-wrap">
                         <span class="brand-title">{{ (business.name if business else session.get('clinic_name', 'ClinicConnect AI')) | e }}</span>
                         <span class="brand-subtitle">
-                            <span class="live-status-dot"></span> AI Receptionist
+                            <span class="live-status-dot"></span> Virtual Clinic Assistant
                         </span>
                     </div>
                 </a>
+                <button type="button" class="sidebar-header-toggle-btn" id="sidebarHeaderToggleBtn" onclick="toggleAdminSidebarCollapse()" title="Collapse navigation">
+                    <svg class="sidebar-collapse-icon-svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="11 17 6 12 11 7"/><polyline points="18 17 13 12 18 7"/></svg>
+                </button>
             </div>
 
             <!-- Navigation Menu -->
             <nav class="admin-nav-menu">
                 <div class="nav-section-label">OVERVIEW</div>
-                <a href="/admin" class="nav-item {% if request.path == '/admin' %}active{% endif %}">
+                <a href="/admin" class="nav-item {% if request.path == '/admin' %}active{% endif %}" title="Dashboard" data-tooltip="Dashboard">
                     <span class="nav-item-icon">
                         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>
                     </span>
                     <span class="nav-item-text">Dashboard</span>
                 </a>
-                <a href="/admin/appointments" class="nav-item {% if request.path.startswith('/admin/appointments') %}active{% endif %}">
+                <a href="/admin/appointments" class="nav-item {% if request.path.startswith('/admin/appointments') %}active{% endif %}" title="Appointments" data-tooltip="Appointments">
                     <span class="nav-item-icon">
                         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
                     </span>
                     <span class="nav-item-text">Appointments</span>
                 </a>
-                <a href="/admin/conversations" class="nav-item {% if request.path.startswith('/admin/conversations') %}active{% endif %}">
+                <a href="/admin/conversations" class="nav-item {% if request.path.startswith('/admin/conversations') %}active{% endif %}" title="AI Conversations" data-tooltip="AI Conversations">
                     <span class="nav-item-icon">
                         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
                     </span>
@@ -62,19 +64,19 @@
                 </a>
 
                 <div class="nav-section-label">CLINIC MANAGEMENT</div>
-                <a href="/admin/doctors" class="nav-item {% if request.path == '/admin/doctors' and request.args.get('tab') != 'schedules' %}active{% endif %}">
+                <a href="/admin/doctors" class="nav-item {% if request.path == '/admin/doctors' and request.args.get('tab') != 'schedules' %}active{% endif %}" title="Doctors" data-tooltip="Doctors">
                     <span class="nav-item-icon">
                         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
                     </span>
                     <span class="nav-item-text">Doctors</span>
                 </a>
-                <a href="/admin/doctors?tab=schedules" class="nav-item {% if request.path == '/admin/doctors' and request.args.get('tab') == 'schedules' %}active{% endif %}">
+                <a href="/admin/doctors?tab=schedules" class="nav-item {% if request.path in ['/admin/schedules', '/admin/doctor-schedules'] or (request.path == '/admin/doctors' and request.args.get('tab') == 'schedules') %}active{% endif %}" title="Doctor Schedules" data-tooltip="Doctor Schedules">
                     <span class="nav-item-icon">
                         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
                     </span>
                     <span class="nav-item-text">Doctor Schedules</span>
                 </a>
-                <a href="/admin/services" class="nav-item {% if request.path.startswith('/admin/services') %}active{% endif %}">
+                <a href="/admin/services" class="nav-item {% if request.path.startswith('/admin/services') %}active{% endif %}" title="Services & Pricing" data-tooltip="Services & Pricing">
                     <span class="nav-item-icon">
                         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
                     </span>
@@ -82,13 +84,13 @@
                 </a>
 
                 <div class="nav-section-label">INSIGHTS</div>
-                <a href="/admin/slots" class="nav-item {% if request.path.startswith('/admin/slots') %}active{% endif %}">
+                <a href="/admin/slots" class="nav-item {% if request.path.startswith('/admin/slots') %}active{% endif %}" title="Slot Occupancy" data-tooltip="Slot Occupancy">
                     <span class="nav-item-icon">
                         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 20V10"/><path d="M12 20V4"/><path d="M6 20v-6"/></svg>
                     </span>
                     <span class="nav-item-text">Slot Occupancy</span>
                 </a>
-                <a href="/admin/reminders" class="nav-item {% if request.path.startswith('/admin/reminders') %}active{% endif %}">
+                <a href="/admin/reminders" class="nav-item {% if request.path.startswith('/admin/reminders') %}active{% endif %}" title="Reminders" data-tooltip="Reminders">
                     <span class="nav-item-icon">
                         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
                     </span>
@@ -96,31 +98,23 @@
                 </a>
 
                 <div class="nav-section-label">SETTINGS</div>
-                <a href="/admin/services#clinic-settings" class="nav-item">
+                <a href="/admin/services#clinic-settings" class="nav-item" title="Clinic Settings" data-tooltip="Clinic Settings">
                     <span class="nav-item-icon">
                         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
                     </span>
                     <span class="nav-item-text">Clinic Settings</span>
                 </a>
-                <a href="/admin/subscription" class="nav-item {% if request.path.startswith('/admin/subscription') %}active{% endif %}">
+                <a href="/admin/subscription" class="nav-item {% if request.path.startswith('/admin/subscription') %}active{% endif %}" title="Subscription" data-tooltip="Subscription">
                     <span class="nav-item-icon">
                         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="1" y="4" width="22" height="16" rx="2" ry="2"/><line x1="10" y1="2" x2="10" y2="23"/><line x1="4" y1="10" x2="22" y2="10"/></svg>
                     </span>
                     <span class="nav-item-text">Subscription</span>
                 </a>
-
-                {% if session.get('is_platform_admin') %}
-                <div class="nav-section-label">PLATFORM</div>
-                <a href="/platform/dashboard" class="nav-item {% if request.path.startswith('/platform') %}active{% endif %}" style="color: #6366f1; font-weight: 700;">
-                    <span class="nav-item-icon">🛡️</span>
-                    <span class="nav-item-text">Platform Console</span>
-                </a>
-                {% endif %}
             </nav>
 
             <!-- Sidebar Footer & Admin Profile -->
             <div class="admin-sidebar-footer">
-                <div class="admin-profile-card">
+                <div class="admin-profile-card" title="{{ session.get('admin_user', 'Administrator') }}">
                     <div class="admin-avatar">
                         {{ (session.get('admin_user', 'A')[:1]) | upper }}
                     </div>
@@ -133,6 +127,13 @@
                     </a>
                 </div>
             </div>
+
+            <!-- Sidebar Collapse / Expand Toggle Bar -->
+            <div class="sidebar-collapse-toggle" onclick="toggleAdminSidebarCollapse()" title="Toggle sidebar">
+                <button type="button" class="sidebar-collapse-toggle-btn" id="sidebarCollapseToggleBtn" aria-label="Toggle navigation">
+                    <svg class="sidebar-collapse-icon-svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="11 17 6 12 11 7"/><polyline points="18 17 13 12 18 7"/></svg>
+                </button>
+            </div>
         </aside>
 
         <!-- Main Workspace Wrapper -->
@@ -140,12 +141,24 @@
             <!-- Top Navigation Bar -->
             <header class="admin-topbar">
                 <div class="topbar-left">
-                    <button type="button" class="topbar-menu-toggle" onclick="toggleAdminSidebar()" aria-label="Toggle navigation">
+                    <button type="button" class="topbar-menu-toggle" onclick="handleTopbarMenuClick()" aria-label="Toggle navigation" title="Toggle sidebar navigation">
                         <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
                     </button>
-                    <div class="topbar-search-box">
-                        <svg class="search-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
-                        <input type="text" class="topbar-search-input" placeholder="Search appointments, chats, doctors..." aria-label="Search">
+                    <div class="topbar-search-wrapper" id="topbarSearchWrapper">
+                        <div class="topbar-search-box">
+                            <svg class="search-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+                            <input type="text" id="topbarSearchInput" class="topbar-search-input" placeholder="Search appointments, chats, doctors..." aria-label="Search" autocomplete="off">
+                            <button type="button" id="topbarSearchClearBtn" class="topbar-search-clear" style="display: none;" title="Clear search" onclick="clearTopbarSearch()">&times;</button>
+                            <div class="topbar-search-spinner" id="topbarSearchSpinner" style="display: none;"></div>
+                            <span class="topbar-search-kbd" title="Press / or Ctrl+K to search">/</span>
+                        </div>
+                        <div class="topbar-search-dropdown" id="topbarSearchDropdown" style="display: none;">
+                            <div class="topbar-search-results" id="topbarSearchResults"></div>
+                            <div class="topbar-search-footer" id="topbarSearchFooter">
+                                <span class="footer-tip">Press <kbd>↵ Enter</kbd> to search appointments</span>
+                                <span class="footer-tip"><kbd>ESC</kbd> to close</span>
+                            </div>
+                        </div>
                     </div>
                 </div>
 
@@ -163,6 +176,7 @@
                     <div class="topbar-user-pill" title="Logged in as {{ session.get('admin_user', 'admin') }}">
                         <span class="user-pill-avatar">{{ (session.get('admin_user', 'A')[:1]) | upper }}</span>
                         <span class="user-pill-name">{{ session.get('admin_user', 'admin') }}</span>
+                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="color: #64748b; margin-left: 1px;"><polyline points="6 9 12 15 18 9"/></svg>
                     </div>
                 </div>
             </header>
@@ -171,48 +185,77 @@
             <main class="main-content admin-content-viewport">
     {% else %}
     <!-- ====================================================================
-         PUBLIC / CUSTOMER-FACING NAVBAR & SKELETON
+         PUBLIC & WEBCHAT MODERN NAVIGATIONS
          ==================================================================== -->
+    {% if request.path.startswith('/chat') %}
+    <!-- Modern Dedicated Webchat Header -->
+    <nav class="navbar webchat-navbar" style="background: #ffffff; border-bottom: 1.5px solid #e2e8f0; padding: 12px 24px; position: sticky; top: 0; z-index: 100; box-shadow: 0 1px 3px rgba(15, 23, 42, 0.04);">
+        <div class="nav-container" style="max-width: 1200px; margin: 0 auto; display: flex; justify-content: space-between; align-items: center; width: 100%;">
+            <a href="{% if business and business.id != 1 %}?clinic={{ business.id }}{% elif session.get('active_clinic_id') and session.get('active_clinic_id') != 1 %}?clinic={{ session.get('active_clinic_id') }}{% else %}/{% endif %}" class="nav-brand" style="display: flex; align-items: center; gap: 12px; text-decoration: none;">
+                <span class="brand-avatar-icon" style="width: 40px; height: 40px; min-width: 40px; border-radius: 50%; background: #eef2ff; border: 2px solid #c7d2fe; display: flex; align-items: center; justify-content: center; overflow: hidden; padding: 3px;">
+                    <img src="{{ url_for('static', filename='img/logo_icon.png') }}" alt="ClinicConnect" class="brand-logo-img" style="width: 100%; height: 100%; object-fit: contain;">
+                </span>
+                <div>
+                    <span class="brand-name" style="font-weight: 800; font-size: 1.05rem; color: #0f172a; font-family: 'Plus Jakarta Sans', sans-serif; line-height: 1.25; display: block;">
+                        {{ (business.name if business else session.get('clinic_name', 'ClinicConnect AI')) | e }}
+                    </span>
+                    <div style="font-size: 0.74rem; color: #059669; font-weight: 700; display: flex; align-items: center; gap: 6px; margin-top: 2px;">
+                        <span class="live-dot" style="width: 7px; height: 7px;"></span>
+                        <span>AI Virtual Receptionist &bull; Active</span>
+                    </div>
+                </div>
+            </a>
+
+            <div class="nav-links">
+                <a href="{% if business and business.id != 1 and request.path.startswith('/chat/') %}/chat/{{ business.id }}{% else %}/chat{% endif %}" class="nav-item nav-badge-item active">
+                    <span>Webchat AI</span>
+                    <span class="live-dot"></span>
+                </a>
+            </div>
+
+            <div class="nav-auth-section" style="display: flex; align-items: center; gap: 10px;">
+                {% if session.get('user_id') and session.get('business_id') %}
+                    <span class="chat-mode-tag" style="background: #eef2ff; color: #4338ca; border: 1px solid #c7d2fe; font-size: 0.76rem; font-weight: 700; padding: 5px 12px; border-radius: 20px; display: inline-flex; align-items: center; gap: 6px;">
+                        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"/></svg>
+                        Admin Testing Sandbox
+                    </span>
+                    <a href="/admin" class="btn btn-secondary btn-sm" style="display: inline-flex; align-items: center; gap: 6px; font-weight: 700; border-radius: 9999px; padding: 6px 14px; font-size: 0.82rem; border: 1.5px solid #cbd5e1; background: #ffffff; color: #334155; text-decoration: none; box-shadow: 0 1px 3px rgba(0,0,0,0.04);">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="19" y1="12" x2="5" y2="12"/><polyline points="12 19 5 12 12 5"/></svg>
+                        Back to Admin Portal
+                    </a>
+                {% else %}
+                    <a href="/admin/login" class="nav-item nav-btn" style="font-weight: 700; border-radius: 8px;">Clinic Staff Login</a>
+                {% endif %}
+            </div>
+        </div>
+    </nav>
+    {% else %}
+    <!-- Public Landing Page Navbar -->
     <nav class="navbar">
         <div class="nav-container">
             <a href="{% if business and business.id != 1 %}?clinic={{ business.id }}{% elif session.get('active_clinic_id') and session.get('active_clinic_id') != 1 %}?clinic={{ session.get('active_clinic_id') }}{% else %}/{% endif %}" class="nav-brand">
-                <span class="brand-logo">🏥</span>
+                <span class="brand-avatar-icon">
+                    <img src="{{ url_for('static', filename='img/logo_icon.png') }}" alt="ClinicConnect" class="brand-logo-img">
+                </span>
                 <span class="brand-name">{{ (business.name if business else session.get('clinic_name', 'ClinicConnect AI')) | e }}</span>
             </a>
             <div class="nav-links">
                 <a href="{% if business and business.id != 1 %}?clinic={{ business.id }}{% elif session.get('active_clinic_id') and session.get('active_clinic_id') != 1 %}?clinic={{ session.get('active_clinic_id') }}{% else %}/{% endif %}" class="nav-item {% if request.path == '/' %}active{% endif %}">Overview</a>
                 <a href="{% if business and business.id != 1 and request.path.startswith('/chat/') %}/chat/{{ business.id }}{% else %}/chat{% endif %}" class="nav-item nav-badge-item {% if request.path.startswith('/chat') %}active{% endif %}">
-                    <span>Customer Chat</span>
+                    <span>Launch Webchat</span>
                     <span class="live-dot"></span>
                 </a>
-                {% if session.get('user_id') and session.get('business_id') %}
-                    <a href="/admin" class="nav-item {% if request.path == '/admin' %}active{% endif %}">Dashboard</a>
-                    <a href="/admin/appointments" class="nav-item {% if request.path.startswith('/admin/appointments') %}active{% endif %}">Appointments</a>
-                    <a href="/admin/slots" class="nav-item {% if request.path.startswith('/admin/slots') %}active{% endif %}">Slot Occupancy</a>
-                    <a href="/admin/doctors" class="nav-item {% if request.path.startswith('/admin/doctors') %}active{% endif %}">Doctor Schedules</a>
-                    <a href="/admin/services" class="nav-item {% if request.path.startswith('/admin/services') %}active{% endif %}">Services &amp; Pricing</a>
-                    <a href="/admin/conversations" class="nav-item {% if request.path.startswith('/admin/conversations') %}active{% endif %}">Conversations</a>
-                    <a href="/admin/reminders" class="nav-item {% if request.path.startswith('/admin/reminders') %}active{% endif %}">Reminders</a>
-                    <a href="/admin/subscription" class="nav-item {% if request.path.startswith('/admin/subscription') %}active{% endif %}">💳 Subscription</a>
-                {% endif %}
-                {% if session.get('is_platform_admin') %}
-                    <a href="/platform/dashboard" class="nav-item {% if request.path.startswith('/platform') %}active{% endif %}" style="color: #a5b4fc; font-weight: 700;">🛡️ SaaS Console</a>
-                {% endif %}
             </div>
             <div class="nav-auth-section">
                 {% if session.get('user_id') %}
-                    <div class="admin-user-badge">
-                        <span class="admin-user-pill" title="Logged in tenant: {{ session.get('clinic_name', '') }}">👤 {{ session.get('admin_user', 'admin') }}</span>
-                        <a href="/admin/logout" class="nav-item nav-btn-logout" title="Sign out of admin session">
-                            <span>🚪 Logout</span>
-                        </a>
-                    </div>
+                    <a href="/admin" class="nav-item nav-btn" style="font-weight: 700; border-radius: 8px;">Open Dashboard</a>
                 {% else %}
                     <a href="/admin/login" class="nav-item nav-btn {% if request.path.startswith('/admin/login') %}active{% endif %}">Admin Portal</a>
                 {% endif %}
             </div>
         </div>
     </nav>
+    {% endif %}
 
     <main class="main-content">
     {% endif %}
@@ -257,13 +300,68 @@
         if (backdrop) backdrop.classList.toggle('active');
     }
 
+    function toggleAdminSidebarCollapse() {
+        const sidebar = document.getElementById('adminSidebar');
+        if (!sidebar) return;
+        const isCollapsed = sidebar.classList.toggle('sidebar-collapsed');
+        try {
+            localStorage.setItem('admin_sidebar_collapsed', isCollapsed ? 'true' : 'false');
+        } catch (e) {}
+        updateSidebarToggleIcons(isCollapsed);
+    }
+
+    function updateSidebarToggleIcons(isCollapsed) {
+        const icons = document.querySelectorAll('.sidebar-collapse-icon-svg');
+        icons.forEach(icon => {
+            if (isCollapsed) {
+                // Expand direction (pointing right: >>)
+                icon.innerHTML = '<polyline points="13 17 18 12 13 7"/><polyline points="6 17 11 12 6 7"/>';
+            } else {
+                // Collapse direction (pointing left: <<)
+                icon.innerHTML = '<polyline points="11 17 6 12 11 7"/><polyline points="18 17 13 12 18 7"/>';
+            }
+        });
+        const headerBtn = document.getElementById('sidebarHeaderToggleBtn');
+        if (headerBtn) {
+            headerBtn.title = isCollapsed ? 'Expand navigation' : 'Collapse navigation';
+        }
+        const bottomBtn = document.getElementById('sidebarCollapseToggleBtn');
+        if (bottomBtn) {
+            bottomBtn.title = isCollapsed ? 'Expand navigation' : 'Collapse navigation';
+        }
+    }
+
+    function handleTopbarMenuClick() {
+        if (window.innerWidth <= 1024) {
+            toggleAdminSidebar();
+        } else {
+            toggleAdminSidebarCollapse();
+        }
+    }
+
+    // Restore saved collapse state on desktop
+    (function initAdminSidebarCollapse() {
+        if (window.innerWidth > 1024) {
+            try {
+                const saved = localStorage.getItem('admin_sidebar_collapsed');
+                if (saved === 'true') {
+                    const sidebar = document.getElementById('adminSidebar');
+                    if (sidebar) {
+                        sidebar.classList.add('sidebar-collapsed');
+                        updateSidebarToggleIcons(true);
+                    }
+                }
+            } catch (e) {}
+        }
+    })();
+
     // Format topbar date on client side
     (function initTopbarDate() {
         const dateEl = document.getElementById('adminCurrentDate');
         if (dateEl) {
             const options = { weekday: 'short', day: 'numeric', month: 'short', year: 'numeric' };
             try {
-                dateEl.textContent = new Date().toLocaleDateString(undefined, options);
+                dateEl.textContent = new Date().toLocaleDateString('en-GB', options);
             } catch (e) {
                 dateEl.textContent = 'Today';
             }
@@ -285,6 +383,300 @@
             btn.innerHTML = '<svg viewBox="0 0 24 24"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle></svg>';
         }
     }
+
+    // Universal Topbar Search Logic
+    let topbarSearchTimer = null;
+    let topbarSearchAbortController = null;
+    let topbarHighlightedIndex = -1;
+
+    function initTopbarSearch() {
+        const searchInput = document.getElementById('topbarSearchInput');
+        const dropdown = document.getElementById('topbarSearchDropdown');
+        const clearBtn = document.getElementById('topbarSearchClearBtn');
+        const spinner = document.getElementById('topbarSearchSpinner');
+        const resultsContainer = document.getElementById('topbarSearchResults');
+
+        if (!searchInput || !dropdown) return;
+
+        // Global shortcut / or Ctrl+K / Cmd+K to focus search input
+        document.addEventListener('keydown', (e) => {
+            const activeTag = document.activeElement ? document.activeElement.tagName.toLowerCase() : '';
+            const isEditing = activeTag === 'input' || activeTag === 'textarea' || document.activeElement?.isContentEditable;
+            
+            if ((e.key === '/' && !isEditing) || ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'k')) {
+                e.preventDefault();
+                searchInput.focus();
+                searchInput.select();
+            } else if (e.key === 'Escape') {
+                closeTopbarSearch();
+            }
+        });
+
+        searchInput.addEventListener('input', (e) => {
+            const val = e.target.value.trim();
+            if (clearBtn) clearBtn.style.display = val ? 'inline-flex' : 'none';
+
+            if (!val) {
+                closeTopbarSearch();
+                return;
+            }
+
+            clearTimeout(topbarSearchTimer);
+            topbarSearchTimer = setTimeout(() => {
+                performTopbarSearch(val);
+            }, 180);
+        });
+
+        searchInput.addEventListener('focus', () => {
+            const val = searchInput.value.trim();
+            if (val && resultsContainer && resultsContainer.children.length > 0) {
+                dropdown.style.display = 'flex';
+            }
+        });
+
+        // Keyboard navigation within dropdown
+        searchInput.addEventListener('keydown', (e) => {
+            const items = dropdown.querySelectorAll('.topbar-search-item');
+            if (e.key === 'ArrowDown') {
+                e.preventDefault();
+                if (items.length > 0) {
+                    topbarHighlightedIndex = (topbarHighlightedIndex + 1) % items.length;
+                    updateHighlightedSearchItem(items);
+                }
+            } else if (e.key === 'ArrowUp') {
+                e.preventDefault();
+                if (items.length > 0) {
+                    topbarHighlightedIndex = (topbarHighlightedIndex - 1 + items.length) % items.length;
+                    updateHighlightedSearchItem(items);
+                }
+            } else if (e.key === 'Enter') {
+                e.preventDefault();
+                if (topbarHighlightedIndex >= 0 && items[topbarHighlightedIndex]) {
+                    items[topbarHighlightedIndex].click();
+                } else {
+                    const val = searchInput.value.trim();
+                    if (val) {
+                        window.location.href = `/admin/appointments?search=${encodeURIComponent(val)}`;
+                    }
+                }
+            }
+        });
+
+        // Close on click outside
+        document.addEventListener('click', (e) => {
+            const wrapper = document.getElementById('topbarSearchWrapper');
+            if (wrapper && !wrapper.contains(e.target)) {
+                closeTopbarSearch();
+            }
+        });
+    }
+
+    function updateHighlightedSearchItem(items) {
+        items.forEach((item, idx) => {
+            if (idx === topbarHighlightedIndex) {
+                item.classList.add('highlighted');
+                item.scrollIntoView({ block: 'nearest' });
+            } else {
+                item.classList.remove('highlighted');
+            }
+        });
+    }
+
+    function clearTopbarSearch() {
+        const searchInput = document.getElementById('topbarSearchInput');
+        const clearBtn = document.getElementById('topbarSearchClearBtn');
+        if (searchInput) {
+            searchInput.value = '';
+            searchInput.focus();
+        }
+        if (clearBtn) clearBtn.style.display = 'none';
+        closeTopbarSearch();
+    }
+
+    function closeTopbarSearch() {
+        const dropdown = document.getElementById('topbarSearchDropdown');
+        if (dropdown) dropdown.style.display = 'none';
+        topbarHighlightedIndex = -1;
+    }
+
+    async function performTopbarSearch(query) {
+        const dropdown = document.getElementById('topbarSearchDropdown');
+        const spinner = document.getElementById('topbarSearchSpinner');
+        const resultsContainer = document.getElementById('topbarSearchResults');
+        if (!dropdown || !resultsContainer) return;
+
+        if (topbarSearchAbortController) {
+            topbarSearchAbortController.abort();
+        }
+        topbarSearchAbortController = new AbortController();
+
+        if (spinner) spinner.style.display = 'inline-block';
+
+        try {
+            const res = await fetch(`/admin/api/search?q=${encodeURIComponent(query)}`, {
+                signal: topbarSearchAbortController.signal
+            });
+            const data = await res.json();
+            if (spinner) spinner.style.display = 'none';
+
+            if (!data.success) return;
+
+            topbarHighlightedIndex = -1;
+            renderTopbarSearchResults(data.results, query);
+            dropdown.style.display = 'flex';
+        } catch (err) {
+            if (err.name !== 'AbortError') {
+                if (spinner) spinner.style.display = 'none';
+                console.error('Topbar search error:', err);
+            }
+        }
+    }
+
+    function renderTopbarSearchResults(results, query) {
+        const container = document.getElementById('topbarSearchResults');
+        if (!container) return;
+        container.innerHTML = '';
+
+        const appts = results.appointments || [];
+        const convs = results.conversations || [];
+        const docs = results.doctors || [];
+        const svcs = results.services || [];
+
+        const totalCount = appts.length + convs.length + docs.length + svcs.length;
+
+        if (totalCount === 0) {
+            container.innerHTML = `
+                <div class="topbar-search-empty">
+                    <div style="font-size: 1.5rem; margin-bottom: 6px;">🔍</div>
+                    <div style="font-weight: 700; color: #334155;">No matches found</div>
+                    <div style="font-size: 0.8rem; color: #94a3b8; margin-top: 2px;">No appointments, chats, or doctors matched "<strong>${escapeHtml(query)}</strong>"</div>
+                </div>
+            `;
+            return;
+        }
+
+        // 1. Appointments
+        if (appts.length > 0) {
+            const header = document.createElement('div');
+            header.className = 'topbar-search-category';
+            header.innerHTML = `<span>📅 Appointments (${appts.length})</span>`;
+            container.appendChild(header);
+
+            appts.forEach(a => {
+                const item = document.createElement('a');
+                item.className = 'topbar-search-item';
+                item.href = a.url;
+                const statusClass = a.status === 'CONFIRMED' ? 'badge-success' : (a.status === 'CANCELLED' ? 'badge-danger' : 'badge-secondary');
+                item.innerHTML = `
+                    <div class="search-item-info">
+                        <div class="search-item-primary">
+                            <span class="search-item-title">${escapeHtml(a.patient_name)}</span>
+                            ${a.phone ? `<span class="search-item-sub">${escapeHtml(a.phone)}</span>` : ''}
+                        </div>
+                        <div class="search-item-details">
+                            <span>👨‍⚕️ ${escapeHtml(a.doctor)}</span>
+                            <span>•</span>
+                            <span>${escapeHtml(a.service)}</span>
+                            <span>•</span>
+                            <span>${escapeHtml(a.date)} ${escapeHtml(a.time)}</span>
+                        </div>
+                    </div>
+                    <span class="badge ${statusClass}" style="font-size: 0.72rem; padding: 2px 8px;">${escapeHtml(a.status)}</span>
+                `;
+                container.appendChild(item);
+            });
+        }
+
+        // 2. Conversations
+        if (convs.length > 0) {
+            const header = document.createElement('div');
+            header.className = 'topbar-search-category';
+            header.innerHTML = `<span>💬 Conversations (${convs.length})</span>`;
+            container.appendChild(header);
+
+            convs.forEach(c => {
+                const item = document.createElement('a');
+                item.className = 'topbar-search-item';
+                item.href = c.url;
+                const statusBadge = c.status === 'HUMAN' 
+                    ? '<span class="badge badge-warning" style="font-size: 0.72rem;">Human</span>' 
+                    : '<span class="badge badge-success" style="font-size: 0.72rem;">AI</span>';
+                item.innerHTML = `
+                    <div class="search-item-info">
+                        <div class="search-item-primary">
+                            <span class="search-item-title">${escapeHtml(c.name)}</span>
+                            ${c.phone ? `<span class="search-item-sub">${escapeHtml(c.phone)}</span>` : ''}
+                        </div>
+                        ${c.last_message ? `<div class="search-item-snippet">"${escapeHtml(c.last_message)}"</div>` : ''}
+                    </div>
+                    ${statusBadge}
+                `;
+                container.appendChild(item);
+            });
+        }
+
+        // 3. Doctors
+        if (docs.length > 0) {
+            const header = document.createElement('div');
+            header.className = 'topbar-search-category';
+            header.innerHTML = `<span>👨‍⚕️ Doctors (${docs.length})</span>`;
+            container.appendChild(header);
+
+            docs.forEach(d => {
+                const item = document.createElement('a');
+                item.className = 'topbar-search-item';
+                item.href = d.url;
+                item.innerHTML = `
+                    <div class="search-item-info">
+                        <div class="search-item-primary">
+                            <span class="search-item-title">${escapeHtml(d.name)}</span>
+                        </div>
+                        <div class="search-item-details">
+                            <span>🩺 ${escapeHtml(d.specialization)}</span>
+                        </div>
+                    </div>
+                    <span class="btn-xs-link" style="color: #4f46e5; font-size: 0.78rem; font-weight: 600;">View Schedule →</span>
+                `;
+                container.appendChild(item);
+            });
+        }
+
+        // 4. Services
+        if (svcs.length > 0) {
+            const header = document.createElement('div');
+            header.className = 'topbar-search-category';
+            header.innerHTML = `<span>🩺 Services & Pricing (${svcs.length})</span>`;
+            container.appendChild(header);
+
+            svcs.forEach(s => {
+                const item = document.createElement('a');
+                item.className = 'topbar-search-item';
+                item.href = s.url;
+                item.innerHTML = `
+                    <div class="search-item-info">
+                        <div class="search-item-primary">
+                            <span class="search-item-title">${escapeHtml(s.name)}</span>
+                            ${s.duration ? `<span class="search-item-sub">⏱ ${escapeHtml(s.duration)}</span>` : ''}
+                        </div>
+                    </div>
+                    <span style="font-weight: 700; color: #059669; font-size: 0.84rem;">${escapeHtml(s.price)}</span>
+                `;
+                container.appendChild(item);
+            });
+        }
+    }
+
+    function escapeHtml(str) {
+        if (!str) return '';
+        return String(str)
+            .replace(/&/g, '&amp;')
+            .replace(/</g, '&lt;')
+            .replace(/>/g, '&gt;')
+            .replace(/"/g, '&quot;')
+            .replace(/'/g, '&#039;');
+    }
+
+    document.addEventListener('DOMContentLoaded', initTopbarSearch);
     </script>
 </body>
 </html>

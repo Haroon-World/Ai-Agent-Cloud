@@ -10,7 +10,11 @@
     </div>
     <div class="header-actions">
         <button type="button" class="btn btn-primary" onclick="openManualBookModal()">
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"
+                stroke-linecap="round" stroke-linejoin="round">
+                <line x1="12" y1="5" x2="12" y2="19" />
+                <line x1="5" y1="12" x2="19" y2="12" />
+            </svg>
             Manual Appointment Booking
         </button>
     </div>
@@ -32,12 +36,16 @@
             </div>
         </div>
         <div>
-            <h2 style="font-size: 1.25rem; font-weight: 700; color: var(--text-main); margin: 0 0 4px 0;">Overall Clinic Utilization</h2>
-            <p style="font-size: 0.82rem; color: var(--text-muted); margin: 0 0 8px 0;">Based on scheduled practitioner working hours for <strong>{{ selected_date }}</strong>.</p>
+            <h2 style="font-size: 1.25rem; font-weight: 700; color: var(--text-main); margin: 0 0 4px 0;">Overall Clinic
+                Utilization</h2>
+            <p style="font-size: 0.82rem; color: var(--text-muted); margin: 0 0 8px 0;">Based on scheduled practitioner
+                working hours for <strong>{{ selected_date }}</strong>.</p>
             <div style="display: flex; gap: 8px;">
-                <span class="badge badge-secondary" style="font-size: 0.78rem;">Total: {{ total_all_slots }} Slots</span>
+                <span class="badge badge-secondary" style="font-size: 0.78rem;">Total: {{ total_all_slots }}
+                    Slots</span>
                 <span class="badge badge-danger" style="font-size: 0.78rem;">Booked: {{ total_all_occupied }}</span>
-                <span class="badge badge-success" style="font-size: 0.78rem;">Available: {{ total_all_remaining }}</span>
+                <span class="badge badge-success" style="font-size: 0.78rem;">Available: {{ total_all_remaining
+                    }}</span>
             </div>
         </div>
     </div>
@@ -45,17 +53,21 @@
     <!-- Date & Doctor Filter Controls -->
     <form method="GET" action="/admin/slots" style="display: flex; gap: 10px; align-items: flex-end; flex-wrap: wrap;">
         <div>
-            <label style="display: block; font-size: 0.78rem; font-weight: 700; color: #475569; margin-bottom: 4px;">Date</label>
-            <input type="date" name="date" class="form-control" value="{{ selected_date }}" required style="padding: 6px 10px; font-size: 0.85rem;">
+            <label
+                style="display: block; font-size: 0.78rem; font-weight: 700; color: #475569; margin-bottom: 4px;">Date</label>
+            <input type="date" name="date" class="form-control" value="{{ selected_date }}" required
+                style="padding: 6px 10px; font-size: 0.85rem;">
         </div>
         <div>
-            <label style="display: block; font-size: 0.78rem; font-weight: 700; color: #475569; margin-bottom: 4px;">Doctor</label>
-            <select name="doctor_id" class="form-control" style="padding: 6px 10px; font-size: 0.85rem; min-width: 180px;">
+            <label
+                style="display: block; font-size: 0.78rem; font-weight: 700; color: #475569; margin-bottom: 4px;">Doctor</label>
+            <select name="doctor_id" class="form-control"
+                style="padding: 6px 10px; font-size: 0.85rem; min-width: 180px;">
                 <option value="">All Practicing Doctors</option>
                 {% for doc in doctors %}
-                    <option value="{{ doc.id }}" {% if selected_doctor_id == doc.id %}selected{% endif %}>
-                        {{ doc.name }} ({{ doc.specialization }})
-                    </option>
+                <option value="{{ doc.id }}" {% if selected_doctor_id==doc.id %}selected{% endif %}>
+                    {{ doc.name }} ({{ doc.specialization }})
+                </option>
                 {% endfor %}
             </select>
         </div>
@@ -71,15 +83,18 @@
     {% for item in occupancy_data %}
     {% set doc = item.doctor %}
     <div class="section-card">
-        <div class="section-header" style="display: flex; justify-content: space-between; align-items: flex-start; flex-wrap: wrap; gap: 12px; margin-bottom: 0.85rem;">
+        <div class="section-header"
+            style="display: flex; justify-content: space-between; align-items: flex-start; flex-wrap: wrap; gap: 12px; margin-bottom: 0.85rem;">
             <div style="display: flex; align-items: center; gap: 12px;">
                 <div class="doc-avatar" style="width: 42px; height: 42px; font-size: 1rem;">
                     {{ doc.name[4] if doc.name.startswith('Dr. ') and doc.name|length > 4 else doc.name[0] }}
                 </div>
                 <div>
-                    <h2 style="font-size: 1.1rem; font-weight: 700; color: var(--text-main); margin: 0;">{{ doc.name }}</h2>
+                    <h2 style="font-size: 1.1rem; font-weight: 700; color: var(--text-main); margin: 0;">{{ doc.name }}
+                    </h2>
                     <div style="font-size: 0.8rem; color: #64748b;">
-                        {{ doc.specialization }} • Hours: {{ doc.start_time or '09:00' }} – {{ doc.end_time or '17:00' }}
+                        {{ doc.specialization }} • Hours: {{ doc.start_time or '09:00' }} – {{ doc.end_time or '17:00'
+                        }}
                     </div>
                 </div>
             </div>
@@ -87,59 +102,105 @@
                 <span class="badge badge-secondary">Total: {{ item.total_slots }}</span>
                 <span class="badge badge-danger">Booked: {{ item.occupied_slots }}</span>
                 <span class="badge badge-success">Available: {{ item.remaining_slots }}</span>
-                <button type="button" class="btn btn-sm btn-primary" onclick="openManualBookModal('{{ doc.id }}', '', '{{ selected_date }}')">+ Book Slot</button>
+                <button type="button" class="btn btn-sm btn-primary"
+                    onclick="openManualBookModal('{{ doc.id }}', '', '{{ selected_date }}')">+ Book Slot</button>
             </div>
         </div>
 
         <!-- Occupancy Progress Bar -->
         {% if item.total_slots > 0 %}
-        <div style="margin-bottom: 1.25rem; background: #f8fafc; padding: 10px 14px; border-radius: 8px; border: 1px solid #e2e8f0;">
+        <div
+            style="margin-bottom: 1.25rem; background: #f8fafc; padding: 10px 14px; border-radius: 8px; border: 1px solid #e2e8f0;">
             <div style="display: flex; justify-content: space-between; font-size: 0.82rem; margin-bottom: 6px;">
-                <span style="color: #475569; font-weight: 600;">Utilization: <strong style="color: var(--text-main);">{{ item.occupancy_percent }}%</strong></span>
-                <span style="color: #64748b;"><strong>{{ item.occupied_slots }}</strong> of <strong>{{ item.total_slots }}</strong> slots filled</span>
+                <span style="color: #475569; font-weight: 600;">Utilization: <strong style="color: var(--text-main);">{{
+                        item.occupancy_percent }}%</strong></span>
+                <span style="color: #64748b;"><strong>{{ item.occupied_slots }}</strong> of <strong>{{ item.total_slots
+                        }}</strong> slots filled</span>
             </div>
             <div style="width: 100%; height: 8px; background: #e2e8f0; border-radius: 6px; overflow: hidden;">
-                <div style="height: 100%; width: {{ item.occupancy_percent }}%; background: {% if item.occupancy_percent > 80 %}#ef4444{% elif item.occupancy_percent > 50 %}#f59e0b{% else %}var(--primary){% endif %}; border-radius: 6px; transition: width 0.4s ease;"></div>
+                <div
+                    style="height: 100%; width: {{ item.occupancy_percent }}%; background: {% if item.occupancy_percent > 80 %}#ef4444{% elif item.occupancy_percent > 50 %}#f59e0b{% else %}var(--primary){% endif %}; border-radius: 6px; transition: width 0.4s ease;">
+                </div>
             </div>
         </div>
         {% endif %}
 
         <!-- Time Slots Grid -->
         {% if item.is_closed %}
-        <div style="background: #f8fafc; padding: 20px; border-radius: 8px; text-align: center; color: #64748b; border: 1px dashed #cbd5e1; font-size: 0.88rem;">
-            🏥 Dr. {{ doc.name }} has no scheduled practicing hours or is marked closed on <strong>{{ selected_date }}</strong>.
+        <div
+            style="background: #f8fafc; padding: 20px; border-radius: 8px; text-align: center; color: #64748b; border: 1px dashed #cbd5e1; font-size: 0.88rem; display: flex; align-items: center; justify-content: center; gap: 8px;">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                stroke-linecap="round" stroke-linejoin="round">
+                <circle cx="12" cy="12" r="10" />
+                <line x1="12" y1="8" x2="12" y2="12" />
+                <line x1="12" y1="16" x2="12.01" y2="16" />
+            </svg>
+            <span>{{ doc.name }} has no scheduled practicing hours or is marked closed on <strong>{{ selected_date
+                    }}</strong>.</span>
         </div>
         {% elif item.slots_detail %}
         <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap: 10px;">
             {% for s in item.slots_detail %}
-                {% if s.status == 'OCCUPIED' %}
-                <div style="background: #fef2f2; border: 1px solid #fecaca; border-radius: 8px; padding: 10px; display: flex; flex-direction: column; gap: 4px;">
-                    <div style="display: flex; justify-content: space-between; align-items: center;">
-                        <strong style="color: #991b1b; font-size: 0.9rem;">⏰ {{ s.time }}</strong>
-                        <span class="badge badge-danger" style="font-size: 0.65rem; padding: 2px 5px;">BOOKED</span>
-                    </div>
-                    <div style="font-size: 0.82rem; font-weight: 600; color: #1f2937; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">
-                        👤 {{ s.patient_name }}
-                    </div>
-                    <div style="font-size: 0.72rem; color: #64748b; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">
-                        {{ s.service_name }}
-                    </div>
+            {% if s.status == 'OCCUPIED' %}
+            <div
+                style="background: #fef2f2; border: 1px solid #fecaca; border-radius: 8px; padding: 10px; display: flex; flex-direction: column; gap: 4px;">
+                <div style="display: flex; justify-content: space-between; align-items: center;">
+                    <strong style="color: #991b1b; font-size: 0.9rem; display: flex; align-items: center; gap: 4px;">
+                        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                            stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <circle cx="12" cy="12" r="10" />
+                            <polyline points="12 6 12 12 16 14" />
+                        </svg>
+                        {{ s.time|format_12hr }}
+                    </strong>
+                    <span class="badge badge-danger" style="font-size: 0.65rem; padding: 2px 5px;">BOOKED</span>
                 </div>
-                {% else %}
-                <div onclick="openManualBookModal('{{ doc.id }}', '', '{{ selected_date }}', '{{ s.time }}')" style="background: #f0fdf4; border: 1px solid #bbf7d0; border-radius: 8px; padding: 10px; display: flex; flex-direction: column; gap: 4px; cursor: pointer; transition: all 0.15s ease;" onmouseover="this.style.borderColor='var(--primary)'; this.style.transform='translateY(-1px)';" onmouseout="this.style.borderColor='#bbf7d0'; this.style.transform='translateY(0)';">
-                    <div style="display: flex; justify-content: space-between; align-items: center;">
-                        <strong style="color: #166534; font-size: 0.9rem;">⏰ {{ s.time }}</strong>
-                        <span class="badge badge-success" style="font-size: 0.65rem; padding: 2px 5px;">AVAILABLE</span>
-                    </div>
-                    <div style="font-size: 0.75rem; color: #15803d; font-weight: 600;">
-                        ➕ Click to Book
-                    </div>
+                <div
+                    style="font-size: 0.82rem; font-weight: 600; color: #1f2937; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; display: flex; align-items: center; gap: 4px;">
+                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                        stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2" />
+                        <circle cx="12" cy="7" r="4" />
+                    </svg>
+                    <span>{{ s.patient_name }}</span>
                 </div>
-                {% endif %}
+                <div
+                    style="font-size: 0.72rem; color: #64748b; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">
+                    {{ s.service_name }}
+                </div>
+            </div>
+            {% else %}
+            <div onclick="openManualBookModal('{{ doc.id }}', '', '{{ selected_date }}', '{{ s.time }}')"
+                style="background: #f0fdf4; border: 1px solid #bbf7d0; border-radius: 8px; padding: 10px; display: flex; flex-direction: column; gap: 4px; cursor: pointer; transition: all 0.15s ease;"
+                onmouseover="this.style.borderColor='var(--primary)'; this.style.transform='translateY(-1px)';"
+                onmouseout="this.style.borderColor='#bbf7d0'; this.style.transform='translateY(0)';">
+                <div style="display: flex; justify-content: space-between; align-items: center;">
+                    <strong style="color: #166534; font-size: 0.9rem; display: flex; align-items: center; gap: 4px;">
+                        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                            stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <circle cx="12" cy="12" r="10" />
+                            <polyline points="12 6 12 12 16 14" />
+                        </svg>
+                        {{ s.time|format_12hr }}
+                    </strong>
+                    <span class="badge badge-success" style="font-size: 0.65rem; padding: 2px 5px;">AVAILABLE</span>
+                </div>
+                <div
+                    style="font-size: 0.75rem; color: #15803d; font-weight: 600; display: flex; align-items: center; gap: 4px;">
+                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"
+                        stroke-linecap="round" stroke-linejoin="round">
+                        <line x1="12" y1="5" x2="12" y2="19" />
+                        <line x1="5" y1="12" x2="19" y2="12" />
+                    </svg>
+                    <span>Click to Book</span>
+                </div>
+            </div>
+            {% endif %}
             {% endfor %}
         </div>
         {% else %}
-        <div style="background: #f9fafb; padding: 16px; border-radius: 6px; text-align: center; color: #6b7280; font-size: 0.85rem;">
+        <div
+            style="background: #f9fafb; padding: 16px; border-radius: 6px; text-align: center; color: #6b7280; font-size: 0.85rem;">
             No slot data found for this date.
         </div>
         {% endif %}
@@ -153,29 +214,45 @@
 <div class="saas-modal-backdrop" id="manualBookModal">
     <div class="saas-modal-card">
         <div class="saas-modal-header">
-            <h3 class="saas-modal-title">
-                <span>➕</span> Staff Manual Appointment Booking
+            <h3 class="saas-modal-title" style="display: flex; align-items: center; gap: 8px;">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"
+                    stroke-linecap="round" stroke-linejoin="round">
+                    <line x1="12" y1="5" x2="12" y2="19" />
+                    <line x1="5" y1="12" x2="19" y2="12" />
+                </svg>
+                <span>Staff Manual Appointment Booking</span>
             </h3>
-            <button type="button" class="saas-modal-close" onclick="document.getElementById('manualBookModal').classList.remove('active')">✕</button>
+            <button type="button" class="saas-modal-close"
+                onclick="document.getElementById('manualBookModal').classList.remove('active')">&times;</button>
         </div>
         <form id="manualBookForm" onsubmit="submitManualBooking(event)">
             <div class="saas-modal-body">
+                <!-- Inline Alert Banner for Conflicts & Errors -->
+                <div id="manualBookingAlert" style="display: none; margin-bottom: 14px; padding: 12px 14px; border-radius: 8px; font-size: 0.85rem; line-height: 1.45; align-items: flex-start; gap: 8px;">
+                    <span id="manualBookingAlertIcon" style="font-size: 1.1rem; line-height: 1;">⚠️</span>
+                    <div id="manualBookingAlertText" style="flex: 1; font-weight: 600;"></div>
+                    <button type="button" onclick="hideManualBookingAlert()" style="background: none; border: none; font-size: 1rem; color: inherit; cursor: pointer; padding: 0 4px; line-height: 1;">&times;</button>
+                </div>
+
                 <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 12px;">
                     <div class="form-group">
-                        <label style="display: block; font-size: 0.82rem; font-weight: 700; color: #334155; margin-bottom: 4px;">Doctor</label>
-                        <select name="doctor_id" id="manualDoctorSelect" class="form-control" onchange="filterServicesByDoctor()" required>
+                        <label
+                            style="display: block; font-size: 0.82rem; font-weight: 700; color: #334155; margin-bottom: 4px;">Doctor</label>
+                        <select name="doctor_id" id="manualDoctorSelect" class="form-control"
+                            onchange="filterServicesByDoctor(); refreshManualSlotPills();" required>
                             {% for doc in doctors %}
-                                <option value="{{ doc.id }}">{{ doc.name }}</option>
+                            <option value="{{ doc.id }}">{{ doc.name }}</option>
                             {% endfor %}
                         </select>
                     </div>
                     <div class="form-group">
-                        <label style="display: block; font-size: 0.82rem; font-weight: 700; color: #334155; margin-bottom: 4px;">Service</label>
+                        <label
+                            style="display: block; font-size: 0.82rem; font-weight: 700; color: #334155; margin-bottom: 4px;">Service</label>
                         <select name="service_id" id="manualServiceSelect" class="form-control" required>
                             {% for svc in services %}
-                                <option value="{{ svc.id }}" data-doc-id="{{ svc.doctor_id }}">
-                                    {{ svc.name }} (PKR {{ "{:,.0f}".format(svc.price) }})
-                                </option>
+                            <option value="{{ svc.id }}" data-doc-id="{{ svc.doctor_id }}">
+                                {{ svc.name }} (PKR {{ "{:,.0f}".format(svc.price) }})
+                            </option>
                             {% endfor %}
                         </select>
                     </div>
@@ -183,33 +260,68 @@
 
                 <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 12px;">
                     <div class="form-group">
-                        <label style="display: block; font-size: 0.82rem; font-weight: 700; color: #334155; margin-bottom: 4px;">Appointment Date</label>
-                        <input type="date" name="appointment_date" id="manualDateInput" class="form-control" value="{{ selected_date }}" required>
+                        <label
+                            style="display: block; font-size: 0.82rem; font-weight: 700; color: #334155; margin-bottom: 4px;">Appointment
+                            Date</label>
+                        <input type="date" name="appointment_date" id="manualDateInput" class="form-control"
+                            value="{{ selected_date }}" onchange="refreshManualSlotPills()" required>
                     </div>
                     <div class="form-group">
-                        <label style="display: block; font-size: 0.82rem; font-weight: 700; color: #334155; margin-bottom: 4px;">Time (HH:MM)</label>
-                        <input type="text" name="appointment_time" id="manualTimeInput" class="form-control" placeholder="e.g. 10:00" required>
+                        <label
+                            style="display: block; font-size: 0.82rem; font-weight: 700; color: #334155; margin-bottom: 4px;">Time
+                            Slot (12-Hour AM/PM)</label>
+                        <select name="appointment_time" id="manualTimeSelect" class="form-control" onchange="onManualTimeSelectChange()" required>
+                            <option value="">-- Choose Time --</option>
+                            {% for hr in range(8, 23) %}
+                                {% for m in ['00', '15', '30', '45'] %}
+                                    {% set code = "{:02d}:{}".format(hr, m) %}
+                                    <option value="{{ code }}">{{ code|format_12hr }}</option>
+                                {% endfor %}
+                            {% endfor %}
+                        </select>
+                        <input type="hidden" name="appointment_time_raw" id="manualTimeInput">
+                    </div>
+                </div>
+
+                <!-- Live Slot Availability Template Chips -->
+                <div class="form-group" style="margin-bottom: 14px;">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
+                        <span style="font-size: 0.8rem; font-weight: 700; color: #475569;">Slot Template (Click to Pick):</span>
+                        <span id="slotTemplateLoadingNotice" style="font-size: 0.74rem; color: #6366f1; display: none;">Loading slots...</span>
+                    </div>
+                    <div id="manualSlotPillsGrid" style="display: flex; flex-wrap: wrap; gap: 6px; max-height: 130px; overflow-y: auto; padding: 8px; background: #f8fafc; border: 1.5px solid #e2e8f0; border-radius: 8px;">
+                        <span style="font-size: 0.78rem; color: #94a3b8;">Select a doctor and date to view slot template.</span>
                     </div>
                 </div>
 
                 <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 12px;">
                     <div class="form-group">
-                        <label style="display: block; font-size: 0.82rem; font-weight: 700; color: #334155; margin-bottom: 4px;">Patient Full Name</label>
-                        <input type="text" name="customer_name" id="manualPatientName" class="form-control" placeholder="e.g. Muhammad Ali" required>
+                        <label
+                            style="display: block; font-size: 0.82rem; font-weight: 700; color: #334155; margin-bottom: 4px;">Patient
+                            Full Name</label>
+                        <input type="text" name="customer_name" id="manualPatientName" class="form-control"
+                            placeholder="e.g. Muhammad Ali" required>
                     </div>
                     <div class="form-group">
-                        <label style="display: block; font-size: 0.82rem; font-weight: 700; color: #334155; margin-bottom: 4px;">Patient Phone Number</label>
-                        <input type="text" name="customer_phone" id="manualPatientPhone" class="form-control" placeholder="e.g. 03001234567" required>
+                        <label
+                            style="display: block; font-size: 0.82rem; font-weight: 700; color: #334155; margin-bottom: 4px;">Patient
+                            Phone Number</label>
+                        <input type="text" name="customer_phone" id="manualPatientPhone" class="form-control"
+                            placeholder="e.g. 03001234567" required>
                     </div>
                 </div>
 
                 <div class="form-group">
-                    <label style="display: block; font-size: 0.82rem; font-weight: 700; color: #334155; margin-bottom: 4px;">Staff Notes (Optional)</label>
-                    <input type="text" name="notes" id="manualNotes" class="form-control" placeholder="e.g. Walk-in patient, paid cash at reception">
+                    <label
+                        style="display: block; font-size: 0.82rem; font-weight: 700; color: #334155; margin-bottom: 4px;">Staff
+                        Notes (Optional)</label>
+                    <input type="text" name="notes" id="manualNotes" class="form-control"
+                        placeholder="e.g. Walk-in patient, paid cash at reception">
                 </div>
             </div>
             <div class="saas-modal-footer">
-                <button type="button" class="btn btn-secondary" onclick="document.getElementById('manualBookModal').classList.remove('active')">Cancel</button>
+                <button type="button" class="btn btn-secondary"
+                    onclick="document.getElementById('manualBookModal').classList.remove('active')">Cancel</button>
                 <button type="submit" id="manualBookSubmitBtn" class="btn btn-primary">Confirm &amp; Book</button>
             </div>
         </form>
@@ -219,80 +331,239 @@
 
 {% block scripts %}
 <script>
-function filterServicesByDoctor() {
-    const docId = document.getElementById('manualDoctorSelect').value;
-    const svcSelect = document.getElementById('manualServiceSelect');
-    let firstMatch = null;
+    let currentDoctorSlots = [];
 
-    for (let opt of svcSelect.options) {
-        const optDocId = opt.getAttribute('data-doc-id');
-        if (!optDocId || optDocId === docId) {
-            opt.style.display = '';
-            if (!firstMatch) firstMatch = opt.value;
-        } else {
-            opt.style.display = 'none';
+    function hideManualBookingAlert() {
+        const alertBox = document.getElementById('manualBookingAlert');
+        if (alertBox) alertBox.style.display = 'none';
+    }
+
+    function showManualBookingAlert(msg, type = 'danger') {
+        const alertBox = document.getElementById('manualBookingAlert');
+        const alertText = document.getElementById('manualBookingAlertText');
+        const alertIcon = document.getElementById('manualBookingAlertIcon');
+        if (!alertBox || !alertText) return;
+
+        alertBox.style.display = 'flex';
+        alertText.textContent = msg;
+
+        if (type === 'danger') {
+            alertBox.style.background = '#fef2f2';
+            alertBox.style.border = '1.5px solid #ef4444';
+            alertBox.style.color = '#991b1b';
+            if (alertIcon) alertIcon.textContent = '❌';
+        } else if (type === 'warning') {
+            alertBox.style.background = '#fffbeb';
+            alertBox.style.border = '1.5px solid #f59e0b';
+            alertBox.style.color = '#92400e';
+            if (alertIcon) alertIcon.textContent = '⚠️';
+        } else if (type === 'success') {
+            alertBox.style.background = '#f0fdf4';
+            alertBox.style.border = '1.5px solid #10b981';
+            alertBox.style.color = '#065f46';
+            if (alertIcon) alertIcon.textContent = '✅';
+        }
+        alertBox.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+    }
+
+    function filterServicesByDoctor() {
+        const docId = document.getElementById('manualDoctorSelect').value;
+        const svcSelect = document.getElementById('manualServiceSelect');
+        let firstMatch = null;
+
+        for (let opt of svcSelect.options) {
+            const optDocId = opt.getAttribute('data-doc-id');
+            if (!optDocId || optDocId === docId) {
+                opt.style.display = '';
+                if (!firstMatch) firstMatch = opt.value;
+            } else {
+                opt.style.display = 'none';
+            }
+        }
+        if (firstMatch) svcSelect.value = firstMatch;
+    }
+
+    async function refreshManualSlotPills() {
+        const docSelect = document.getElementById('manualDoctorSelect');
+        const dateInput = document.getElementById('manualDateInput');
+        const pillsGrid = document.getElementById('manualSlotPillsGrid');
+        const loadingNotice = document.getElementById('slotTemplateLoadingNotice');
+        const timeSelect = document.getElementById('manualTimeSelect');
+
+        if (!docSelect || !dateInput || !pillsGrid) return;
+        const docId = docSelect.value;
+        const dateStr = dateInput.value;
+        if (!docId || !dateStr) return;
+
+        if (loadingNotice) loadingNotice.style.display = 'inline';
+
+        try {
+            const res = await fetch(`/api/admin/doctor-slots?doctor_id=${encodeURIComponent(docId)}&date=${encodeURIComponent(dateStr)}`);
+            const data = await res.json();
+            if (loadingNotice) loadingNotice.style.display = 'none';
+
+            if (!data.success) {
+                pillsGrid.innerHTML = '<span style="font-size: 0.78rem; color: #94a3b8;">Unable to fetch slots.</span>';
+                return;
+            }
+
+            currentDoctorSlots = data.slots || [];
+            pillsGrid.innerHTML = '';
+
+            if (currentDoctorSlots.length === 0) {
+                pillsGrid.innerHTML = '<span style="font-size: 0.78rem; color: #dc2626; font-weight: 600;">No scheduled practicing hours for this doctor on this date.</span>';
+                return;
+            }
+
+            currentDoctorSlots.forEach(s => {
+                const pill = document.createElement('button');
+                pill.type = 'button';
+                pill.className = 'manual-slot-pill';
+                const isAvail = s.status === 'AVAILABLE';
+
+                pill.innerHTML = isAvail
+                    ? `<span>${s.time_12h}</span>`
+                    : `<span>${s.time_12h}</span> <small style="font-size: 0.68rem; opacity: 0.85;">(Occupied)</small>`;
+
+                if (isAvail) {
+                    pill.style.cssText = 'background: #f0fdf4; border: 1.5px solid #bbf7d0; color: #166534; font-weight: 700; border-radius: 6px; padding: 4px 9px; font-size: 0.78rem; cursor: pointer; transition: all 0.15s ease;';
+                    pill.onclick = () => {
+                        hideManualBookingAlert();
+                        timeSelect.value = s.time;
+                        document.getElementById('manualTimeInput').value = s.time;
+                        highlightSelectedPill(pill);
+                    };
+                } else {
+                    pill.style.cssText = 'background: #fef2f2; border: 1.5px solid #fecaca; color: #991b1b; font-weight: 600; border-radius: 6px; padding: 4px 9px; font-size: 0.78rem; cursor: pointer; opacity: 0.85;';
+                    pill.onclick = () => {
+                        timeSelect.value = s.time;
+                        document.getElementById('manualTimeInput').value = s.time;
+                        highlightSelectedPill(pill);
+                        const patientInfo = s.patient ? ` (Booked for ${s.patient})` : '';
+                        showManualBookingAlert(`⚠️ Slot Occupied: ${s.time_12h} is already booked${patientInfo}. Please pick an available green slot.`, 'warning');
+                    };
+                }
+
+                if (timeSelect.value === s.time) {
+                    pill.classList.add('selected-pill');
+                    pill.style.boxShadow = '0 0 0 2px #4f46e5';
+                }
+
+                pillsGrid.appendChild(pill);
+            });
+        } catch (e) {
+            if (loadingNotice) loadingNotice.style.display = 'none';
+            pillsGrid.innerHTML = '<span style="font-size: 0.78rem; color: #94a3b8;">Failed to load slot template.</span>';
         }
     }
-    if (firstMatch) svcSelect.value = firstMatch;
-}
 
-function openManualBookModal(doctorId, serviceId, dateStr, timeStr) {
-    if (doctorId) {
-        document.getElementById('manualDoctorSelect').value = doctorId;
-    }
-    filterServicesByDoctor();
-    if (serviceId) {
-        document.getElementById('manualServiceSelect').value = serviceId;
-    }
-    if (dateStr) {
-        document.getElementById('manualDateInput').value = dateStr;
-    }
-    if (timeStr) {
-        document.getElementById('manualTimeInput').value = timeStr;
-    }
-    const modal = document.getElementById('manualBookModal');
-    if (modal) modal.classList.add('active');
-}
-
-async function submitManualBooking(e) {
-    e.preventDefault();
-    const btn = document.getElementById('manualBookSubmitBtn');
-    btn.disabled = true;
-    btn.textContent = 'Booking...';
-
-    const payload = {
-        doctor_id: parseInt(document.getElementById('manualDoctorSelect').value),
-        service_id: parseInt(document.getElementById('manualServiceSelect').value),
-        appointment_date: document.getElementById('manualDateInput').value.trim(),
-        appointment_time: document.getElementById('manualTimeInput').value.trim(),
-        customer_name: document.getElementById('manualPatientName').value.trim(),
-        customer_phone: document.getElementById('manualPatientPhone').value.trim(),
-        notes: document.getElementById('manualNotes').value.trim()
-    };
-
-    try {
-        const res = await fetch('/api/admin/appointments/manual-book', {
-            method: 'POST',
-            headers: {'Content-Type': 'application/json'},
-            body: JSON.stringify(payload)
+    function highlightSelectedPill(selectedPill) {
+        document.querySelectorAll('.manual-slot-pill').forEach(p => {
+            p.style.boxShadow = 'none';
         });
-        const data = await res.json();
-        if (data.success) {
-            alert('🎉 Appointment booked successfully!');
-            window.location.reload();
-        } else {
-            alert('Booking Error: ' + (data.error || 'Failed to book appointment.'));
+        selectedPill.style.boxShadow = '0 0 0 2px #4f46e5';
+    }
+
+    function onManualTimeSelectChange() {
+        const timeSelect = document.getElementById('manualTimeSelect');
+        const timeVal = timeSelect.value;
+        document.getElementById('manualTimeInput').value = timeVal;
+        hideManualBookingAlert();
+
+        const matchedSlot = currentDoctorSlots.find(s => s.time === timeVal);
+        if (matchedSlot && matchedSlot.status === 'OCCUPIED') {
+            const patientInfo = matchedSlot.patient ? ` (Booked for ${matchedSlot.patient})` : '';
+            showManualBookingAlert(`⚠️ Slot Occupied: ${matchedSlot.time_12h} is already booked${patientInfo}. Please choose an available green slot.`, 'warning');
+        }
+
+        document.querySelectorAll('.manual-slot-pill').forEach(p => {
+            if (p.textContent.includes(timeSelect.options[timeSelect.selectedIndex]?.text.split(' ')[0])) {
+                highlightSelectedPill(p);
+            }
+        });
+    }
+
+    function openManualBookModal(doctorId, serviceId, dateStr, timeStr) {
+        hideManualBookingAlert();
+        if (doctorId) {
+            document.getElementById('manualDoctorSelect').value = doctorId;
+        }
+        filterServicesByDoctor();
+        if (serviceId) {
+            document.getElementById('manualServiceSelect').value = serviceId;
+        }
+        if (dateStr) {
+            document.getElementById('manualDateInput').value = dateStr;
+        }
+        if (timeStr) {
+            const cleanTime = timeStr.trim();
+            document.getElementById('manualTimeSelect').value = cleanTime;
+            document.getElementById('manualTimeInput').value = cleanTime;
+        }
+        refreshManualSlotPills();
+        const modal = document.getElementById('manualBookModal');
+        if (modal) modal.classList.add('active');
+    }
+
+    async function submitManualBooking(e) {
+        e.preventDefault();
+        hideManualBookingAlert();
+        const btn = document.getElementById('manualBookSubmitBtn');
+
+        const doctorId = parseInt(document.getElementById('manualDoctorSelect').value);
+        const serviceId = parseInt(document.getElementById('manualServiceSelect').value);
+        const dateVal = document.getElementById('manualDateInput').value.trim();
+        const timeVal = (document.getElementById('manualTimeSelect').value || document.getElementById('manualTimeInput').value || '').trim();
+        const nameVal = document.getElementById('manualPatientName').value.trim();
+        const phoneVal = document.getElementById('manualPatientPhone').value.trim();
+        const notesVal = document.getElementById('manualNotes').value.trim();
+
+        if (!timeVal) {
+            showManualBookingAlert('Please select a time slot from the dropdown or slot template pills.', 'warning');
+            return;
+        }
+
+        btn.disabled = true;
+        btn.textContent = 'Booking...';
+
+        const payload = {
+            doctor_id: doctorId,
+            service_id: serviceId,
+            appointment_date: dateVal,
+            appointment_time: timeVal,
+            customer_name: nameVal,
+            customer_phone: phoneVal,
+            notes: notesVal
+        };
+
+        try {
+            const res = await fetch('/api/admin/appointments/manual-book', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload)
+            });
+            const data = await res.json();
+            if (data.success) {
+                showManualBookingAlert('Appointment booked successfully! Updating schedule...', 'success');
+                setTimeout(() => {
+                    window.location.reload();
+                }, 750);
+            } else {
+                showManualBookingAlert(data.error || 'Conflict: This slot is already booked. Please choose an available slot.', 'danger');
+                btn.disabled = false;
+                btn.textContent = 'Confirm & Book';
+                refreshManualSlotPills();
+            }
+        } catch (err) {
+            showManualBookingAlert('Network Error: ' + err.message, 'danger');
             btn.disabled = false;
             btn.textContent = 'Confirm & Book';
         }
-    } catch (err) {
-        alert('Network Error: ' + err.message);
-        btn.disabled = false;
-        btn.textContent = 'Confirm & Book';
     }
-}
 
-// Initial filter on load
-document.addEventListener('DOMContentLoaded', filterServicesByDoctor);
+    // Initial filter on load
+    document.addEventListener('DOMContentLoaded', () => {
+        filterServicesByDoctor();
+    });
 </script>
 {% endblock %}

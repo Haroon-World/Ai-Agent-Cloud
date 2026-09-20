@@ -38,47 +38,47 @@
         {% set total_active_services = total_active_services + doc_item.active_count %}
     {% endfor %}
 
-    <div class="kpi-grid mb-4">
-        <div class="kpi-card">
-            <div class="kpi-header">
-                <span class="kpi-label">Active Services</span>
-                <div class="kpi-icon-box">
-                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+    <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 1rem; margin-bottom: 1.5rem;">
+        <div style="background: linear-gradient(135deg, #eef2ff 0%, #f5f3ff 100%); border: 1.5px solid #c7d2fe; border-radius: 14px; padding: 1.25rem; display: flex; flex-direction: column; gap: 8px; box-shadow: 0 2px 8px rgba(79,70,229,0.06); transition: all 0.2s ease;" onmouseenter="this.style.transform='translateY(-2px)';this.style.boxShadow='0 6px 20px rgba(79,70,229,0.12)'" onmouseleave="this.style.transform='';this.style.boxShadow='0 2px 8px rgba(79,70,229,0.06)'">
+            <div style="display: flex; align-items: center; justify-content: space-between;">
+                <span style="font-size: 0.78rem; font-weight: 700; color: #4f46e5; text-transform: uppercase; letter-spacing: 0.5px;">Active Services</span>
+                <div style="width: 34px; height: 34px; background: #4f46e5; border-radius: 8px; display: flex; align-items: center; justify-content: center; flex-shrink: 0;">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#ffffff" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
                 </div>
             </div>
-            <div class="kpi-value">{{ total_active_services }}</div>
-            <div class="kpi-subtext" style="color: #16a34a; font-weight: 600;">Visible to AI Receptionist</div>
+            <div style="font-size: 2rem; font-weight: 800; color: #1e1b4b; font-family: 'Plus Jakarta Sans', sans-serif; line-height: 1;">{{ total_active_services }}</div>
+            <div style="font-size: 0.72rem; font-weight: 600; color: #16a34a;">Visible to AI Receptionist</div>
         </div>
 
-        <div class="kpi-card">
-            <div class="kpi-header">
-                <span class="kpi-label">Default Consultation</span>
-                <div class="kpi-icon-box">
-                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
+        <div style="background: linear-gradient(135deg, #fff7ed 0%, #fffbeb 100%); border: 1.5px solid #fed7aa; border-radius: 14px; padding: 1.25rem; display: flex; flex-direction: column; gap: 8px; box-shadow: 0 2px 8px rgba(234,88,12,0.06); transition: all 0.2s ease;" onmouseenter="this.style.transform='translateY(-2px)';this.style.boxShadow='0 6px 20px rgba(234,88,12,0.12)'" onmouseleave="this.style.transform='';this.style.boxShadow='0 2px 8px rgba(234,88,12,0.06)'">
+            <div style="display: flex; align-items: center; justify-content: space-between;">
+                <span style="font-size: 0.78rem; font-weight: 700; color: #ea580c; text-transform: uppercase; letter-spacing: 0.5px;">Default Fee</span>
+                <div style="width: 34px; height: 34px; background: #ea580c; border-radius: 8px; display: flex; align-items: center; justify-content: center; flex-shrink: 0;">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#ffffff" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
                 </div>
             </div>
-            <div class="kpi-value">PKR {{ "{:,.0f}".format(business.consultation_fee or 2000) }}</div>
-            <div class="kpi-subtext">General Checkup standard rate</div>
+            <div style="font-size: 1.4rem; font-weight: 800; color: #7c2d12; font-family: 'Plus Jakarta Sans', sans-serif; line-height: 1;">PKR {{ "{:,.0f}".format(business.consultation_fee or 2000) }}</div>
+            <div style="font-size: 0.72rem; color: #92400e;">General Checkup standard rate</div>
         </div>
 
-        <div class="kpi-card">
-            <div class="kpi-header">
-                <span class="kpi-label">Practitioners</span>
-                <div class="kpi-icon-box">
-                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+        <div style="background: linear-gradient(135deg, #ecfdf5 0%, #f0fdf4 100%); border: 1.5px solid #a7f3d0; border-radius: 14px; padding: 1.25rem; display: flex; flex-direction: column; gap: 8px; box-shadow: 0 2px 8px rgba(16,185,129,0.06); transition: all 0.2s ease;" onmouseenter="this.style.transform='translateY(-2px)';this.style.boxShadow='0 6px 20px rgba(16,185,129,0.12)'" onmouseleave="this.style.transform='';this.style.boxShadow='0 2px 8px rgba(16,185,129,0.06)'">
+            <div style="display: flex; align-items: center; justify-content: space-between;">
+                <span style="font-size: 0.78rem; font-weight: 700; color: #059669; text-transform: uppercase; letter-spacing: 0.5px;">Practitioners</span>
+                <div style="width: 34px; height: 34px; background: #059669; border-radius: 8px; display: flex; align-items: center; justify-content: center; flex-shrink: 0;">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#ffffff" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
                 </div>
             </div>
-            <div class="kpi-value">{{ doctors_data|length }}</div>
-            <div class="kpi-subtext">Doctors with service offerings</div>
+            <div style="font-size: 2rem; font-weight: 800; color: #064e3b; font-family: 'Plus Jakarta Sans', sans-serif; line-height: 1;">{{ doctors_data|length }}</div>
+            <div style="font-size: 0.72rem; color: #065f46;">Doctors with service offerings</div>
         </div>
     </div>
 
     <!-- Quick Search -->
-    <div class="filter-card mb-4">
-        <div style="position: relative;">
-            <input type="text" id="serviceSearchInput" class="form-control" placeholder="Search service name, description, or doctor..." onkeyup="filterServicesTable()" style="padding-left: 2.2rem;">
-            <span style="position: absolute; left: 12px; top: 50%; transform: translateY(-50%); color: #94a3b8;">
-                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+    <div class="filter-card mb-4" style="padding: 0;">
+        <div style="position: relative; width: 100%;">
+            <input type="text" id="serviceSearchInput" class="form-control" placeholder="🔍  Search by service name, description, or doctor..." onkeyup="filterServicesTable()" style="padding: 0.85rem 1rem 0.85rem 2.75rem; height: 52px; font-size: 0.9rem; border-radius: 10px; border: 1.5px solid #e2e8f0; width: 100%; background: #f8fafc; transition: border-color 0.2s ease, box-shadow 0.2s ease;" onfocus="this.style.borderColor='#4f46e5';this.style.boxShadow='0 0 0 3px rgba(79,70,229,0.08)';this.style.background='#fff'" onblur="this.style.borderColor='#e2e8f0';this.style.boxShadow='none';this.style.background='#f8fafc'">
+            <span style="position: absolute; left: 14px; top: 50%; transform: translateY(-50%); color: #94a3b8; pointer-events: none;">
+                <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
             </span>
         </div>
     </div>
@@ -105,8 +105,9 @@
             </div>
 
             {% if not doc_item.has_consultation %}
-            <div style="background: #eff6ff; border-left: 4px solid var(--primary); padding: 10px 14px; border-radius: 6px; margin-bottom: 16px; font-size: 0.85rem; color: #1e3a8a;">
-                🩺 <strong>Default Consultation Active:</strong> General Checkup &amp; Consultation is automatically available for Dr. {{ doc.name }} using the clinic fee of <strong>PKR {{ "{:,.0f}".format(doc_item.default_consultation_fee) }}</strong>.
+            <div style="background: #eff6ff; border-left: 4px solid var(--primary); padding: 10px 14px; border-radius: 6px; margin-bottom: 16px; font-size: 0.85rem; color: #1e3a8a; display: flex; align-items: center; gap: 8px;">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink: 0;"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>
+                <div><strong>Default Consultation Active:</strong> General Checkup &amp; Consultation is automatically available for Dr. {{ doc.name }} using the clinic fee of <strong>PKR {{ "{:,.0f}".format(doc_item.default_consultation_fee) }}</strong>.</div>
             </div>
             {% endif %}
 
@@ -127,7 +128,7 @@
                     <tbody>
                         {% for svc in doc_item.services %}
                         <tr id="service-row-{{ svc.id }}" class="service-table-row" data-name="{{ svc.name|lower }}" data-desc="{{ (svc.description or '')|lower }}" data-doc="{{ doc.name|lower }}">
-                            <td><strong>#{{ svc.id }}</strong></td>
+                            <td><strong>#{{ loop.index }}</strong></td>
                             <td>
                                 <div style="font-weight: 700; color: var(--text-main);">{{ svc.name }}</div>
                             </td>
@@ -151,8 +152,8 @@
                                     <button type="button" id="toggle-btn-{{ svc.id }}" class="btn btn-sm {{ 'btn-secondary' if svc.is_active else 'btn-primary' }}" onclick="toggleServiceAjax(this, '{{ svc.id }}')">
                                         {{ 'Hide' if svc.is_active else 'Show' }}
                                     </button>
-                                    <button type="button" class="btn btn-sm btn-ghost" style="color: #ef4444;" onclick="deleteServiceAjax('{{ svc.id }}', '{{ svc.name|escape }}')">
-                                        🗑️
+                                    <button type="button" class="btn btn-sm btn-ghost" style="color: #ef4444;" onclick="deleteServiceAjax('{{ svc.id }}', '{{ svc.name|escape }}')" title="Delete Service">
+                                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/><line x1="10" y1="11" x2="10" y2="17"/><line x1="14" y1="11" x2="14" y2="17"/></svg>
                                     </button>
                                 </div>
                             </td>
@@ -176,49 +177,203 @@
 <!-- SECTION 2: CLINIC SETTINGS (Screen 9)                          -->
 <!-- ============================================================== -->
 <div id="clinicSettingsView" style="display: none;">
-    <div class="section-card" id="clinic-settings">
-        <div class="section-header mb-3">
-            <h2 style="font-size: 1.15rem; font-weight: 700; color: var(--text-main); margin: 0;">🏥 Clinic Information &amp; Practice Settings</h2>
-            <p style="font-size: 0.82rem; color: var(--text-muted); margin: 4px 0 0 0;">These details are directly used by the AI Receptionist to answer patient inquiries on WhatsApp and Web Chat.</p>
+
+    <!-- Hero Banner -->
+    <div style="background: linear-gradient(135deg, #1e1b4b 0%, #312e81 40%, #4f46e5 100%); border-radius: 16px; padding: 2rem 2.5rem; margin-bottom: 1.5rem; position: relative; overflow: hidden;">
+        <div style="position: absolute; top: -30px; right: -30px; width: 180px; height: 180px; background: rgba(255,255,255,0.04); border-radius: 50%;"></div>
+        <div style="position: absolute; bottom: -50px; left: 20%; width: 220px; height: 220px; background: rgba(255,255,255,0.03); border-radius: 50%;"></div>
+        <div style="position: relative; z-index: 1;">
+            <div style="display: flex; align-items: center; gap: 14px; margin-bottom: 0.75rem;">
+                <div style="width: 48px; height: 48px; background: rgba(255,255,255,0.15); border-radius: 12px; display: flex; align-items: center; justify-content: center; backdrop-filter: blur(8px); border: 1px solid rgba(255,255,255,0.2);">
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#ffffff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
+                </div>
+                <div>
+                    <h2 style="color: #ffffff; font-size: 1.35rem; font-weight: 800; margin: 0; font-family: 'Plus Jakarta Sans', sans-serif;">Clinic Information &amp; Settings</h2>
+                    <p style="color: rgba(255,255,255,0.7); font-size: 0.82rem; margin: 2px 0 0 0;">Configure your clinic profile used by the AI Receptionist on WhatsApp &amp; Web Chat</p>
+                </div>
+            </div>
+            <div style="display: flex; gap: 10px; flex-wrap: wrap; margin-top: 1rem;">
+                <div style="background: rgba(255,255,255,0.12); border: 1px solid rgba(255,255,255,0.2); border-radius: 8px; padding: 6px 14px; display: inline-flex; align-items: center; gap: 6px;">
+                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#a5f3fc" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07A19.5 19.5 0 0 1 4.36 12a19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"/></svg>
+                    <span style="font-size: 0.75rem; color: #e0f2fe; font-weight: 600;">WhatsApp AI</span>
+                </div>
+                <div style="background: rgba(255,255,255,0.12); border: 1px solid rgba(255,255,255,0.2); border-radius: 8px; padding: 6px 14px; display: inline-flex; align-items: center; gap: 6px;">
+                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#86efac" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="3" width="20" height="14" rx="2" ry="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></svg>
+                    <span style="font-size: 0.75rem; color: #e0f2fe; font-weight: 600;">Web Chat</span>
+                </div>
+                <div style="background: rgba(255,255,255,0.12); border: 1px solid rgba(255,255,255,0.2); border-radius: 8px; padding: 6px 14px; display: inline-flex; align-items: center; gap: 6px;">
+                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#fca5a5" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+                    <span style="font-size: 0.75rem; color: #e0f2fe; font-weight: 600;">AI FAQ Source</span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <form method="POST" action="/admin/settings/edit" id="clinicSettingsForm">
+
+        <!-- Section 1: Identity -->
+        <div style="background: #ffffff; border: 1px solid #e2e8f0; border-radius: 16px; overflow: hidden; margin-bottom: 1.25rem; box-shadow: 0 1px 4px rgba(0,0,0,0.04); transition: box-shadow 0.2s ease;" onmouseenter="this.style.boxShadow='0 4px 16px rgba(0,0,0,0.07)'" onmouseleave="this.style.boxShadow='0 1px 4px rgba(0,0,0,0.04)'">
+            <div style="background: linear-gradient(90deg, #eff6ff 0%, #eef2ff 100%); padding: 1rem 1.5rem; border-bottom: 1px solid #dbeafe; display: flex; align-items: center; gap: 10px;">
+                <div style="width: 32px; height: 32px; background: #2563eb; border-radius: 8px; display: flex; align-items: center; justify-content: center; flex-shrink: 0;">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#ffffff" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+                </div>
+                <div>
+                    <h3 style="margin: 0; font-size: 0.92rem; font-weight: 700; color: #1e3a8a;">Clinic Identity</h3>
+                    <p style="margin: 0; font-size: 0.75rem; color: #3b82f6;">Basic profile and contact information</p>
+                </div>
+            </div>
+            <div style="padding: 1.5rem; display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 1.25rem;">
+                <div class="settings-field-group">
+                    <label class="settings-label">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
+                        Clinic / Practice Name
+                    </label>
+                    <input type="text" name="name" class="form-control settings-input" value="{{ business.name }}" required placeholder="e.g. City Medical Center">
+                </div>
+                <div class="settings-field-group">
+                    <label class="settings-label">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07A19.5 19.5 0 0 1 4.36 12a19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"/></svg>
+                        Official Phone Number
+                    </label>
+                    <input type="text" name="phone" class="form-control settings-input" value="{{ business.phone }}" required placeholder="+92 300 0000000">
+                </div>
+                <div class="settings-field-group">
+                    <label class="settings-label">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>
+                        Official Email Address
+                    </label>
+                    <input type="email" name="email" class="form-control settings-input" value="{{ business.email or '' }}" placeholder="contact@clinic.com">
+                    <span class="settings-hint">Used for alerts, password recovery, and system notices.</span>
+                </div>
+                <div class="settings-field-group">
+                    <label class="settings-label">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
+                        Consultation Fee (PKR)
+                    </label>
+                    <div style="position: relative;">
+                        <span style="position: absolute; left: 12px; top: 50%; transform: translateY(-50%); font-size: 0.8rem; font-weight: 700; color: #475569;">PKR</span>
+                        <input type="number" step="100" name="consultation_fee" class="form-control settings-input" value="{{ business.consultation_fee or 2000 }}" required style="padding-left: 3.2rem;">
+                    </div>
+                    <span class="settings-hint">Default fee for general checkup &amp; consultation.</span>
+                </div>
+            </div>
         </div>
 
-        <form method="POST" action="/admin/settings/edit" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 16px;">
-            <div class="form-group">
-                <label style="display: block; font-size: 0.82rem; font-weight: 700; color: #334155; margin-bottom: 6px;">Clinic Name</label>
-                <input type="text" name="name" class="form-control" value="{{ business.name }}" required>
+        <!-- Section 2: Location & Hours -->
+        <div style="background: #ffffff; border: 1px solid #e2e8f0; border-radius: 16px; overflow: hidden; margin-bottom: 1.25rem; box-shadow: 0 1px 4px rgba(0,0,0,0.04); transition: box-shadow 0.2s ease;" onmouseenter="this.style.boxShadow='0 4px 16px rgba(0,0,0,0.07)'" onmouseleave="this.style.boxShadow='0 1px 4px rgba(0,0,0,0.04)'">
+            <div style="background: linear-gradient(90deg, #ecfdf5 0%, #f0fdf4 100%); padding: 1rem 1.5rem; border-bottom: 1px solid #bbf7d0; display: flex; align-items: center; gap: 10px;">
+                <div style="width: 32px; height: 32px; background: #059669; border-radius: 8px; display: flex; align-items: center; justify-content: center; flex-shrink: 0;">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#ffffff" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>
+                </div>
+                <div>
+                    <h3 style="margin: 0; font-size: 0.92rem; font-weight: 700; color: #064e3b;">Location &amp; Operating Hours</h3>
+                    <p style="margin: 0; font-size: 0.75rem; color: #059669;">Physical address and clinic schedule</p>
+                </div>
             </div>
-            <div class="form-group">
-                <label style="display: block; font-size: 0.82rem; font-weight: 700; color: #334155; margin-bottom: 6px;">Official Phone Number</label>
-                <input type="text" name="phone" class="form-control" value="{{ business.phone }}" required>
+            <div style="padding: 1.5rem; display: flex; flex-direction: column; gap: 1.25rem;">
+                <div class="settings-field-group">
+                    <label class="settings-label">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>
+                        Physical Clinic Address
+                    </label>
+                    <input type="text" name="address" class="form-control settings-input" value="{{ business.address }}" required placeholder="Street, City, Province, Pakistan">
+                </div>
+                <div class="settings-field-group">
+                    <label class="settings-label">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+                        Operating Hours
+                    </label>
+                    <input type="text" name="opening_hours" class="form-control settings-input" value="{{ business.opening_hours }}" required placeholder="e.g. Mon–Fri: 9AM–5PM, Sat: 9AM–1PM">
+                    <span class="settings-hint">The AI will inform patients about these hours when asked.</span>
+                </div>
             </div>
-            <div class="form-group">
-                <label style="display: block; font-size: 0.82rem; font-weight: 700; color: #334155; margin-bottom: 6px;">Official Email Address</label>
-                <input type="email" name="email" class="form-control" value="{{ business.email or '' }}" placeholder="e.g. contact@clinic.com">
-                <small class="text-muted" style="font-size: 0.74rem;">Used for alerts, password recovery, and notices.</small>
+        </div>
+
+        <!-- Section 3: Policies -->
+        <div style="background: #ffffff; border: 1px solid #e2e8f0; border-radius: 16px; overflow: hidden; margin-bottom: 1.5rem; box-shadow: 0 1px 4px rgba(0,0,0,0.04); transition: box-shadow 0.2s ease;" onmouseenter="this.style.boxShadow='0 4px 16px rgba(0,0,0,0.07)'" onmouseleave="this.style.boxShadow='0 1px 4px rgba(0,0,0,0.04)'">
+            <div style="background: linear-gradient(90deg, #fffbeb 0%, #fff7ed 100%); padding: 1rem 1.5rem; border-bottom: 1px solid #fde68a; display: flex; align-items: center; gap: 10px;">
+                <div style="width: 32px; height: 32px; background: #d97706; border-radius: 8px; display: flex; align-items: center; justify-content: center; flex-shrink: 0;">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#ffffff" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg>
+                </div>
+                <div>
+                    <h3 style="margin: 0; font-size: 0.92rem; font-weight: 700; color: #78350f;">Clinic Policies &amp; Guidelines</h3>
+                    <p style="margin: 0; font-size: 0.75rem; color: #d97706;">Rules cited by the AI when answering patient FAQs</p>
+                </div>
             </div>
-            <div class="form-group">
-                <label style="display: block; font-size: 0.82rem; font-weight: 700; color: #334155; margin-bottom: 6px;">Default General Consultation Fee (PKR)</label>
-                <input type="number" step="100" name="consultation_fee" class="form-control" value="{{ business.consultation_fee or 2000 }}" required>
+            <div style="padding: 1.5rem;">
+                <div class="settings-field-group">
+                    <label class="settings-label">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+                        Patient Guidelines &amp; Practice Policies
+                    </label>
+                    <textarea name="policies" class="form-control settings-input" rows="5" placeholder="Enter clinic policies such as:&#10;• Appointment cancellation: 24 hours notice required&#10;• Payment: Cash and card accepted&#10;• Late arrivals: May need to reschedule if 15+ minutes late&#10;• Children: Must be accompanied by a guardian">{{ business.policies }}</textarea>
+                    <span class="settings-hint">The AI cites these guidelines when patients ask about payment, cancellations, or visit requirements.</span>
+                </div>
             </div>
-            <div class="form-group" style="grid-column: 1 / -1;">
-                <label style="display: block; font-size: 0.82rem; font-weight: 700; color: #334155; margin-bottom: 6px;">Clinic Physical Address</label>
-                <input type="text" name="address" class="form-control" value="{{ business.address }}" required>
+        </div>
+
+        <!-- Save Footer -->
+        <div style="background: linear-gradient(90deg, #f8fafc 0%, #f1f5f9 100%); border: 1px solid #e2e8f0; border-radius: 14px; padding: 1.25rem 1.5rem; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 12px;">
+            <div style="display: flex; align-items: center; gap: 10px;">
+                <div style="width: 36px; height: 36px; background: #ecfdf5; border-radius: 8px; display: flex; align-items: center; justify-content: center;">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#10b981" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+                </div>
+                <div>
+                    <div style="font-size: 0.82rem; font-weight: 700; color: #1e293b;">Ready to save?</div>
+                    <div style="font-size: 0.72rem; color: #64748b;">Changes apply immediately to the AI Receptionist</div>
+                </div>
             </div>
-            <div class="form-group" style="grid-column: 1 / -1;">
-                <label style="display: block; font-size: 0.82rem; font-weight: 700; color: #334155; margin-bottom: 6px;">Operating Hours</label>
-                <input type="text" name="opening_hours" class="form-control" value="{{ business.opening_hours }}" required>
-            </div>
-            <div class="form-group" style="grid-column: 1 / -1;">
-                <label style="display: block; font-size: 0.82rem; font-weight: 700; color: #334155; margin-bottom: 6px;">Clinic Policies &amp; Patient Guidelines</label>
-                <textarea name="policies" class="form-control" rows="3">{{ business.policies }}</textarea>
-                <small class="text-muted" style="font-size: 0.74rem;">The AI will cite these guidelines when answering FAQs regarding payment, cancellations, or visit requirements.</small>
-            </div>
-            <div style="grid-column: 1 / -1; display: flex; justify-content: flex-end;">
-                <button type="submit" class="btn btn-primary">💾 Save Settings &amp; Pricing</button>
-            </div>
-        </form>
-    </div>
+            <button type="submit" class="btn btn-primary" id="saveClinicSettingsBtn" style="height: 44px; padding: 0 1.75rem; font-size: 0.92rem; font-weight: 700; border-radius: 10px; display: inline-flex; align-items: center; gap: 8px; transition: all 0.2s ease;" onclick="this.innerHTML='<svg width=&quot;16&quot; height=&quot;16&quot; viewBox=&quot;0 0 24 24&quot; fill=&quot;none&quot; stroke=&quot;currentColor&quot; stroke-width=&quot;2.5&quot; stroke-linecap=&quot;round&quot; stroke-linejoin=&quot;round&quot;><polyline points=&quot;20 6 9 17 4 12&quot;/></svg> Saving...'">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg>
+                Save All Settings
+            </button>
+        </div>
+    </form>
 </div>
+
+<style>
+/* Clinic Settings Form Styles */
+.settings-field-group {
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+}
+.settings-label {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 0.82rem;
+    font-weight: 700;
+    color: #334155;
+    margin: 0;
+}
+.settings-input {
+    border: 1.5px solid #e2e8f0 !important;
+    border-radius: 8px !important;
+    transition: border-color 0.2s ease, box-shadow 0.2s ease, background 0.2s ease !important;
+    background: #f8fafc !important;
+}
+.settings-input:focus {
+    border-color: #4f46e5 !important;
+    box-shadow: 0 0 0 3px rgba(79,70,229,0.08) !important;
+    background: #ffffff !important;
+    outline: none !important;
+}
+.settings-hint {
+    font-size: 0.72rem;
+    color: #94a3b8;
+    display: block;
+    margin-top: 2px;
+}
+#saveClinicSettingsBtn:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 6px 20px rgba(79,70,229,0.25) !important;
+}
+</style>
+
+<!-- ============================================================== -->
+<!-- MODALS                                                         -->
+<!-- ============================================================== -->
 
 <!-- ============================================================== -->
 <!-- MODALS                                                         -->
@@ -226,45 +381,72 @@
 
 <!-- 1. ADD SERVICE MODAL -->
 <div class="saas-modal-backdrop" id="addServiceModal">
-    <div class="saas-modal-card">
-        <div class="saas-modal-header">
-            <h3 class="saas-modal-title">
-                <span>➕</span> Add New Clinical Service
+    <div class="saas-modal-card" style="max-width: 600px; border-radius: 16px; border: 1.5px solid #e2e8f0; box-shadow: 0 25px 50px -12px rgba(15, 23, 42, 0.25);">
+        <div class="saas-modal-header" style="background: linear-gradient(90deg, #f8fafc 0%, #f1f5f9 100%); padding: 1.25rem 1.6rem; border-bottom: 1px solid #e2e8f0;">
+            <h3 class="saas-modal-title" style="display: flex; align-items: center; gap: 10px; font-size: 1.15rem; font-weight: 800; color: #0f172a; font-family: 'Plus Jakarta Sans', sans-serif;">
+                <span style="width: 32px; height: 32px; background: #eef2ff; color: #4f46e5; border-radius: 8px; display: inline-flex; align-items: center; justify-content: center;">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+                </span>
+                <span>Add New Clinical Service</span>
             </h3>
-            <button type="button" class="saas-modal-close" onclick="document.getElementById('addServiceModal').classList.remove('active')">✕</button>
+            <button type="button" class="saas-modal-close" onclick="document.getElementById('addServiceModal').classList.remove('active')" style="font-size: 1.6rem; line-height: 1;">&times;</button>
         </div>
         <form method="POST" action="/admin/services/add">
-            <div class="saas-modal-body">
-                <div class="form-group" style="margin-bottom: 14px;">
-                    <label style="display: block; font-size: 0.82rem; font-weight: 700; color: #334155; margin-bottom: 4px;">Assigned Doctor</label>
-                    <select name="doctor_id" id="addServiceDoctorSelect" class="form-control" required>
+            <div class="saas-modal-body" style="padding: 1.6rem; display: flex; flex-direction: column; gap: 1rem;">
+                <div class="form-group" style="margin: 0;">
+                    <label style="display: flex; align-items: center; gap: 6px; font-size: 0.84rem; font-weight: 700; color: #334155; margin-bottom: 4px;">
+                        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#4f46e5" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+                        Assigned Doctor
+                    </label>
+                    <select name="doctor_id" id="addServiceDoctorSelect" class="form-control" required style="width: 100%; height: 46px; border-radius: 10px;">
                         {% for doc in doctors %}
                             <option value="{{ doc.id }}">{{ doc.name }} ({{ doc.specialization }})</option>
                         {% endfor %}
                     </select>
                 </div>
-                <div class="form-group" style="margin-bottom: 14px;">
-                    <label style="display: block; font-size: 0.82rem; font-weight: 700; color: #334155; margin-bottom: 4px;">Service / Treatment Name</label>
-                    <input type="text" name="name" class="form-control" placeholder="e.g. Scaling &amp; Polishing, Dental X-Ray" required>
+
+                <div class="form-group" style="margin: 0;">
+                    <label style="display: flex; align-items: center; gap: 6px; font-size: 0.84rem; font-weight: 700; color: #334155; margin-bottom: 4px;">
+                        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#4f46e5" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M9 12h6"/><path d="M12 9v6"/></svg>
+                        Service / Treatment Name
+                    </label>
+                    <input type="text" name="name" class="form-control" placeholder="e.g. Scaling &amp; Polishing, Dental X-Ray, Root Canal" required style="width: 100%; height: 46px; border-radius: 10px;">
                 </div>
-                <div class="form-group" style="margin-bottom: 14px;">
-                    <label style="display: block; font-size: 0.82rem; font-weight: 700; color: #334155; margin-bottom: 4px;">Description (Optional)</label>
-                    <textarea name="description" class="form-control" rows="2" placeholder="Brief clinical description used by the AI..."></textarea>
+
+                <div class="form-group" style="margin: 0;">
+                    <label style="display: flex; align-items: center; gap: 6px; font-size: 0.84rem; font-weight: 700; color: #334155; margin-bottom: 4px;">
+                        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#64748b" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
+                        Clinical Description (Optional)
+                    </label>
+                    <textarea name="description" class="form-control" rows="2" placeholder="Brief clinical summary used by the AI Receptionist when answering patient questions..." style="width: 100%; min-height: 80px; border-radius: 10px;"></textarea>
                 </div>
-                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">
-                    <div class="form-group">
-                        <label style="display: block; font-size: 0.82rem; font-weight: 700; color: #334155; margin-bottom: 4px;">Duration (Minutes)</label>
-                        <input type="number" name="duration" class="form-control" value="30" step="5" required>
+
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 14px;">
+                    <div class="form-group" style="margin: 0;">
+                        <label style="display: flex; align-items: center; gap: 6px; font-size: 0.84rem; font-weight: 700; color: #334155; margin-bottom: 4px;">
+                            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#4f46e5" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+                            Duration (Minutes)
+                        </label>
+                        <div style="position: relative; width: 100%;">
+                            <input type="number" name="duration" class="form-control" value="30" step="5" required style="width: 100%; height: 46px; border-radius: 10px; padding-right: 3rem;">
+                            <span style="position: absolute; right: 14px; top: 50%; transform: translateY(-50%); font-size: 0.8rem; font-weight: 700; color: #94a3b8; pointer-events: none;">min</span>
+                        </div>
                     </div>
-                    <div class="form-group">
-                        <label style="display: block; font-size: 0.82rem; font-weight: 700; color: #334155; margin-bottom: 4px;">Price (PKR)</label>
-                        <input type="number" name="price" class="form-control" placeholder="2500" step="100" required>
+                    <div class="form-group" style="margin: 0;">
+                        <label style="display: flex; align-items: center; gap: 6px; font-size: 0.84rem; font-weight: 700; color: #334155; margin-bottom: 4px;">
+                            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#16a34a" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
+                            Price (PKR)
+                        </label>
+                        <div style="position: relative; width: 100%;">
+                            <span style="position: absolute; left: 12px; top: 50%; transform: translateY(-50%); font-size: 0.82rem; font-weight: 700; color: #475569; pointer-events: none;">PKR</span>
+                            <input type="number" name="price" class="form-control" placeholder="2500" step="100" required style="width: 100%; height: 46px; border-radius: 10px; padding-left: 3.2rem;">
+                        </div>
                     </div>
                 </div>
             </div>
-            <div class="saas-modal-footer">
-                <button type="button" class="btn btn-secondary" onclick="document.getElementById('addServiceModal').classList.remove('active')">Cancel</button>
-                <button type="submit" class="btn btn-primary">Save Service</button>
+            <div class="saas-modal-footer" style="background: #f8fafc; padding: 1.1rem 1.6rem; border-top: 1px solid #e2e8f0; display: flex; justify-content: flex-end; gap: 10px;">
+                <button type="button" class="btn btn-secondary" onclick="document.getElementById('addServiceModal').classList.remove('active')" style="height: 42px; padding: 0 1.25rem; font-weight: 600; border-radius: 8px;">Cancel</button>
+                <button type="submit" class="btn btn-primary" style="height: 42px; padding: 0 1.5rem; font-weight: 700; border-radius: 8px; box-shadow: 0 4px 12px rgba(79, 70, 229, 0.25);">Save Service</button>
             </div>
         </form>
     </div>
@@ -272,43 +454,67 @@
 
 <!-- 2. EDIT SERVICE MODAL -->
 <div class="saas-modal-backdrop" id="editServiceModal">
-    <div class="saas-modal-card">
-        <div class="saas-modal-header">
-            <h3 class="saas-modal-title">
-                <span>✏️</span> Edit Service &amp; Pricing
+    <div class="saas-modal-card" style="max-width: 600px; border-radius: 16px; border: 1.5px solid #e2e8f0; box-shadow: 0 25px 50px -12px rgba(15, 23, 42, 0.25);">
+        <div class="saas-modal-header" style="background: linear-gradient(90deg, #f8fafc 0%, #f1f5f9 100%); padding: 1.25rem 1.6rem; border-bottom: 1px solid #e2e8f0;">
+            <h3 class="saas-modal-title" style="display: flex; align-items: center; gap: 10px; font-size: 1.15rem; font-weight: 800; color: #0f172a; font-family: 'Plus Jakarta Sans', sans-serif;">
+                <span style="width: 32px; height: 32px; background: #eef2ff; color: #4f46e5; border-radius: 8px; display: inline-flex; align-items: center; justify-content: center;">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 3a2.828 2.828 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5L17 3z"/></svg>
+                </span>
+                <span>Edit Service &amp; Pricing</span>
             </h3>
-            <button type="button" class="saas-modal-close" onclick="document.getElementById('editServiceModal').classList.remove('active')">✕</button>
+            <button type="button" class="saas-modal-close" onclick="document.getElementById('editServiceModal').classList.remove('active')" style="font-size: 1.6rem; line-height: 1;">&times;</button>
         </div>
         <form method="POST" id="editServiceForm" action="">
-            <div class="saas-modal-body">
-                <div class="form-group" style="margin-bottom: 14px;">
-                    <label style="display: block; font-size: 0.82rem; font-weight: 700; color: #334155; margin-bottom: 4px;">Service Name</label>
-                    <input type="text" name="name" id="editServiceName" class="form-control" required>
+            <div class="saas-modal-body" style="padding: 1.6rem; display: flex; flex-direction: column; gap: 1rem;">
+                <div class="form-group" style="margin: 0;">
+                    <label style="display: flex; align-items: center; gap: 6px; font-size: 0.84rem; font-weight: 700; color: #334155; margin-bottom: 4px;">
+                        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#4f46e5" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M9 12h6"/><path d="M12 9v6"/></svg>
+                        Service Name
+                    </label>
+                    <input type="text" name="name" id="editServiceName" class="form-control" required style="width: 100%; height: 46px; border-radius: 10px;">
                 </div>
-                <div class="form-group" style="margin-bottom: 14px;">
-                    <label style="display: block; font-size: 0.82rem; font-weight: 700; color: #334155; margin-bottom: 4px;">Description</label>
-                    <textarea name="description" id="editServiceDesc" class="form-control" rows="2"></textarea>
+
+                <div class="form-group" style="margin: 0;">
+                    <label style="display: flex; align-items: center; gap: 6px; font-size: 0.84rem; font-weight: 700; color: #334155; margin-bottom: 4px;">
+                        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#64748b" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
+                        Clinical Description
+                    </label>
+                    <textarea name="description" id="editServiceDesc" class="form-control" rows="2" style="width: 100%; min-height: 80px; border-radius: 10px;"></textarea>
                 </div>
-                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 14px;">
-                    <div class="form-group">
-                        <label style="display: block; font-size: 0.82rem; font-weight: 700; color: #334155; margin-bottom: 4px;">Duration (Minutes)</label>
-                        <input type="number" name="duration" id="editServiceDuration" class="form-control" required>
+
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 14px;">
+                    <div class="form-group" style="margin: 0;">
+                        <label style="display: flex; align-items: center; gap: 6px; font-size: 0.84rem; font-weight: 700; color: #334155; margin-bottom: 4px;">
+                            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#4f46e5" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+                            Duration (Minutes)
+                        </label>
+                        <div style="position: relative; width: 100%;">
+                            <input type="number" name="duration" id="editServiceDuration" class="form-control" required style="width: 100%; height: 46px; border-radius: 10px; padding-right: 3rem;">
+                            <span style="position: absolute; right: 14px; top: 50%; transform: translateY(-50%); font-size: 0.8rem; font-weight: 700; color: #94a3b8; pointer-events: none;">min</span>
+                        </div>
                     </div>
-                    <div class="form-group">
-                        <label style="display: block; font-size: 0.82rem; font-weight: 700; color: #334155; margin-bottom: 4px;">Price (PKR)</label>
-                        <input type="number" name="price" id="editServicePrice" class="form-control" step="100" required>
+                    <div class="form-group" style="margin: 0;">
+                        <label style="display: flex; align-items: center; gap: 6px; font-size: 0.84rem; font-weight: 700; color: #334155; margin-bottom: 4px;">
+                            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#16a34a" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
+                            Price (PKR)
+                        </label>
+                        <div style="position: relative; width: 100%;">
+                            <span style="position: absolute; left: 12px; top: 50%; transform: translateY(-50%); font-size: 0.82rem; font-weight: 700; color: #475569; pointer-events: none;">PKR</span>
+                            <input type="number" name="price" id="editServicePrice" class="form-control" step="100" required style="width: 100%; height: 46px; border-radius: 10px; padding-left: 3.2rem;">
+                        </div>
                     </div>
                 </div>
-                <div class="form-group">
-                    <label style="display: flex; align-items: center; gap: 8px; font-size: 0.85rem; font-weight: 600; cursor: pointer;">
-                        <input type="checkbox" name="is_active" id="editServiceActive" style="accent-color: var(--primary);">
-                        <span>Active for Booking &amp; AI Inquiries</span>
+
+                <div class="form-group" style="margin-top: 4px;">
+                    <label style="display: flex; align-items: center; gap: 10px; font-size: 0.88rem; font-weight: 600; cursor: pointer; background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 10px 14px;">
+                        <input type="checkbox" name="is_active" id="editServiceActive" style="width: 18px; height: 18px; accent-color: var(--primary);">
+                        <span style="color: #1e293b;">Active for Booking &amp; AI Inquiries</span>
                     </label>
                 </div>
             </div>
-            <div class="saas-modal-footer">
-                <button type="button" class="btn btn-secondary" onclick="document.getElementById('editServiceModal').classList.remove('active')">Cancel</button>
-                <button type="submit" class="btn btn-primary">Update Pricing</button>
+            <div class="saas-modal-footer" style="background: #f8fafc; padding: 1.1rem 1.6rem; border-top: 1px solid #e2e8f0; display: flex; justify-content: flex-end; gap: 10px;">
+                <button type="button" class="btn btn-secondary" onclick="document.getElementById('editServiceModal').classList.remove('active')" style="height: 42px; padding: 0 1.25rem; font-weight: 600; border-radius: 8px;">Cancel</button>
+                <button type="submit" class="btn btn-primary" style="height: 42px; padding: 0 1.5rem; font-weight: 700; border-radius: 8px; box-shadow: 0 4px 12px rgba(79, 70, 229, 0.25);">Update Pricing</button>
             </div>
         </form>
     </div>

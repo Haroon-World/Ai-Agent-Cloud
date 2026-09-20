@@ -28,5 +28,7 @@ instance/
 # Local Tunnel & Temp
 ngrok_url.txt
 *.docx
+scratch/
+
 
 

@@ -5,118 +5,148 @@
 {% block content %}
 <div class="dashboard-header">
     <div>
-        <h1 class="page-title">💳 Subscription &amp; Billing</h1>
+        <h1 class="page-title" style="display: flex; align-items: center; gap: 8px;">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="1" y="4" width="22" height="16" rx="2" ry="2"/><line x1="1" y1="10" x2="23" y2="10"/></svg>
+            <span>Subscription &amp; Billing</span>
+        </h1>
         <p class="page-subtitle">Manage your clinic's software license, monitor plan validity, and submit subscription requests.</p>
     </div>
     <div class="header-actions">
-        <a href="/admin" class="btn btn-secondary">← Back to Dashboard</a>
+        <a href="/admin" class="btn btn-secondary">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="19" y1="12" x2="5" y2="12"/><polyline points="12 19 5 12 12 5"/></svg>
+            <span>Back to Dashboard</span>
+        </a>
     </div>
 </div>
 
 <!-- Plan Status Overview Cards -->
-<div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 20px; margin-bottom: 24px;">
+<div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 20px; margin-bottom: 24px;">
     <!-- Active Status Card -->
-    <div class="section-card" style="position: relative; overflow: hidden; border-top: 4px solid {% if sub_info.status == 'cancelled' %}#ef4444{% elif sub_info.status == 'active' %}#10b981{% elif sub_info.status == 'trial' %}#6366f1{% else %}#dc2626{% endif %};">
-        <div style="font-size: 0.82rem; font-weight: 700; color: #64748b; text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 8px;">
-            Current Active Plan
+    <div class="section-card" style="position: relative; overflow: hidden; border-radius: 16px; border: 1.5px solid #e2e8f0; border-top: 4px solid {% if sub_info.status == 'cancelled' %}#ef4444{% elif sub_info.status == 'active' %}#10b981{% elif sub_info.status == 'trial' %}#6366f1{% else %}#dc2626{% endif %}; box-shadow: 0 2px 10px rgba(15, 23, 42, 0.04); transition: transform 0.2s ease, box-shadow 0.2s ease;" onmouseenter="this.style.transform='translateY(-2px)';this.style.boxShadow='0 8px 24px rgba(15, 23, 42, 0.08)'" onmouseleave="this.style.transform='';this.style.boxShadow='0 2px 10px rgba(15, 23, 42, 0.04)'">
+        <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 12px;">
+            <div style="font-size: 0.8rem; font-weight: 700; color: #64748b; text-transform: uppercase; letter-spacing: 0.06em;">
+                Current Active Plan
+            </div>
+            <span style="font-size: 0.75rem; background: #f1f5f9; color: #475569; padding: 3px 8px; border-radius: 6px; font-weight: 600;">Tenant #{{ business.id }}</span>
         </div>
-        <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 8px; flex-wrap: wrap;">
+        <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 12px; flex-wrap: wrap;">
             {% if sub_info.status == 'cancelled' %}
-                <span class="badge badge-danger" style="font-size: 1rem; padding: 6px 14px;">⛔ Cancelled / Suspended</span>
+                <span class="badge badge-danger" style="font-size: 0.92rem; padding: 6px 14px; border-radius: 20px;"><span class="status-dot dot-danger"></span> Cancelled / Suspended</span>
             {% elif sub_info.status == 'active' %}
-                <span class="badge badge-success" style="font-size: 1rem; padding: 6px 14px;">🟢 {{ sub_info.active_plan_name or 'Active Plan' }}</span>
+                <span class="badge badge-success" style="font-size: 0.92rem; padding: 6px 14px; border-radius: 20px;"><span class="status-dot dot-success"></span> {{ sub_info.active_plan_name or 'Active Plan' }}</span>
             {% elif sub_info.status == 'trial' %}
-                <span class="badge badge-primary" style="font-size: 1rem; padding: 6px 14px; background: #6366f1;">🎁 1-Month Free Trial</span>
+                <span class="badge badge-primary" style="font-size: 0.92rem; padding: 6px 14px; border-radius: 20px; background: linear-gradient(135deg, #6366f1 0%, #4f46e5 100%);"><span class="status-dot" style="background: #e0e7ff;"></span> 1-Month Free Trial</span>
             {% else %}
-                <span class="badge badge-danger" style="font-size: 1rem; padding: 6px 14px;">⛔ Expired</span>
+                <span class="badge badge-danger" style="font-size: 0.92rem; padding: 6px 14px; border-radius: 20px;"><span class="status-dot dot-danger"></span> Expired</span>
             {% endif %}
         </div>
-        <div style="font-size: 0.88rem; color: #475569; margin-bottom: 12px;">
-            License assigned to: <strong>{{ business.name }}</strong> (Tenant #{{ business.id }})
+        <div style="font-size: 0.86rem; color: #475569; margin-bottom: 14px; line-height: 1.4;">
+            License assigned to: <strong style="color: #0f172a;">{{ business.name }}</strong>
         </div>
         
         {% if sub_info.status != 'cancelled' %}
         <form method="POST" action="/admin/subscription/cancel" onsubmit="return confirm('Are you sure you want to cancel your subscription? This will immediately suspend access to clinic features.');">
-            <button type="submit" class="btn btn-sm" style="background: #fef2f2; color: #dc2626; border: 1px solid #fecaca; padding: 6px 12px; font-weight: 600; cursor: pointer; border-radius: 6px;">
-                🛑 Unsubscribe / Cancel Subscription
+            <button type="submit" class="btn btn-sm" style="background: #fef2f2; color: #dc2626; border: 1.5px solid #fecaca; padding: 6px 14px; font-weight: 600; cursor: pointer; border-radius: 8px; display: inline-flex; align-items: center; gap: 6px; transition: all 0.15s ease;" onmouseenter="this.style.background='#fee2e2'" onmouseleave="this.style.background='#fef2f2'">
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="4.93" y1="4.93" x2="19.07" y2="19.07"/></svg>
+                <span>Cancel Subscription</span>
             </button>
         </form>
         {% else %}
-        <div style="font-size: 0.82rem; color: #dc2626; font-weight: 600;">
-            ⚠️ Subscription is currently cancelled. Select a plan below to submit a reactivation request.
+        <div style="font-size: 0.82rem; color: #dc2626; font-weight: 600; display: flex; align-items: center; gap: 6px; background: #fef2f2; padding: 8px 12px; border-radius: 8px; border: 1px solid #fecaca;">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+            <span>Subscription cancelled. Select a plan below to reactivate.</span>
         </div>
         {% endif %}
     </div>
 
     <!-- Days Remaining Card -->
-    <div class="section-card">
-        <div style="font-size: 0.82rem; font-weight: 700; color: #64748b; text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 8px;">
+    <div class="section-card" style="position: relative; overflow: hidden; border-radius: 16px; border: 1.5px solid #e2e8f0; border-top: 4px solid {% if sub_info.status == 'cancelled' or not sub_info.is_valid %}#dc2626{% elif sub_info.days_remaining <= 5 %}#dc2626{% elif sub_info.days_remaining <= 10 %}#d97706{% else %}#0ea5e9{% endif %}; box-shadow: 0 2px 10px rgba(15, 23, 42, 0.04); transition: transform 0.2s ease, box-shadow 0.2s ease;" onmouseenter="this.style.transform='translateY(-2px)';this.style.boxShadow='0 8px 24px rgba(15, 23, 42, 0.08)'" onmouseleave="this.style.transform='';this.style.boxShadow='0 2px 10px rgba(15, 23, 42, 0.04)'">
+        <div style="font-size: 0.8rem; font-weight: 700; color: #64748b; text-transform: uppercase; letter-spacing: 0.06em; margin-bottom: 8px;">
             Validity &amp; Time Remaining
         </div>
-        <div style="font-size: 2.2rem; font-weight: 800; color: {% if sub_info.status == 'cancelled' or not sub_info.is_valid %}#dc2626{% elif sub_info.days_remaining <= 5 %}#dc2626{% elif sub_info.days_remaining <= 10 %}#d97706{% else %}#16a34a{% endif %};">
-            {% if sub_info.status == 'cancelled' %}
-                0 <span style="font-size: 1.1rem; font-weight: 600; color: #64748b;">Days (Cancelled)</span>
-            {% else %}
-                {{ sub_info.days_remaining }} <span style="font-size: 1.1rem; font-weight: 600; color: #64748b;">Days</span>
-            {% endif %}
+        <div style="display: flex; align-items: baseline; gap: 8px; margin-bottom: 4px;">
+            <div style="font-size: 2.4rem; font-weight: 800; font-family: 'Plus Jakarta Sans', sans-serif; line-height: 1; color: {% if sub_info.status == 'cancelled' or not sub_info.is_valid %}#dc2626{% elif sub_info.days_remaining <= 5 %}#dc2626{% elif sub_info.days_remaining <= 10 %}#d97706{% else %}#0ea5e9{% endif %};">
+                {% if sub_info.status == 'cancelled' %}
+                    0
+                {% else %}
+                    {{ sub_info.days_remaining }}
+                {% endif %}
+            </div>
+            <div style="font-size: 1rem; font-weight: 700; color: #64748b;">
+                {% if sub_info.status == 'cancelled' %}Days (Suspended){% else %}Days Remaining{% endif %}
+            </div>
         </div>
-        <div style="font-size: 0.85rem; color: #64748b; margin-top: 4px;">
-            Valid through: <strong>{{ sub_info.effective_expiry_date or 'N/A' }}</strong>
+        <div style="font-size: 0.84rem; color: #475569; display: flex; align-items: center; gap: 6px; margin-top: 6px;">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#64748b" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+            <span>Expires: <strong>{{ sub_info.effective_expiry_date or 'N/A' }}</strong></span>
         </div>
         {% if sub_info.subscription_start_date %}
-        <div style="font-size: 0.78rem; color: #94a3b8; margin-top: 2px;">
+        <div style="font-size: 0.76rem; color: #94a3b8; margin-top: 4px;">
             Started on: {{ sub_info.subscription_start_date }}
         </div>
         {% endif %}
     </div>
 
     <!-- Licensee Details -->
-    <div class="section-card">
-        <div style="font-size: 0.82rem; font-weight: 700; color: #64748b; text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 8px;">
+    <div class="section-card" style="position: relative; overflow: hidden; border-radius: 16px; border: 1.5px solid #e2e8f0; border-top: 4px solid #10b981; box-shadow: 0 2px 10px rgba(15, 23, 42, 0.04); transition: transform 0.2s ease, box-shadow 0.2s ease;" onmouseenter="this.style.transform='translateY(-2px)';this.style.boxShadow='0 8px 24px rgba(15, 23, 42, 0.08)'" onmouseleave="this.style.transform='';this.style.boxShadow='0 2px 10px rgba(15, 23, 42, 0.04)'">
+        <div style="font-size: 0.8rem; font-weight: 700; color: #64748b; text-transform: uppercase; letter-spacing: 0.06em; margin-bottom: 8px;">
             Clinic Licensee
         </div>
-        <div style="font-size: 1.1rem; font-weight: 700; color: #0f172a; margin-bottom: 4px;">
+        <div style="font-size: 1.15rem; font-weight: 800; color: #0f172a; font-family: 'Plus Jakarta Sans', sans-serif; margin-bottom: 6px;">
             {{ business.name }}
         </div>
-        <div style="font-size: 0.85rem; color: #64748b;">
-            📞 {{ business.phone }} • 📍 {{ business.address }}
+        <div style="font-size: 0.84rem; color: #64748b; display: flex; flex-direction: column; gap: 4px;">
+            <span style="display: inline-flex; align-items: center; gap: 6px;">
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#64748b" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"/></svg>
+                {{ business.phone }}
+            </span>
+            <span style="display: inline-flex; align-items: center; gap: 6px;">
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#64748b" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>
+                {{ business.address }}
+            </span>
         </div>
-        <div style="margin-top: 10px; font-size: 0.82rem; color: #059669; font-weight: 600;">
-            ✓ Multi-Doctor Support Active
+        <div style="margin-top: 12px; font-size: 0.78rem; background: #ecfdf5; color: #059669; font-weight: 700; display: inline-flex; align-items: center; gap: 5px; padding: 4px 10px; border-radius: 20px; border: 1px solid #a7f3d0;">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+            <span>Multi-Doctor SaaS License Active</span>
         </div>
     </div>
 </div>
 
 <!-- Pending Request Banner (if any) -->
 {% if sub_info.pending_request %}
-<div class="section-card" style="margin-bottom: 24px; border-left: 4px solid #f59e0b; background: #fffbeb;">
+<div class="section-card" style="margin-bottom: 24px; border-radius: 16px; border-left: 5px solid #f59e0b; background: linear-gradient(135deg, #fffbeb 0%, #fef3c7 100%); box-shadow: 0 4px 14px rgba(245, 158, 11, 0.12);">
     <div style="display: flex; gap: 14px; align-items: flex-start;">
-        <span style="font-size: 1.6rem;">⏳</span>
+        <div style="width: 42px; height: 42px; border-radius: 50%; background: #fde68a; display: flex; align-items: center; justify-content: center; color: #92400e; flex-shrink: 0; box-shadow: 0 2px 6px rgba(245, 158, 11, 0.2);">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+        </div>
         <div>
-            <h3 style="margin: 0 0 6px 0; font-size: 1.1rem; color: #92400e;">Subscription Request Under Platform Review</h3>
-            <p style="margin: 0 0 8px 0; font-size: 0.9rem; color: #b45309;">
+            <h3 style="margin: 0 0 6px 0; font-size: 1.15rem; font-weight: 800; color: #92400e; font-family: 'Plus Jakarta Sans', sans-serif;">Subscription Request Under Platform Review</h3>
+            <p style="margin: 0 0 10px 0; font-size: 0.9rem; color: #b45309; line-height: 1.4;">
                 You submitted a request for <strong>{{ sub_info.pending_request.plan_display_name }}</strong> on {{ sub_info.pending_request.created_at }}.
                 The SaaS platform onboarding team has been notified and is reviewing your subscription activation.
             </p>
-            <span style="background: #fef3c7; color: #92400e; border: 1px solid #fde68a; padding: 3px 10px; border-radius: 4px; font-size: 0.8rem; font-weight: 700;">
+            <span style="background: #fef3c7; color: #92400e; border: 1.5px solid #fde68a; padding: 4px 12px; border-radius: 20px; font-size: 0.8rem; font-weight: 700; display: inline-flex; align-items: center; gap: 6px;">
+                <span style="width: 7px; height: 7px; border-radius: 50%; background: #d97706; display: inline-block;"></span>
                 Status: Pending Approval
             </span>
         </div>
     </div>
 </div>
 {% elif sub_info.latest_rejected_request and not sub_info.pending_request %}
-<div class="section-card" style="margin-bottom: 24px; border-left: 4px solid #ef4444; background: #fef2f2;">
+<div class="section-card" style="margin-bottom: 24px; border-radius: 16px; border-left: 5px solid #ef4444; background: linear-gradient(135deg, #fef2f2 0%, #fee2e2 100%); box-shadow: 0 4px 14px rgba(239, 68, 68, 0.12);">
     <div style="display: flex; gap: 14px; align-items: flex-start;">
-        <span style="font-size: 1.6rem;">❌</span>
+        <div style="width: 42px; height: 42px; border-radius: 50%; background: #fee2e2; display: flex; align-items: center; justify-content: center; color: #dc2626; flex-shrink: 0;">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/></svg>
+        </div>
         <div>
-            <h3 style="margin: 0 0 6px 0; font-size: 1.1rem; color: #991b1b;">Previous Subscription Request Rejected</h3>
-            <p style="margin: 0 0 8px 0; font-size: 0.9rem; color: #7f1d1d;">
+            <h3 style="margin: 0 0 6px 0; font-size: 1.15rem; font-weight: 800; color: #991b1b; font-family: 'Plus Jakarta Sans', sans-serif;">Previous Subscription Request Rejected</h3>
+            <p style="margin: 0 0 10px 0; font-size: 0.9rem; color: #7f1d1d; line-height: 1.4;">
                 Your request for <strong>{{ sub_info.latest_rejected_request.plan_display_name }}</strong> was rejected by platform administration on {{ sub_info.latest_rejected_request.reviewed_at or 'recently' }}.
                 {% if sub_info.latest_rejected_request.notes %}
                 <br><strong>Reviewer Reason:</strong> {{ sub_info.latest_rejected_request.notes }}
                 {% endif %}
             </p>
-            <span style="background: #fee2e2; color: #991b1b; border: 1px solid #fca5a5; padding: 3px 10px; border-radius: 4px; font-size: 0.8rem; font-weight: 700;">
+            <span style="background: #fee2e2; color: #991b1b; border: 1.5px solid #fca5a5; padding: 4px 12px; border-radius: 20px; font-size: 0.8rem; font-weight: 700;">
                 Status: Rejected — Please select a plan below to submit an updated request
             </span>
         </div>
@@ -124,119 +154,221 @@
 </div>
 {% endif %}
 
-<!-- Select Plan / Request Upgrade Card -->
-<div class="section-card" style="margin-bottom: 30px;">
-    <div class="section-header" style="border-bottom: 1px solid #e2e8f0; padding-bottom: 14px; margin-bottom: 20px;">
-        <h2 style="margin: 0; font-size: 1.25rem; color: #0f172a; display: flex; align-items: center; gap: 8px;">
-            <span>🔄</span>
-            <span>{% if sub_info.status == 'cancelled' %}Reactivate Subscription{% else %}Select / Upgrade Subscription Plan{% endif %}</span>
-        </h2>
-        <span class="badge badge-secondary">Official B2B Activation</span>
+<!-- ============================================================== -->
+<!-- SECTION: SELECT / UPGRADE SUBSCRIPTION PLAN (Modern Tier Cards) -->
+<!-- ============================================================== -->
+<div class="section-card" style="margin-bottom: 30px; border-radius: 20px; border: 1.5px solid #e2e8f0; padding: 2rem; box-shadow: 0 4px 20px rgba(15, 23, 42, 0.05); background: #ffffff;">
+    <div class="section-header" style="border-bottom: 1.5px solid #f1f5f9; padding-bottom: 18px; margin-bottom: 24px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 14px;">
+        <div>
+            <h2 style="margin: 0; font-size: 1.35rem; font-weight: 800; color: #0f172a; font-family: 'Plus Jakarta Sans', sans-serif; display: flex; align-items: center; gap: 10px;">
+                <span style="width: 36px; height: 36px; background: linear-gradient(135deg, #eef2ff 0%, #ede9fe 100%); color: #4f46e5; border-radius: 10px; display: inline-flex; align-items: center; justify-content: center; border: 1px solid #c7d2fe;">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>
+                </span>
+                <span>{% if sub_info.status == 'cancelled' %}Reactivate Subscription{% else %}Select / Upgrade Subscription Plan{% endif %}</span>
+            </h2>
+            <p style="color: #64748b; font-size: 0.88rem; margin: 6px 0 0 0;">Choose the license duration that fits your clinic. Instant activation upon platform approval.</p>
+        </div>
+        <div>
+            <!-- Vibrant Healthcare B2B Badge -->
+            <span class="b2b-activation-badge">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#ffffff" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+                Official B2B Activation
+            </span>
+        </div>
     </div>
 
-    <p style="color: #475569; font-size: 0.92rem; margin-bottom: 20px;">
-        Select your desired subscription plan. Upon submitting, your request will be delivered to our platform team for immediate verification and plan activation.
-    </p>
+    <form method="POST" action="/admin/subscription/renew" id="subscriptionPlanForm">
+        <!-- 4 Vibrant, Differentiated Plan Boxes Grid -->
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 18px; margin-bottom: 28px;">
 
-    <form method="POST" action="/admin/subscription/renew">
-        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 16px; margin-bottom: 24px;">
-            <!-- 1 Month -->
-            <label style="border: 2px solid {% if sub_info.active_plan_name and '30 Days' in sub_info.active_plan_name %}#4f46e5{% else %}#cbd5e1{% endif %}; border-radius: 10px; padding: 18px; cursor: {% if sub_info.pending_request %}not-allowed{% else %}pointer{% endif %}; display: flex; flex-direction: column; gap: 8px; transition: all 0.2s; position: relative;">
+            <!-- Plan 1: 1 Month (Sky Blue Theme) -->
+            <label class="sub-plan-card plan-card-month {% if not sub_info.active_plan_name or '30 Days' in (sub_info.active_plan_name or '') %}is-selected{% endif %}" onclick="selectPlanCard(this)">
                 {% if sub_info.active_plan_name and '30 Days' in sub_info.active_plan_name and sub_info.status == 'active' %}
-                <span style="position: absolute; top: -10px; right: 12px; background: #4f46e5; color: white; font-size: 0.72rem; padding: 2px 8px; border-radius: 12px; font-weight: 700;">CURRENT PLAN</span>
+                <div style="position: absolute; top: 12px; right: 12px; background: #0284c7; color: white; font-size: 0.68rem; padding: 3px 10px; border-radius: 20px; font-weight: 800; letter-spacing: 0.5px;">CURRENT PLAN</div>
                 {% endif %}
-                <div style="display: flex; justify-content: space-between; align-items: center;">
-                    <span style="font-weight: 700; color: #0f172a; font-size: 1.05rem;">1 Month</span>
-                    <input type="radio" name="duration_days" value="30" checked {% if sub_info.pending_request %}disabled{% endif %}>
+                <div>
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 14px;">
+                        <span style="font-size: 0.72rem; font-weight: 800; color: #0284c7; text-transform: uppercase; letter-spacing: 0.08em; background: #e0f2fe; padding: 4px 10px; border-radius: 20px;">FLEXIBLE</span>
+                        <input type="radio" name="duration_days" value="30" checked {% if sub_info.pending_request %}disabled{% endif %}>
+                    </div>
+                    <div style="font-size: 1.35rem; font-weight: 800; color: #0f172a; font-family: 'Plus Jakarta Sans', sans-serif; line-height: 1.2;">1 Month</div>
+                    <div style="font-size: 0.82rem; color: #64748b; margin-top: 4px;">30 Days Full Access</div>
+                    <div style="font-size: 1.15rem; font-weight: 800; color: #0284c7; margin: 14px 0 10px 0; font-family: 'Plus Jakarta Sans', sans-serif;">Standard Tier</div>
                 </div>
-                <div style="font-size: 0.85rem; color: #64748b;">30 Days of Full Access</div>
-                <div style="font-weight: 800; color: #4f46e5; font-size: 1.2rem; margin-top: 4px;">Standard Plan</div>
+                <div style="border-top: 1px solid #e0f2fe; padding-top: 12px; font-size: 0.78rem; color: #475569; display: flex; flex-direction: column; gap: 6px;">
+                    <div style="display: flex; align-items: center; gap: 6px;">
+                        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#0284c7" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+                        <span>24/7 AI Receptionist</span>
+                    </div>
+                    <div style="display: flex; align-items: center; gap: 6px;">
+                        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#0284c7" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+                        <span>WhatsApp Automation</span>
+                    </div>
+                </div>
             </label>
 
-            <!-- 3 Months -->
-            <label style="border: 2px solid {% if sub_info.active_plan_name and '90 Days' in sub_info.active_plan_name %}#4f46e5{% else %}#cbd5e1{% endif %}; border-radius: 10px; padding: 18px; cursor: {% if sub_info.pending_request %}not-allowed{% else %}pointer{% endif %}; display: flex; flex-direction: column; gap: 8px; transition: all 0.2s; position: relative;">
+            <!-- Plan 2: 3 Months (Royal Indigo Theme) -->
+            <label class="sub-plan-card plan-card-quarter {% if sub_info.active_plan_name and '90 Days' in sub_info.active_plan_name and sub_info.status == 'active' %}is-selected{% endif %}" onclick="selectPlanCard(this)">
                 {% if sub_info.active_plan_name and '90 Days' in sub_info.active_plan_name and sub_info.status == 'active' %}
-                <span style="position: absolute; top: -10px; right: 12px; background: #4f46e5; color: white; font-size: 0.72rem; padding: 2px 8px; border-radius: 12px; font-weight: 700;">CURRENT PLAN</span>
+                <div style="position: absolute; top: 12px; right: 12px; background: #4f46e5; color: white; font-size: 0.68rem; padding: 3px 10px; border-radius: 20px; font-weight: 800; letter-spacing: 0.5px;">CURRENT PLAN</div>
                 {% endif %}
-                <div style="display: flex; justify-content: space-between; align-items: center;">
-                    <span style="font-weight: 700; color: #0f172a; font-size: 1.05rem;">3 Months</span>
-                    <input type="radio" name="duration_days" value="90" {% if sub_info.pending_request %}disabled{% endif %}>
+                <div>
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 14px;">
+                        <span style="font-size: 0.72rem; font-weight: 800; color: #4f46e5; text-transform: uppercase; letter-spacing: 0.08em; background: #eef2ff; padding: 4px 10px; border-radius: 20px;">POPULAR • SAVE 10%</span>
+                        <input type="radio" name="duration_days" value="90" {% if sub_info.pending_request %}disabled{% endif %}>
+                    </div>
+                    <div style="font-size: 1.35rem; font-weight: 800; color: #0f172a; font-family: 'Plus Jakarta Sans', sans-serif; line-height: 1.2;">3 Months</div>
+                    <div style="font-size: 0.82rem; color: #64748b; margin-top: 4px;">90 Days Full Access</div>
+                    <div style="font-size: 1.15rem; font-weight: 800; color: #4f46e5; margin: 14px 0 10px 0; font-family: 'Plus Jakarta Sans', sans-serif;">Growth Plan</div>
                 </div>
-                <div style="font-size: 0.85rem; color: #64748b;">90 Days of Full Access</div>
-                <div style="font-weight: 800; color: #4f46e5; font-size: 1.2rem; margin-top: 4px;">Quarterly Plan</div>
+                <div style="border-top: 1px solid #e0e7ff; padding-top: 12px; font-size: 0.78rem; color: #475569; display: flex; flex-direction: column; gap: 6px;">
+                    <div style="display: flex; align-items: center; gap: 6px;">
+                        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#4f46e5" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+                        <span>Multi-Doctor Booking</span>
+                    </div>
+                    <div style="display: flex; align-items: center; gap: 6px;">
+                        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#4f46e5" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+                        <span>Priority AI Response</span>
+                    </div>
+                </div>
             </label>
 
-            <!-- 6 Months -->
-            <label style="border: 2px solid {% if sub_info.active_plan_name and '180 Days' in sub_info.active_plan_name %}#4f46e5{% else %}#cbd5e1{% endif %}; border-radius: 10px; padding: 18px; cursor: {% if sub_info.pending_request %}not-allowed{% else %}pointer{% endif %}; display: flex; flex-direction: column; gap: 8px; transition: all 0.2s; position: relative;">
+            <!-- Plan 3: 6 Months (Sunset Amber Theme) -->
+            <label class="sub-plan-card plan-card-semi {% if sub_info.active_plan_name and '180 Days' in sub_info.active_plan_name and sub_info.status == 'active' %}is-selected{% endif %}" onclick="selectPlanCard(this)">
                 {% if sub_info.active_plan_name and '180 Days' in sub_info.active_plan_name and sub_info.status == 'active' %}
-                <span style="position: absolute; top: -10px; right: 12px; background: #4f46e5; color: white; font-size: 0.72rem; padding: 2px 8px; border-radius: 12px; font-weight: 700;">CURRENT PLAN</span>
+                <div style="position: absolute; top: 12px; right: 12px; background: #d97706; color: white; font-size: 0.68rem; padding: 3px 10px; border-radius: 20px; font-weight: 800; letter-spacing: 0.5px;">CURRENT PLAN</div>
                 {% endif %}
-                <div style="display: flex; justify-content: space-between; align-items: center;">
-                    <span style="font-weight: 700; color: #0f172a; font-size: 1.05rem;">6 Months</span>
-                    <input type="radio" name="duration_days" value="180" {% if sub_info.pending_request %}disabled{% endif %}>
+                <div>
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 14px;">
+                        <span style="font-size: 0.72rem; font-weight: 800; color: #b45309; text-transform: uppercase; letter-spacing: 0.08em; background: #fef3c7; padding: 4px 10px; border-radius: 20px;">PRO • SAVE 20%</span>
+                        <input type="radio" name="duration_days" value="180" {% if sub_info.pending_request %}disabled{% endif %}>
+                    </div>
+                    <div style="font-size: 1.35rem; font-weight: 800; color: #0f172a; font-family: 'Plus Jakarta Sans', sans-serif; line-height: 1.2;">6 Months</div>
+                    <div style="font-size: 0.82rem; color: #64748b; margin-top: 4px;">180 Days Full Access</div>
+                    <div style="font-size: 1.15rem; font-weight: 800; color: #d97706; margin: 14px 0 10px 0; font-family: 'Plus Jakarta Sans', sans-serif;">Semi-Annual Pro</div>
                 </div>
-                <div style="font-size: 0.85rem; color: #64748b;">180 Days of Full Access</div>
-                <div style="font-weight: 800; color: #4f46e5; font-size: 1.2rem; margin-top: 4px;">Semi-Annual Plan</div>
+                <div style="border-top: 1px solid #fef3c7; padding-top: 12px; font-size: 0.78rem; color: #475569; display: flex; flex-direction: column; gap: 6px;">
+                    <div style="display: flex; align-items: center; gap: 6px;">
+                        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#d97706" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+                        <span>Full Audit &amp; Tool Logs</span>
+                    </div>
+                    <div style="display: flex; align-items: center; gap: 6px;">
+                        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#d97706" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+                        <span>Priority Support SLA</span>
+                    </div>
+                </div>
             </label>
 
-            <!-- 1 Year -->
-            <label style="border: 2px solid {% if sub_info.active_plan_name and '365 Days' in sub_info.active_plan_name %}#4f46e5{% else %}#cbd5e1{% endif %}; background: #f8fafc; border-radius: 10px; padding: 18px; cursor: {% if sub_info.pending_request %}not-allowed{% else %}pointer{% endif %}; display: flex; flex-direction: column; gap: 8px; transition: all 0.2s; position: relative;">
+            <!-- Plan 4: 1 Full Year (Brilliant Emerald Theme - FEATURED) -->
+            <label class="sub-plan-card plan-card-annual {% if sub_info.active_plan_name and '365 Days' in sub_info.active_plan_name and sub_info.status == 'active' %}is-selected{% endif %}" onclick="selectPlanCard(this)" style="animation: planPulseGlow 3s infinite;">
                 {% if sub_info.active_plan_name and '365 Days' in sub_info.active_plan_name and sub_info.status == 'active' %}
-                <span style="position: absolute; top: -10px; right: 12px; background: #4f46e5; color: white; font-size: 0.72rem; padding: 2px 8px; border-radius: 12px; font-weight: 700;">CURRENT PLAN</span>
+                <div style="position: absolute; top: 12px; right: 12px; background: #059669; color: white; font-size: 0.68rem; padding: 3px 10px; border-radius: 20px; font-weight: 800; letter-spacing: 0.5px;">CURRENT PLAN</div>
                 {% endif %}
-                <div style="display: flex; justify-content: space-between; align-items: center;">
-                    <span style="font-weight: 700; color: #0f172a; font-size: 1.05rem;">1 Full Year</span>
-                    <input type="radio" name="duration_days" value="365" {% if sub_info.pending_request %}disabled{% endif %}>
+                <div>
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 14px;">
+                        <span style="font-size: 0.72rem; font-weight: 800; color: #065f46; text-transform: uppercase; letter-spacing: 0.08em; background: linear-gradient(135deg, #a7f3d0 0%, #6ee7b7 100%); padding: 4px 10px; border-radius: 20px; box-shadow: 0 2px 6px rgba(16, 185, 129, 0.2);">⭐ BEST VALUE • SAVE 35%</span>
+                        <input type="radio" name="duration_days" value="365" {% if sub_info.pending_request %}disabled{% endif %}>
+                    </div>
+                    <div style="font-size: 1.35rem; font-weight: 800; color: #064e3b; font-family: 'Plus Jakarta Sans', sans-serif; line-height: 1.2;">1 Full Year</div>
+                    <div style="font-size: 0.82rem; color: #047857; margin-top: 4px; font-weight: 600;">365 Days Uninterrupted</div>
+                    <div style="font-size: 1.15rem; font-weight: 800; color: #059669; margin: 14px 0 10px 0; font-family: 'Plus Jakarta Sans', sans-serif;">Enterprise Annual</div>
                 </div>
-                <div style="font-size: 0.85rem; color: #16a34a; font-weight: 600;">Best Value • 365 Days</div>
-                <div style="font-weight: 800; color: #4f46e5; font-size: 1.2rem; margin-top: 4px;">Annual License</div>
+                <div style="border-top: 1px solid #a7f3d0; padding-top: 12px; font-size: 0.78rem; color: #065f46; display: flex; flex-direction: column; gap: 6px;">
+                    <div style="display: flex; align-items: center; gap: 6px; font-weight: 600;">
+                        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#059669" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+                        <span>All Features Included</span>
+                    </div>
+                    <div style="display: flex; align-items: center; gap: 6px; font-weight: 600;">
+                        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#059669" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+                        <span>Dedicated Onboarding Setup</span>
+                    </div>
+                </div>
             </label>
         </div>
 
-        {% if sub_info.pending_request %}
-        <button type="button" class="btn btn-secondary btn-lg" disabled style="opacity: 0.6; cursor: not-allowed;">
-            <span>⏳ Request Pending Approval (Please Wait for Platform Team)</span>
-        </button>
-        {% else %}
-        <button type="submit" class="btn btn-primary btn-lg" style="width: auto; padding: 12px 28px;">
-            <span>📩 Submit Plan Request for Approval</span>
-        </button>
-        {% endif %}
+        <div style="display: flex; justify-content: flex-start; align-items: center; gap: 14px; flex-wrap: wrap;">
+            {% if sub_info.pending_request %}
+            <button type="button" class="btn btn-secondary btn-lg" disabled style="opacity: 0.65; cursor: not-allowed; display: inline-flex; align-items: center; gap: 10px; height: 50px; padding: 0 1.75rem; border-radius: 12px; font-weight: 700;">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+                <span>Request Pending Approval (Platform Team Reviewing)</span>
+            </button>
+            {% else %}
+            <button type="submit" class="btn btn-primary btn-lg" style="height: 52px; padding: 0 2.2rem; font-size: 1rem; font-weight: 800; border-radius: 12px; display: inline-flex; align-items: center; gap: 10px; box-shadow: 0 8px 24px rgba(79, 70, 229, 0.35); transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);" onmouseenter="this.style.transform='translateY(-2px)';this.style.boxShadow='0 12px 30px rgba(79, 70, 229, 0.45)'" onmouseleave="this.style.transform='';this.style.boxShadow='0 8px 24px rgba(79, 70, 229, 0.35)'">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
+                <span>Submit Plan Request for Approval</span>
+            </button>
+            {% endif %}
+            <span style="font-size: 0.82rem; color: #64748b;">
+                ⚡ No credit card required upfront. Instant verification upon review.
+            </span>
+        </div>
     </form>
 </div>
 
 <!-- Included In Your Subscription -->
-<div class="section-card">
-    <h3 style="font-size: 1.1rem; color: #0f172a; margin-bottom: 14px;">Included Enterprise Features</h3>
+<div class="section-card" style="border-radius: 20px; border: 1.5px solid #e2e8f0; padding: 2rem; box-shadow: 0 2px 10px rgba(15, 23, 42, 0.04); background: #ffffff;">
+    <div style="margin-bottom: 20px;">
+        <h3 style="font-size: 1.2rem; font-weight: 800; color: #0f172a; font-family: 'Plus Jakarta Sans', sans-serif; margin: 0 0 4px 0; display: flex; align-items: center; gap: 8px;">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#4f46e5" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+            Included Enterprise Features
+        </h3>
+        <p style="font-size: 0.84rem; color: #64748b; margin: 0;">Included standard across all paid subscription packages</p>
+    </div>
+
     <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 16px;">
-        <div style="display: flex; gap: 10px; align-items: flex-start;">
-            <span style="font-size: 1.2rem;">🤖</span>
+        <div style="display: flex; gap: 14px; align-items: flex-start; background: #f8fafc; padding: 16px; border-radius: 12px; border: 1px solid #eef2f6; transition: all 0.2s ease;" onmouseenter="this.style.borderColor='#c7d2fe';this.style.background='#f0f4ff'" onmouseleave="this.style.borderColor='#eef2f6';this.style.background='#f8fafc'">
+            <div style="width: 40px; height: 40px; border-radius: 10px; background: linear-gradient(135deg, #e0e7ff 0%, #ede9fe 100%); display: flex; align-items: center; justify-content: center; color: #4f46e5; flex-shrink: 0; box-shadow: 0 2px 6px rgba(79, 70, 229, 0.15);">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="10" rx="2"/><circle cx="12" cy="5" r="2"/><path d="M12 7v4"/><line x1="8" y1="16" x2="8" y2="16"/><line x1="16" y1="16" x2="16" y2="16"/></svg>
+            </div>
             <div>
-                <strong>Autonomous AI Receptionist</strong>
-                <p style="font-size: 0.84rem; color: #64748b; margin: 2px 0 0 0;">24/7 multilingual conversational booking across Urdu, Roman Urdu, and English.</p>
+                <strong style="color: #0f172a; font-size: 0.95rem; font-family: 'Plus Jakarta Sans', sans-serif;">Autonomous AI Receptionist</strong>
+                <p style="font-size: 0.82rem; color: #64748b; margin: 4px 0 0 0; line-height: 1.45;">24/7 multilingual conversational booking across Urdu, Roman Urdu, and English.</p>
             </div>
         </div>
-        <div style="display: flex; gap: 10px; align-items: flex-start;">
-            <span style="font-size: 1.2rem;">🛡️</span>
+
+        <div style="display: flex; gap: 14px; align-items: flex-start; background: #f8fafc; padding: 16px; border-radius: 12px; border: 1px solid #eef2f6; transition: all 0.2s ease;" onmouseenter="this.style.borderColor='#a7f3d0';this.style.background='#ecfdf5'" onmouseleave="this.style.borderColor='#eef2f6';this.style.background='#f8fafc'">
+            <div style="width: 40px; height: 40px; border-radius: 10px; background: linear-gradient(135deg, #d1fae5 0%, #a7f3d0 100%); display: flex; align-items: center; justify-content: center; color: #059669; flex-shrink: 0; box-shadow: 0 2px 6px rgba(16, 185, 129, 0.15);">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+            </div>
             <div>
-                <strong>Atomic Double-Booking Guard</strong>
-                <p style="font-size: 0.84rem; color: #64748b; margin: 2px 0 0 0;">Real-time database slot verification preventing overlapping doctor reservations.</p>
+                <strong style="color: #0f172a; font-size: 0.95rem; font-family: 'Plus Jakarta Sans', sans-serif;">Atomic Double-Booking Guard</strong>
+                <p style="font-size: 0.82rem; color: #64748b; margin: 4px 0 0 0; line-height: 1.45;">Real-time database slot verification preventing overlapping doctor reservations.</p>
             </div>
         </div>
-        <div style="display: flex; gap: 10px; align-items: flex-start;">
-            <span style="font-size: 1.2rem;">⏰</span>
+
+        <div style="display: flex; gap: 14px; align-items: flex-start; background: #f8fafc; padding: 16px; border-radius: 12px; border: 1px solid #eef2f6; transition: all 0.2s ease;" onmouseenter="this.style.borderColor='#fde68a';this.style.background='#fffbeb'" onmouseleave="this.style.borderColor='#eef2f6';this.style.background='#f8fafc'">
+            <div style="width: 40px; height: 40px; border-radius: 10px; background: linear-gradient(135deg, #fef3c7 0%, #fde68a 100%); display: flex; align-items: center; justify-content: center; color: #d97706; flex-shrink: 0; box-shadow: 0 2px 6px rgba(245, 158, 11, 0.15);">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+            </div>
             <div>
-                <strong>Automated Patient Reminders</strong>
-                <p style="font-size: 0.84rem; color: #64748b; margin: 2px 0 0 0;">Proactive schedule notifications automatically cued 24h prior to appointment.</p>
+                <strong style="color: #0f172a; font-size: 0.95rem; font-family: 'Plus Jakarta Sans', sans-serif;">Automated Patient Reminders</strong>
+                <p style="font-size: 0.82rem; color: #64748b; margin: 4px 0 0 0; line-height: 1.45;">Proactive schedule notifications automatically cued 24h prior to appointment.</p>
             </div>
         </div>
-        <div style="display: flex; gap: 10px; align-items: flex-start;">
-            <span style="font-size: 1.2rem;">👥</span>
+
+        <div style="display: flex; gap: 14px; align-items: flex-start; background: #f8fafc; padding: 16px; border-radius: 12px; border: 1px solid #eef2f6; transition: all 0.2s ease;" onmouseenter="this.style.borderColor='#bae6fd';this.style.background='#f0f9ff'" onmouseleave="this.style.borderColor='#eef2f6';this.style.background='#f8fafc'">
+            <div style="width: 40px; height: 40px; border-radius: 10px; background: linear-gradient(135deg, #e0f2fe 0%, #bae6fd 100%); display: flex; align-items: center; justify-content: center; color: #0284c7; flex-shrink: 0; box-shadow: 0 2px 6px rgba(14, 165, 233, 0.15);">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+            </div>
             <div>
-                <strong>Two-Way Human Takeover</strong>
-                <p style="font-size: 0.84rem; color: #64748b; margin: 2px 0 0 0;">Live staff handoff allowing front desk operators to jump in and return chats to AI.</p>
+                <strong style="color: #0f172a; font-size: 0.95rem; font-family: 'Plus Jakarta Sans', sans-serif;">Two-Way Human Takeover</strong>
+                <p style="font-size: 0.82rem; color: #64748b; margin: 4px 0 0 0; line-height: 1.45;">Live staff handoff allowing front desk operators to jump in and return chats to AI.</p>
             </div>
         </div>
     </div>
 </div>
+
+<script>
+function selectPlanCard(selectedLabel) {
+    // Uncheck all other cards and check this one
+    document.querySelectorAll('.sub-plan-card').forEach(card => {
+        card.classList.remove('is-selected');
+    });
+    selectedLabel.classList.add('is-selected');
+    const radio = selectedLabel.querySelector('input[type="radio"]');
+    if (radio && !radio.disabled) {
+        radio.checked = true;
+    }
+}
+</script>
 {% endblock %}

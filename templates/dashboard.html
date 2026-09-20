@@ -6,18 +6,13 @@
 <!-- Dashboard Header matching Reference Design -->
 <div class="dashboard-header" style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 1.5rem; flex-wrap: wrap; gap: 1rem;">
     <div>
-        <h1 class="page-title" style="font-size: 1.6rem; font-weight: 800; color: #0f172a; margin: 0; font-family: var(--font-heading);">Good morning, {{ session.get('admin_user', 'Admin') }}</h1>
+        <h1 class="page-title" style="font-size: 1.65rem; font-weight: 700; color: #0f172a; margin: 0; font-family: var(--font-heading);"><span id="dynamicGreeting">{{ time_greeting|default('Good evening') }}</span>, {{ session.get('admin_user', 'admin') }}</h1>
         <p class="page-subtitle" style="font-size: 0.88rem; color: #64748b; margin: 4px 0 0 0;">Here's what's happening at your clinic today.</p>
     </div>
     <div class="header-actions" style="display: flex; align-items: center; gap: 10px; flex-wrap: wrap;">
-        <div class="topbar-date-display" style="background: #ffffff; border: 1px solid #e2e8f0; font-weight: 600; color: #334155; padding: 0.45rem 0.9rem;">
-            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
-            <span id="dashboardDateDisplay">Today</span>
-        </div>
-        <a href="/admin/appointments" class="btn btn-outline btn-sm" style="border-radius: 8px; font-weight: 600;">📅 Appointments</a>
-        <a href="{% if session.get('business_id') %}/chat/{{ session.get('business_id') }}{% else %}/chat{% endif %}" target="_blank" class="btn btn-primary btn-sm" style="border-radius: 8px; font-weight: 600; display: inline-flex; align-items: center; gap: 6px;">
-            <span class="live-dot-pulse" style="background-color: #ffffff;"></span>
-            <span>+ Book via AI</span>
+        <a href="/admin/appointments" class="btn btn-secondary btn-sm" style="background: #ffffff; border: 1px solid #e2e8f0; border-radius: 8px; font-weight: 500; color: #334155; padding: 0.45rem 0.95rem; display: inline-flex; align-items: center; gap: 6px; text-decoration: none; font-size: 0.84rem;">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+            <span>Appointments</span>
         </a>
     </div>
 </div>
@@ -25,7 +20,9 @@
 {% if rejection_notice %}
 <div id="subscriptionRejectionAlert" style="background: #fef2f2; border: 2px solid #ef4444; border-radius: 12px; padding: 18px 22px; margin-bottom: 24px; box-shadow: 0 4px 12px rgba(239, 68, 68, 0.12); display: flex; justify-content: space-between; align-items: flex-start; gap: 16px;">
     <div style="display: flex; gap: 14px; align-items: flex-start;">
-        <span style="font-size: 1.8rem; line-height: 1;">⚠️</span>
+        <div style="color: #dc2626; flex-shrink: 0; margin-top: 2px;">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+        </div>
         <div>
             <div style="font-size: 1.05rem; font-weight: 800; color: #991b1b; margin-bottom: 4px;">
                 Subscription Request Rejected by Platform Administration
@@ -39,8 +36,9 @@
             </div>
             {% endif %}
             <div style="display: flex; gap: 10px; align-items: center; flex-wrap: wrap;">
-                <a href="/admin/subscription" class="btn btn-sm btn-primary" style="background: #dc2626; border-color: #dc2626; color: white; padding: 5px 12px; font-weight: 700; text-decoration: none; border-radius: 6px;">
-                    💳 Review Subscription &amp; Resubmit →
+                <a href="/admin/subscription" class="btn btn-sm btn-primary" style="background: #dc2626; border-color: #dc2626; color: white; padding: 5px 12px; font-weight: 700; text-decoration: none; border-radius: 6px; display: inline-flex; align-items: center; gap: 6px;">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="1" y="4" width="22" height="16" rx="2" ry="2"/><line x1="1" y1="10" x2="23" y2="10"/></svg>
+                    Review Subscription &amp; Resubmit →
                 </a>
                 <button type="button" onclick="dismissRejectionNotice({{ rejection_notice.id }})" style="background: transparent; border: 1px solid #fca5a5; color: #991b1b; padding: 5px 10px; border-radius: 6px; font-size: 0.82rem; cursor: pointer; font-weight: 600;">
                     Dismiss Notification
@@ -75,7 +73,7 @@ function dismissRejectionNotice(reqId) {
             <span class="kpi-label">Today's Appointments</span>
             <span class="kpi-value">{{ today_count }}</span>
             <span class="kpi-trend positive">
-                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="18 15 12 9 6 15"/></svg>
+                <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="18 15 12 9 6 15"/></svg>
                 <span>Live Active</span>
             </span>
         </div>
@@ -89,8 +87,8 @@ function dismissRejectionNotice(reqId) {
         <div class="kpi-content">
             <span class="kpi-label">AI Conversations</span>
             <span class="kpi-value">{{ total_conversations }}</span>
-            <span class="kpi-trend positive">
-                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="18 15 12 9 6 15"/></svg>
+            <span class="kpi-trend purple">
+                <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="18 15 12 9 6 15"/></svg>
                 <span>Automated</span>
             </span>
         </div>
@@ -105,7 +103,7 @@ function dismissRejectionNotice(reqId) {
             <span class="kpi-label">Appointments Booked by AI</span>
             <span class="kpi-value">{{ today_ai_booked }}</span>
             <span class="kpi-trend positive">
-                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="18 15 12 9 6 15"/></svg>
+                <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="18 15 12 9 6 15"/></svg>
                 <span>Verified</span>
             </span>
         </div>
@@ -119,7 +117,8 @@ function dismissRejectionNotice(reqId) {
         <div class="kpi-content">
             <span class="kpi-label">Human Handoff Requests</span>
             <span class="kpi-value">{{ human_handoff_count }}</span>
-            <span class="kpi-trend {% if human_handoff_count > 0 %}alert{% else %}neutral{% endif %}">
+            <span class="kpi-trend {% if human_handoff_count > 0 %}alert{% else %}warning{% endif %}">
+                <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="18 15 12 9 6 15"/></svg>
                 <span>{% if human_handoff_count > 0 %}Needs Staff{% else %}Normal{% endif %}</span>
             </span>
         </div>
@@ -143,7 +142,7 @@ function dismissRejectionNotice(reqId) {
 
         {% if upcoming_appointments %}
         <div class="table-responsive" style="border: none; box-shadow: none;">
-            <table class="data-table">
+            <table class="data-table dashboard-upcoming-table">
                 <thead>
                     <tr>
                         <th style="font-size: 0.72rem;">TIME</th>
@@ -156,35 +155,38 @@ function dismissRejectionNotice(reqId) {
                 <tbody>
                     {% for appt in upcoming_appointments %}
                     <tr>
-                        <td style="font-weight: 700; color: #0f172a; white-space: nowrap;">
-                            {{ appt.appointment_time }}
-                            <div style="font-size: 0.74rem; font-weight: 500; color: #64748b;">{{ appt.appointment_date }}</div>
+                        <td style="white-space: nowrap;">
+                            <div style="font-weight: 700; color: #0f172a; font-size: 0.88rem;">{{ appt.appointment_time|format_12hr }}</div>
+                            <div style="font-size: 0.75rem; color: #64748b; margin-top: 1px;">{{ appt.appointment_date }}</div>
                         </td>
                         <td>
                             {% if appt.conversation_id %}
-                                <a href="/admin/conversations?cid={{ appt.conversation_id }}" style="color: inherit; text-decoration: none;" title="Open conversation">
-                                    <strong style="color: #4f46e5;">{{ appt.customer.name if appt.customer else (appt.patient_name or "Visitor") }}</strong>
+                                <a href="/admin/conversations?cid={{ appt.conversation_id }}" style="text-decoration: none;" title="Open conversation">
+                                    <div style="color: #4f46e5; font-weight: 700; font-size: 0.88rem;">{{ appt.customer.name if appt.customer else (appt.patient_name or "Visitor") }}</div>
                                 </a>
                             {% else %}
-                                <strong>{{ appt.customer.name if appt.customer else (appt.patient_name or "Visitor") }}</strong>
+                                <div style="color: #4f46e5; font-weight: 700; font-size: 0.88rem;">{{ appt.customer.name if appt.customer else (appt.patient_name or "Visitor") }}</div>
                             {% endif %}
-                            <div style="font-size: 0.75rem; color: #64748b;">{{ appt.customer.phone if appt.customer else "" }}</div>
+                            <div style="font-size: 0.75rem; color: #64748b; margin-top: 1px;">{{ appt.customer.phone if appt.customer else "" }}</div>
                         </td>
-                        <td style="color: #334155; font-weight: 500;">
-                            {{ appt.doctor.name if appt.doctor else "General Doctor" }}
+                        <td>
+                            <div class="doctor-name-text">{{ appt.doctor.name if appt.doctor else "General Doctor" }}</div>
+                            {% if appt.doctor and appt.doctor.specialization %}
+                            <div class="doctor-spec-text" title="{{ appt.doctor.specialization }}">{{ appt.doctor.specialization }}</div>
+                            {% endif %}
                         </td>
-                        <td style="color: #475569;">
-                            {{ appt.service.name if appt.service else "Consultation" }}
+                        <td>
+                            <div class="service-name-text" title="{{ appt.service.name if appt.service else 'Consultation' }}">{{ appt.service.name if appt.service else "Consultation" }}</div>
                         </td>
                         <td>
                             {% if appt.status == 'CONFIRMED' %}
-                                <span class="badge badge-success">Confirmed</span>
+                                <span class="badge badge-success" style="background: #ecfdf5; color: #059669; border: 1px solid #a7f3d0; border-radius: 20px; font-weight: 700; font-size: 0.68rem; padding: 0.2rem 0.45rem; letter-spacing: 0.02em;">CONFIRMED</span>
                             {% elif appt.status == 'PENDING' %}
-                                <span class="badge badge-warning">Pending</span>
+                                <span class="badge badge-warning" style="background: #fffbeb; color: #d97706; border: 1px solid #fde68a; border-radius: 20px; font-weight: 700; font-size: 0.68rem; padding: 0.2rem 0.45rem;">PENDING</span>
                             {% elif appt.status == 'CANCELLED' %}
-                                <span class="badge badge-danger">Cancelled</span>
+                                <span class="badge badge-danger" style="background: #fef2f2; color: #dc2626; border: 1px solid #fecaca; border-radius: 20px; font-weight: 700; font-size: 0.68rem; padding: 0.2rem 0.45rem;">CANCELLED</span>
                             {% else %}
-                                <span class="badge badge-info">{{ appt.status }}</span>
+                                <span class="badge badge-info" style="border-radius: 20px; font-weight: 700; font-size: 0.68rem; padding: 0.2rem 0.45rem;">{{ appt.status }}</span>
                             {% endif %}
                         </td>
                     </tr>
@@ -194,7 +196,9 @@ function dismissRejectionNotice(reqId) {
         </div>
         {% else %}
         <div class="empty-state" style="padding: 2.5rem 1rem;">
-            <div class="empty-state-icon">📅</div>
+            <div class="empty-state-icon">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+            </div>
             <div class="empty-state-title">No upcoming appointments</div>
             <p style="font-size: 0.82rem; color: #64748b; margin: 0 0 1rem 0;">New patient appointments booked via AI or staff will appear here.</p>
             <a href="{% if session.get('business_id') %}/chat/{{ session.get('business_id') }}{% else %}/chat{% endif %}" class="btn btn-sm btn-primary" target="_blank">Test AI Booking Chat</a>
@@ -223,7 +227,9 @@ function dismissRejectionNotice(reqId) {
                 {% set has_activity = true %}
                 {% for handoff in human_handoffs[:3] %}
                 <div class="activity-item">
-                    <div class="activity-icon icon-handoff">👨‍💼</div>
+                    <div class="activity-icon icon-handoff">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><line x1="19" y1="8" x2="19" y2="14"/><line x1="22" y1="11" x2="16" y2="11"/></svg>
+                    </div>
                     <div class="activity-content">
                         <div class="activity-title">Human handoff request</div>
                         <div class="activity-subtitle">{{ handoff.customer.name if handoff.customer else "Patient" }} requested staff assistance ({{ handoff.handoff_reason or "Staff requested" }})</div>
@@ -238,24 +244,28 @@ function dismissRejectionNotice(reqId) {
                 {% set has_activity = true %}
                 {% for appt in today_appointments[:4] %}
                 <div class="activity-item">
-                    <div class="activity-icon icon-booking">📅</div>
+                    <div class="activity-icon icon-booking">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/><path d="M9 16l2 2 4-4"/></svg>
+                    </div>
                     <div class="activity-content">
                         <div class="activity-title">Appointment scheduled</div>
-                        <div class="activity-subtitle">Patient: {{ appt.customer.name if appt.customer else "Patient" }} • {{ appt.doctor.name if appt.doctor else "Doctor" }} at {{ appt.appointment_time }}</div>
+                        <div class="activity-subtitle">Patient: {{ appt.customer.name if appt.customer else "Patient" }} • {{ appt.doctor.name if appt.doctor else "Doctor" }} at {{ appt.appointment_time|format_12hr }}</div>
                     </div>
                     <div class="activity-time">Today</div>
                 </div>
                 {% endfor %}
             {% elif upcoming_appointments %}
                 {% set has_activity = true %}
-                {% for appt in upcoming_appointments[:3] %}
+                {% for appt in upcoming_appointments[:4] %}
                 <div class="activity-item">
-                    <div class="activity-icon icon-booking">📅</div>
+                    <div class="activity-icon icon-booking">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/><path d="M9 16l2 2 4-4"/></svg>
+                    </div>
                     <div class="activity-content">
                         <div class="activity-title">Upcoming appointment</div>
                         <div class="activity-subtitle">{{ appt.customer.name if appt.customer else "Patient" }} with {{ appt.doctor.name if appt.doctor else "Doctor" }} ({{ appt.appointment_date }})</div>
                     </div>
-                    <div class="activity-time">{{ appt.appointment_time }}</div>
+                    <div class="activity-time">{{ appt.appointment_time|format_12hr }}</div>
                 </div>
                 {% endfor %}
             {% endif %}
@@ -263,7 +273,9 @@ function dismissRejectionNotice(reqId) {
             <!-- If zero real activity exists -->
             {% if not has_activity %}
             <div class="empty-state" style="padding: 2.5rem 1rem;">
-                <div class="empty-state-icon">🤖</div>
+                <div class="empty-state-icon">
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+                </div>
                 <div class="empty-state-title">AI Receptionist is Active</div>
                 <p style="font-size: 0.82rem; color: #64748b; margin: 0;">Currently listening for incoming patient messages and booking inquiries.</p>
             </div>
@@ -273,14 +285,17 @@ function dismissRejectionNotice(reqId) {
 </div>
 
 <script>
-(function initDashboardDate() {
-    const el = document.getElementById('dashboardDateDisplay');
-    if (el) {
-        const options = { weekday: 'short', day: 'numeric', month: 'short', year: 'numeric' };
-        try {
-            el.textContent = new Date().toLocaleDateString(undefined, options);
-        } catch (e) {
-            el.textContent = 'Today';
+(function initDashboardDynamicHeader() {
+    // 1. Dynamic localized time-aware greeting
+    const greetingEl = document.getElementById('dynamicGreeting');
+    if (greetingEl) {
+        const hour = new Date().getHours();
+        if (hour >= 5 && hour < 12) {
+            greetingEl.textContent = 'Good morning';
+        } else if (hour >= 12 && hour < 17) {
+            greetingEl.textContent = 'Good afternoon';
+        } else {
+            greetingEl.textContent = 'Good evening';
         }
     }
 })();

@@ -1,359 +1,486 @@
 {% extends "base.html" %}
 
-{% block title %}{% if request.args.get('tab') == 'schedules' %}Doctor Schedules{% else %}Doctors Directory{% endif %} - {{ business.name }}{% endblock %}
+{% block title %}{% if active_tab == 'schedules' %}Doctor Schedules{% else %}Doctors Directory{% endif %} - {{ business.name }}{% endblock %}
 
 {% block content %}
+<!-- Segmented Control matching Reference Healthcare SaaS -->
 <div class="schedule-segmented-tabs mb-4">
-    <a href="/admin/doctors" class="tab-btn {% if request.args.get('tab') != 'schedules' %}active{% endif %}">
+    <button type="button" class="tab-btn {% if active_tab != 'schedules' %}active{% endif %}" id="tabBtnDirectory" onclick="switchDoctorTab('directory')">
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
         Doctors Directory
-    </a>
-    <a href="/admin/doctors?tab=schedules" class="tab-btn {% if request.args.get('tab') == 'schedules' %}active{% endif %}">
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+    </button>
+    <button type="button" class="tab-btn {% if active_tab == 'schedules' %}active{% endif %}" id="tabBtnSchedules" onclick="switchDoctorTab('schedules')">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
         Doctor Schedules (Weekly)
-    </a>
+    </button>
 </div>
 
-{% if request.args.get('tab') != 'schedules' %}
 <!-- ============================================================== -->
-<!-- SCREEN 5: DOCTORS DIRECTORY                                    -->
+<!-- SECTION 1: DOCTORS DIRECTORY (Screen 5)                         -->
 <!-- ============================================================== -->
-<div class="dashboard-header mb-4">
-    <div>
-        <h1 class="page-title">Doctors</h1>
-        <p class="page-subtitle">Manage your clinic doctors, practicing profiles, and availability.</p>
-    </div>
-    <div class="header-actions">
-        <button type="button" class="btn btn-primary" onclick="openModal('addDoctorModal')">
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
-            Add Doctor
-        </button>
-    </div>
-</div>
-
-<!-- Search & Quick Filters -->
-<div class="filter-card mb-4">
-    <div style="display: flex; gap: 12px; align-items: center; flex-wrap: wrap;">
-        <div style="flex: 1; min-width: 260px; position: relative;">
-            <input type="text" id="doctorSearchInput" class="form-control" placeholder="Search doctor by name or specialization..." onkeyup="filterDoctorsGrid()" style="padding-left: 2.2rem;">
-            <span style="position: absolute; left: 12px; top: 50%; transform: translateY(-50%); color: #94a3b8;">
-                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
-            </span>
-        </div>
-        <div style="font-size: 0.85rem; color: #64748b; font-weight: 500;">
-            Showing <strong id="doctorCountText">{{ doctors|length }}</strong> doctors
-        </div>
-    </div>
-</div>
-
-<!-- Doctor Cards Grid -->
-{% if doctors %}
-<div class="doc-cards-grid" id="doctorsGridContainer">
-    {% for doc in doctors %}
-    <div class="doc-card" data-name="{{ doc.name|lower }}" data-spec="{{ doc.specialization|lower }}">
+<div id="doctorsDirectorySection" style="display: {% if active_tab != 'schedules' %}block{% else %}none{% endif %};">
+    <div class="dashboard-header mb-4">
         <div>
-            <div class="doc-header">
-                <div class="doc-avatar">
-                    {{ doc.name[4] if doc.name.startswith('Dr. ') and doc.name|length > 4 else doc.name[0] }}
-                </div>
-                <div class="doc-info">
-                    <div class="doc-name">{{ doc.name }}</div>
-                    <div class="doc-specialty">{{ doc.specialization }}</div>
-                </div>
-                <div>
-                    {% if doc.is_active %}
-                        <span class="badge badge-success">● Available Today</span>
-                    {% else %}
-                        <span class="badge badge-secondary">● Inactive</span>
-                    {% endif %}
-                </div>
-            </div>
-
-            <!-- Doctor Metrics -->
-            <div class="doc-metrics-row">
-                <div class="doc-metric">
-                    <div class="doc-metric-num">{{ doc.appointments|length }}</div>
-                    <div class="doc-metric-lbl">Appointments</div>
-                </div>
-                <div class="doc-metric">
-                    <div class="doc-metric-num">{{ doc.slot_interval or 30 }}m</div>
-                    <div class="doc-metric-lbl">Slot Step</div>
-                </div>
-                <div class="doc-metric">
-                    {% set active_days = doc.schedules|selectattr('is_available')|list|length if doc.schedules else 6 %}
-                    <div class="doc-metric-num">{{ active_days }} / 7</div>
-                    <div class="doc-metric-lbl">Active Days</div>
-                </div>
-            </div>
-
-            <div style="font-size: 0.8rem; color: #64748b; margin-bottom: 1.25rem; background: #fafbfc; padding: 8px 12px; border-radius: 6px; border: 1px solid #f1f5f9;">
-                <div>⏰ <strong>Hours:</strong> {{ doc.start_time or '09:00' }} – {{ doc.end_time or '17:00' }}</div>
-                {% if doc.break_start_time and doc.break_end_time %}
-                <div style="margin-top: 2px;">☕ <strong>Lunch:</strong> {{ doc.break_start_time }} – {{ doc.break_end_time }}</div>
-                {% endif %}
-                {% if doc.leaves %}
-                <div style="margin-top: 2px; color: #b91c1c;">🚫 <strong>Blocked:</strong> {{ doc.leaves|length }} leave date(s)</div>
-                {% endif %}
-            </div>
+            <h1 class="page-title">Doctors</h1>
+            <p class="page-subtitle">Manage your clinic doctors, practicing profiles, and weekly schedules.</p>
         </div>
-
-        <div style="display: flex; gap: 8px; align-items: center; justify-content: space-between; border-top: 1px solid #f1f5f9; padding-top: 1rem;">
-            <a href="/admin/doctors?tab=schedules&doc_id={{ doc.id }}" class="btn btn-outline btn-sm" style="flex: 1; text-align: center;">
-                📅 View Schedule
-            </a>
-            <button type="button" class="btn btn-secondary btn-sm" onclick="openModal('editDoctorModal_{{ doc.id }}')" title="Edit profile & working hours">
-                ✏️ Edit
+        <div class="header-actions">
+            <button type="button" class="btn btn-primary" onclick="openModal('addDoctorModal')">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+                Add Doctor
             </button>
-            <form action="/admin/doctors/toggle/{{ doc.id }}" method="POST" style="margin: 0;">
-                <button type="submit" class="btn btn-ghost btn-sm" style="color: {% if doc.is_active %}#dc2626{% else %}#16a34a{% endif %}; font-weight: 600;" title="{% if doc.is_active %}Deactivate doctor{% else %}Activate doctor{% endif %}">
-                    {% if doc.is_active %}Deactivate{% else %}Activate{% endif %}
-                </button>
-            </form>
         </div>
     </div>
-    {% endfor %}
-</div>
-{% else %}
-<div class="section-card text-center" style="padding: 3rem 1rem;">
-    <div style="font-size: 2.5rem; margin-bottom: 1rem;">👨‍⚕️</div>
-    <h3 style="color: var(--text-main); margin-bottom: 0.5rem;">No Doctors Added Yet</h3>
-    <p style="color: var(--text-muted); max-width: 420px; margin: 0 auto 1.5rem;">Get started by adding your clinic's doctors, specialties, and their weekly working shifts.</p>
-    <button type="button" class="btn btn-primary" onclick="openModal('addDoctorModal')">➕ Add First Doctor</button>
-</div>
-{% endif %}
 
-{% else %}
-<!-- ============================================================== -->
-<!-- SCREEN 6: DOCTOR SCHEDULES (WEEKLY CALENDAR)                   -->
-<!-- ============================================================== -->
-{% set selected_doc_id = request.args.get('doc_id')|int if request.args.get('doc_id') else (doctors[0].id if doctors else None) %}
-{% set active_doc = None %}
-{% for d in doctors %}
-    {% if d.id == selected_doc_id %}
-        {% set active_doc = d %}
-    {% endif %}
-{% endfor %}
-{% if not active_doc and doctors %}
-    {% set active_doc = doctors[0] %}
-{% endif %}
-
-<div class="dashboard-header mb-4">
-    <div>
-        <h1 class="page-title">Doctor Schedules</h1>
-        <p class="page-subtitle">View and manage doctor weekly availability, practicing hours, and breaks.</p>
-    </div>
-    <div class="header-actions" style="display: flex; gap: 10px; align-items: center; flex-wrap: wrap;">
-        {% if active_doc %}
-        <button type="button" class="btn btn-secondary" onclick="openModal('editDoctorModal_{{ active_doc.id }}')">
-            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
-            Edit Schedule
-        </button>
-        <button type="button" class="btn btn-primary" onclick="openModal('addLeaveModal')">
-            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
-            Add Blocked Date
-        </button>
-        {% endif %}
-    </div>
-</div>
-
-<!-- Controls Bar: Doctor Selector, Week Info, and Legend -->
-<div class="filter-card mb-4">
-    <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 1rem;">
-        <div style="display: flex; align-items: center; gap: 12px; flex-wrap: wrap;">
-            <label style="font-size: 0.85rem; font-weight: 700; color: #475569; margin: 0;">Doctor:</label>
-            <select id="scheduleDocSelect" class="form-control" style="font-weight: 600; min-width: 220px;" onchange="window.location.href='/admin/doctors?tab=schedules&doc_id=' + this.value;">
-                {% for d in doctors %}
-                <option value="{{ d.id }}" {% if active_doc and d.id == active_doc.id %}selected{% endif %}>
-                    {{ d.name }} ({{ d.specialization }})
-                </option>
-                {% endfor %}
-            </select>
-            <span class="badge badge-info" style="font-size: 0.8rem; padding: 5px 10px;">
-                🗓️ Standard Weekly Template
-            </span>
-        </div>
-
-        <div class="cal-legend" style="margin: 0;">
-            <div class="legend-item"><span class="legend-dot dot-available"></span> Available</div>
-            <div class="legend-item"><span class="legend-dot dot-break"></span> Lunch Break</div>
-            <div class="legend-item"><span class="legend-dot dot-unavailable"></span> Closed / Off</div>
-            <div class="legend-item"><span class="legend-dot dot-leave"></span> Leave / Blocked</div>
+    <!-- Search & Quick Filters -->
+    <div class="filter-card mb-4" style="background: #ffffff; border: 1.5px solid #e2e8f0; border-radius: 14px; padding: 1rem 1.4rem; box-shadow: 0 1px 3px rgba(15, 23, 42, 0.04);">
+        <div style="display: flex; gap: 14px; align-items: center; justify-content: space-between; flex-wrap: wrap;">
+            <div style="flex: 1; min-width: 280px; position: relative; display: flex; align-items: center;">
+                <span style="position: absolute; left: 14px; color: #94a3b8; pointer-events: none; display: flex; align-items: center;">
+                    <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+                </span>
+                <input type="text" id="doctorSearchInput" class="form-control" placeholder="Search doctor by name or specialization..." onkeyup="filterDoctorsGrid()" style="padding-left: 2.65rem; height: 48px; font-size: 0.92rem; border-radius: 10px; border: 1.5px solid #cbd5e1; background: #f8fafc; transition: all 0.2s ease;">
+            </div>
+            <div style="display: inline-flex; align-items: center; gap: 8px; background: #f1f5f9; padding: 8px 16px; border-radius: 20px; font-size: 0.84rem; color: #475569; font-weight: 600; border: 1px solid #e2e8f0;">
+                <span style="width: 8px; height: 8px; border-radius: 50%; background: #10b981; display: inline-block;"></span>
+                <span>Active Doctors: <strong id="doctorCountText" style="color: #0f172a; font-weight: 800; font-family: 'Plus Jakarta Sans', sans-serif;">{{ doctors|length }}</strong></span>
+            </div>
         </div>
     </div>
-</div>
 
-{% if active_doc %}
-<!-- Map active doctor schedules -->
-{% set sched_map = {} %}
-{% if active_doc.schedules %}
-    {% for s in active_doc.schedules %}
-        {% set _ = sched_map.update({s.day_of_week: s}) %}
-    {% endfor %}
-{% endif %}
-
-<!-- Weekly Calendar Grid Table (Screen 6) -->
-<div class="calendar-table-wrap mb-4">
-    <table class="calendar-grid-table">
-        <thead>
-            <tr>
-                <th class="cal-time-col" style="background: #f8fafc; border-radius: 8px; padding: 8px;">Time</th>
-                {% for day in days_of_week %}
-                {% set day_sched = sched_map.get(day) %}
-                {% set is_avail = day_sched.is_available if day_sched else (day in (active_doc.working_days.split(',') if active_doc.working_days else [])) %}
-                <th class="cal-day-header">
-                    <div>{{ day }}</div>
-                    <div style="font-size: 0.72rem; font-weight: normal; margin-top: 2px;">
-                        {% if is_avail %}
-                            <span style="color: #16a34a; font-weight: 700;">Open</span>
+    <!-- Doctor Cards Grid -->
+    {% if doctors %}
+    <div class="doc-cards-grid" id="doctorsGridContainer" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(340px, 1fr)); gap: 1.25rem;">
+        {% for doc in doctors %}
+        <div class="doc-card" data-name="{{ doc.name|lower }}" data-spec="{{ doc.specialization|lower }}" style="background: #ffffff; border: 1.5px solid #e2e8f0; border-radius: 16px; padding: 1.5rem; display: flex; flex-direction: column; justify-content: space-between; box-shadow: 0 2px 8px rgba(15, 23, 42, 0.04); transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);">
+            <div>
+                <div class="doc-header" style="display: flex; align-items: center; gap: 12px; margin-bottom: 1.1rem;">
+                    <div class="doc-avatar" style="width: 50px; height: 50px; min-width: 50px; border-radius: 50%; background: linear-gradient(135deg, #e0e7ff 0%, #ede9fe 100%); color: #4338ca; display: flex; align-items: center; justify-content: center; font-size: 1.2rem; font-weight: 800; font-family: 'Plus Jakarta Sans', sans-serif; border: 2px solid #c7d2fe; box-shadow: 0 2px 6px rgba(79, 70, 229, 0.12);">
+                        {{ doc.name[4] if doc.name.startswith('Dr. ') and doc.name|length > 4 else doc.name[0] }}
+                    </div>
+                    <div class="doc-info" style="flex: 1; min-width: 0;">
+                        <div class="doc-name" style="font-size: 1.08rem; font-weight: 800; color: #0f172a; font-family: 'Plus Jakarta Sans', sans-serif; line-height: 1.25;">{{ doc.name }}</div>
+                        <div class="doc-specialty" style="font-size: 0.82rem; color: #64748b; font-weight: 500; margin-top: 3px;">{{ doc.specialization }}</div>
+                    </div>
+                    <div>
+                        {% if doc.is_active %}
+                            <span class="badge badge-success" style="font-size: 0.74rem; font-weight: 700; padding: 5px 12px; border-radius: 20px; text-transform: uppercase; letter-spacing: 0.4px;"><span class="status-dot dot-success"></span> Available</span>
                         {% else %}
-                            <span style="color: #94a3b8;">Closed</span>
+                            <span class="badge badge-secondary" style="font-size: 0.74rem; font-weight: 700; padding: 5px 12px; border-radius: 20px; text-transform: uppercase; letter-spacing: 0.4px;"><span class="status-dot dot-unavailable"></span> Inactive</span>
                         {% endif %}
                     </div>
-                </th>
-                {% endfor %}
-            </tr>
-        </thead>
-        <tbody>
-            {% set hours = [
-                ('09:00', '09:00 AM'),
-                ('10:00', '10:00 AM'),
-                ('11:00', '11:00 AM'),
-                ('12:00', '12:00 PM'),
-                ('13:00', '01:00 PM'),
-                ('14:00', '02:00 PM'),
-                ('15:00', '03:00 PM'),
-                ('16:00', '04:00 PM'),
-                ('17:00', '05:00 PM'),
-                ('18:00', '06:00 PM'),
-                ('19:00', '07:00 PM'),
-                ('20:00', '08:00 PM')
-            ] %}
+                </div>
 
-            {% for h_code, h_label in hours %}
-            <tr>
-                <td class="cal-time-col">{{ h_label }}</td>
-                {% for day in days_of_week %}
-                    {% set day_sched = sched_map.get(day) %}
-                    {% set is_avail = day_sched.is_available if day_sched else (day in (active_doc.working_days.split(',') if active_doc.working_days else [])) %}
-                    {% set s_start = day_sched.start_time if day_sched else active_doc.start_time %}
-                    {% set s_end = day_sched.end_time if day_sched else active_doc.end_time %}
-                    {% set s2_start = day_sched.shift_2_start_time if day_sched else active_doc.shift_2_start_time %}
-                    {% set s2_end = day_sched.shift_2_end_time if day_sched else active_doc.shift_2_end_time %}
-                    {% set b_start = active_doc.break_start_time %}
-                    {% set b_end = active_doc.break_end_time %}
+                <!-- Doctor Metrics -->
+                <div class="doc-metrics-row" style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; background: #f8fafc; border: 1px solid #eef2f6; border-radius: 12px; padding: 12px 10px; margin-bottom: 1.15rem; text-align: center;">
+                    <div class="doc-metric">
+                        <div class="doc-metric-num" style="font-size: 1.25rem; font-weight: 800; color: #0f172a; font-family: 'Plus Jakarta Sans', sans-serif; line-height: 1.2;">{{ doc.appointments|length }}</div>
+                        <div class="doc-metric-lbl" style="font-size: 0.68rem; color: #64748b; font-weight: 700; text-transform: uppercase; letter-spacing: 0.04em; margin-top: 3px;">Appointments</div>
+                    </div>
+                    <div class="doc-metric" style="border-left: 1px solid #e2e8f0; border-right: 1px solid #e2e8f0;">
+                        <div class="doc-metric-num" style="font-size: 1.25rem; font-weight: 800; color: #4f46e5; font-family: 'Plus Jakarta Sans', sans-serif; line-height: 1.2;">{{ doc.slot_interval or 30 }}m</div>
+                        <div class="doc-metric-lbl" style="font-size: 0.68rem; color: #64748b; font-weight: 700; text-transform: uppercase; letter-spacing: 0.04em; margin-top: 3px;">Slot Step</div>
+                    </div>
+                    <div class="doc-metric">
+                        {% set active_days = doc.schedules|selectattr('is_available')|list|length if doc.schedules else 6 %}
+                        <div class="doc-metric-num" style="font-size: 1.25rem; font-weight: 800; color: #059669; font-family: 'Plus Jakarta Sans', sans-serif; line-height: 1.2;">{{ active_days }}/7</div>
+                        <div class="doc-metric-lbl" style="font-size: 0.68rem; color: #64748b; font-weight: 700; text-transform: uppercase; letter-spacing: 0.04em; margin-top: 3px;">Active Days</div>
+                    </div>
+                </div>
 
-                    {% set is_break = (b_start and b_end and h_code >= b_start and h_code < b_end) %}
-                    {% set is_shift1 = (s_start and s_end and h_code >= s_start and h_code < s_end and not is_break) %}
-                    {% set is_shift2 = (s2_start and s2_end and h_code >= s2_start and h_code < s2_end) %}
-
-                    {% if not is_avail %}
-                        <td class="cal-slot cal-slot-unavailable">Off</td>
-                    {% elif is_break %}
-                        <td class="cal-slot cal-slot-break">☕ Break</td>
-                    {% elif is_shift1 or is_shift2 %}
-                        <td class="cal-slot cal-slot-available">Available</td>
-                    {% else %}
-                        <td class="cal-slot cal-slot-unavailable">—</td>
+                <!-- Schedule Summary Badges -->
+                <div class="doc-hours-badge" style="background: #ffffff; border: 1px solid #e2e8f0; border-radius: 10px; padding: 10px 14px; margin-bottom: 1.25rem; display: flex; flex-direction: column; gap: 6px;">
+                    <div class="doc-hours-row" style="display: flex; align-items: center; gap: 8px; font-size: 0.84rem; color: #334155;">
+                        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#64748b" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink: 0;"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+                        <span><strong style="color: #0f172a;">Hours:</strong> {{ (doc.start_time or '09:00')|format_12hr }} – {{ (doc.end_time or '17:00')|format_12hr }}</span>
+                    </div>
+                    {% if doc.break_start_time and doc.break_end_time %}
+                    <div class="doc-hours-row" style="display: flex; align-items: center; gap: 8px; font-size: 0.84rem; color: #b45309;">
+                        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#f59e0b" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink: 0;"><path d="M18 8h1a4 4 0 0 1 0 8h-1"/><path d="M2 8h16v9a4 4 0 0 1-4 4H6a4 4 0 0 1-4-4V8z"/><line x1="6" y1="1" x2="6" y2="4"/><line x1="10" y1="1" x2="10" y2="4"/><line x1="14" y1="1" x2="14" y2="4"/></svg>
+                        <span><strong>Lunch:</strong> {{ doc.break_start_time|format_12hr }} – {{ doc.break_end_time|format_12hr }}</span>
+                    </div>
                     {% endif %}
-                {% endfor %}
-            </tr>
-            {% endfor %}
-        </tbody>
-    </table>
-</div>
-
-<!-- Detailed Day-by-Day Schedule Summary -->
-<div class="section-card mb-4">
-    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
-        <h3 style="margin: 0; font-size: 1.05rem; color: var(--text-main);">📋 Working Hours Breakdown: {{ active_doc.name }}</h3>
-        <button type="button" class="btn btn-secondary btn-sm" onclick="openModal('editDoctorModal_{{ active_doc.id }}')">Edit Times</button>
-    </div>
-    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 12px;">
-        {% for day in days_of_week %}
-            {% set day_sched = sched_map.get(day) %}
-            {% set is_avail = day_sched.is_available if day_sched else (day in (active_doc.working_days.split(',') if active_doc.working_days else [])) %}
-            {% set s_start = day_sched.start_time if day_sched else active_doc.start_time %}
-            {% set s_end = day_sched.end_time if day_sched else active_doc.end_time %}
-            {% set s2_start = day_sched.shift_2_start_time if day_sched else active_doc.shift_2_start_time %}
-            {% set s2_end = day_sched.shift_2_end_time if day_sched else active_doc.shift_2_end_time %}
-            <div style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 12px; text-align: center;">
-                <div style="font-weight: 700; color: var(--text-main); font-size: 0.9rem; margin-bottom: 4px;">{{ day[:3] }}</div>
-                {% if is_avail %}
-                    <span class="badge badge-success" style="font-size: 0.7rem; margin-bottom: 6px;">Available</span>
-                    <div style="font-size: 0.78rem; color: #475569; font-weight: 600;">{{ s_start or '09:00' }} – {{ s_end or '17:00' }}</div>
-                    {% if s2_start and s2_end %}
-                    <div style="font-size: 0.72rem; color: #b45309; margin-top: 4px;">Shift 2: {{ s2_start }}–{{ s2_end }}</div>
+                    {% if doc.leaves %}
+                    <div class="doc-hours-row" style="display: flex; align-items: center; gap: 8px; font-size: 0.84rem; color: #dc2626;">
+                        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#ef4444" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink: 0;"><circle cx="12" cy="12" r="10"/><line x1="4.93" y1="4.93" x2="19.07" y2="19.07"/></svg>
+                        <span><strong>Blocked:</strong> {{ doc.leaves|length }} leave date(s)</span>
+                    </div>
                     {% endif %}
-                {% else %}
-                    <span class="badge badge-secondary" style="font-size: 0.7rem; margin-bottom: 6px;">Closed</span>
-                    <div style="font-size: 0.78rem; color: #94a3b8;">Day Off</div>
-                {% endif %}
-            </div>
-        {% endfor %}
-    </div>
-</div>
-
-<!-- Blocked Leaves & Vacation Management for Selected Doctor -->
-<div class="section-card">
-    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem; flex-wrap: wrap; gap: 8px;">
-        <div>
-            <h3 style="margin: 0; font-size: 1.05rem; color: var(--text-main);">🚫 Blocked Dates & Leaves: {{ active_doc.name }}</h3>
-            <p style="margin: 2px 0 0 0; font-size: 0.8rem; color: var(--text-muted);">Slots on these dates are automatically blocked and prevented from being booked by the AI receptionist.</p>
-        </div>
-        <button type="button" class="btn btn-secondary btn-sm" onclick="openModal('addLeaveModal')">
-            + Add Blocked Date
-        </button>
-    </div>
-
-    {% if active_doc.leaves %}
-    <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 12px; margin-bottom: 1.25rem;">
-        {% for leave in active_doc.leaves %}
-        <div style="background: #ffffff; border: 1px solid #fee2e2; border-radius: 8px; padding: 12px; display: flex; justify-content: space-between; align-items: center;">
-            <div>
-                <div style="font-weight: 700; color: #991b1b; font-size: 0.88rem;">📅 {{ leave.leave_date }}</div>
-                <div style="font-size: 0.8rem; color: #475569; margin-top: 2px;">
-                    {% if leave.is_all_day %}All Day{% else %}{{ leave.start_time }} – {{ leave.end_time }}{% endif %}
-                    {% if leave.reason %} • {{ leave.reason }}{% endif %}
                 </div>
             </div>
-            <form action="/admin/doctors/leave/delete/{{ leave.id }}" method="POST" style="margin: 0;">
-                <button type="submit" class="btn btn-ghost btn-sm" style="color: #ef4444; padding: 4px 8px;" title="Remove this blocked date">✕ Delete</button>
-            </form>
+
+            <div style="display: flex; gap: 8px; align-items: center; justify-content: space-between; border-top: 1px solid #f1f5f9; padding-top: 1rem;">
+                <button type="button" class="btn btn-outline btn-sm" style="flex: 1; text-align: center; display: inline-flex; align-items: center; justify-content: center; gap: 6px; border-radius: 8px; font-weight: 600;" onclick="switchDoctorTab('schedules', '{{ doc.id }}')">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+                    View Schedule
+                </button>
+                <button type="button" class="btn btn-secondary btn-sm" onclick="openModal('editDoctorModal_{{ doc.id }}')" title="Edit profile & working hours" style="display: inline-flex; align-items: center; gap: 5px; border-radius: 8px; font-weight: 600;">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+                    Edit
+                </button>
+                <form action="/admin/doctors/toggle/{{ doc.id }}" method="POST" style="margin: 0;">
+                    <button type="submit" class="btn btn-ghost btn-sm" style="color: {% if doc.is_active %}#dc2626{% else %}#16a34a{% endif %}; font-weight: 700; border-radius: 8px;" title="{% if doc.is_active %}Deactivate doctor{% else %}Activate doctor{% endif %}">
+                        {% if doc.is_active %}Deactivate{% else %}Activate{% endif %}
+                    </button>
+                </form>
+            </div>
         </div>
         {% endfor %}
     </div>
     {% else %}
-    <p style="font-size: 0.85rem; color: #64748b; margin-bottom: 1.25rem;">No blocked leave dates currently scheduled for this doctor.</p>
+    <div class="section-card text-center" style="padding: 3.5rem 1.5rem;">
+        <div style="width: 56px; height: 56px; border-radius: 50%; background: var(--primary-light); color: var(--primary); display: flex; align-items: center; justify-content: center; margin: 0 auto 1.25rem;">
+            <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+        </div>
+        <h3 style="color: var(--text-main); margin-bottom: 0.5rem; font-size: 1.15rem; font-weight: 700;">No Doctors Added Yet</h3>
+        <p style="color: var(--text-muted); max-width: 420px; margin: 0 auto 1.5rem; font-size: 0.88rem;">Get started by adding your clinic's doctors, specialties, and their weekly practicing shifts.</p>
+        <button type="button" class="btn btn-primary" onclick="openModal('addDoctorModal')">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+            Add First Doctor
+        </button>
+    </div>
+    {% endif %}
+</div>
+
+<!-- ============================================================== -->
+<!-- SECTION 2: DOCTOR SCHEDULES (WEEKLY CALENDAR) (Screen 6)        -->
+<!-- ============================================================== -->
+<div id="doctorSchedulesSection" style="display: {% if active_tab == 'schedules' %}block{% else %}none{% endif %};">
+    {% if not active_doc %}
+        {% set selected_doc_id = (request.args.get('doc_id') or request.args.get('doctor_id'))|int if (request.args.get('doc_id') or request.args.get('doctor_id')) else (doctors[0].id if doctors else None) %}
+        {% set ns = namespace(doc=None) %}
+        {% for d in doctors %}
+            {% if d.id == selected_doc_id %}
+                {% set ns.doc = d %}
+            {% endif %}
+        {% endfor %}
+        {% set active_doc = ns.doc or (doctors[0] if doctors else None) %}
     {% endif %}
 
-    <!-- Quick Inline Add Leave Form -->
-    <div style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 12px;">
-        <div style="font-size: 0.82rem; font-weight: 700; color: #334155; margin-bottom: 8px;">Quick Add Blocked Date for {{ active_doc.name }}:</div>
-        <form action="/admin/doctors/leave/add" method="POST" style="display: flex; flex-wrap: wrap; gap: 8px; align-items: center;">
-            <input type="hidden" name="doctor_id" value="{{ active_doc.id }}">
-            <input type="date" name="leave_date" required style="padding: 6px 10px; border-radius: 6px; border: 1px solid #cbd5e1; font-size: 0.85rem;">
-            <input type="text" name="reason" placeholder="Reason (e.g. Vacation, Medical Leave)" style="padding: 6px 10px; border-radius: 6px; border: 1px solid #cbd5e1; font-size: 0.85rem; flex: 1; min-width: 160px;">
-            <label style="font-size: 0.82rem; cursor: pointer; display: flex; align-items: center; gap: 4px; font-weight: 600; color: #475569;">
-                <input type="checkbox" name="is_all_day" checked style="accent-color: var(--primary);"> All Day
-            </label>
-            <button type="submit" class="btn btn-primary btn-sm">+ Save Blocked Date</button>
-        </form>
+    <div class="dashboard-header mb-4">
+        <div>
+            <h1 class="page-title">Doctor Schedules</h1>
+            <p class="page-subtitle">View and configure doctor weekly practicing hours, lunch breaks, and leaves.</p>
+        </div>
+        <div class="header-actions" style="display: flex; gap: 10px; align-items: center; flex-wrap: wrap;">
+            {% if active_doc %}
+            <button type="button" class="btn btn-secondary" onclick="openModal('editDoctorModal_{{ active_doc.id }}')" style="display: inline-flex; align-items: center; gap: 6px;">
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+                Edit Schedule
+            </button>
+            <button type="button" class="btn btn-primary" onclick="openModal('addLeaveModal')" style="display: inline-flex; align-items: center; gap: 6px;">
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+                Add Blocked Date
+            </button>
+            {% endif %}
+        </div>
     </div>
-</div>
-{% endif %}
 
-{% endif %}
+    <!-- Controls Bar: Doctor Selector, Week Info, and Legend -->
+    <div class="filter-card mb-4">
+        <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 1rem;">
+            <div style="display: flex; align-items: center; gap: 12px; flex-wrap: wrap;">
+                <label style="font-size: 0.85rem; font-weight: 700; color: #475569; margin: 0; display: inline-flex; align-items: center; gap: 6px;">
+                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/></svg>
+                    Doctor:
+                </label>
+                <select id="scheduleDocSelect" class="form-control" style="font-weight: 600; min-width: 240px;" onchange="window.location.href='/admin/doctors?tab=schedules&doc_id=' + this.value;">
+                    {% for d in doctors %}
+                    <option value="{{ d.id }}" {% if active_doc and d.id == active_doc.id %}selected{% endif %}>
+                        {{ d.name }} ({{ d.specialization }})
+                    </option>
+                    {% endfor %}
+                </select>
+                <span class="badge badge-info" style="font-size: 0.8rem; padding: 5px 10px; display: inline-flex; align-items: center; gap: 5px;">
+                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+                    Standard Weekly Template
+                </span>
+            </div>
+
+            <div class="cal-legend" style="margin: 0;">
+                <div class="legend-item"><span class="legend-dot dot-available"></span> Available</div>
+                <div class="legend-item"><span class="legend-dot dot-break"></span> Lunch Break</div>
+                <div class="legend-item"><span class="legend-dot dot-unavailable"></span> Closed / Off</div>
+                <div class="legend-item"><span class="legend-dot dot-leave"></span> Leave / Blocked</div>
+            </div>
+        </div>
+    </div>
+
+    {% if active_doc %}
+    <!-- Map active doctor schedules -->
+    {% set sched_map = {} %}
+    {% if active_doc.schedules %}
+        {% for s in active_doc.schedules %}
+            {% set _ = sched_map.update({s.day_of_week: s}) %}
+        {% endfor %}
+    {% endif %}
+
+    <!-- Calendar Slider & Shift Jump Bar (Screen 6) -->
+    <div class="calendar-slider-bar">
+        <div style="display: flex; align-items: center; gap: 10px; flex-wrap: wrap;">
+            <span style="font-size: 0.84rem; font-weight: 700; color: #334155; display: inline-flex; align-items: center; gap: 6px;">
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#4f46e5" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+                Time Jump:
+            </span>
+            {% if auto_min_hour is not defined or (auto_min_hour <= 8 and auto_max_hour >= 8) %}
+            <button type="button" class="btn btn-outline btn-sm" onclick="slideCalendarToHour('08:00')" style="padding: 4px 12px; font-size: 0.78rem; font-weight: 700; border-radius: 20px; border: 1.5px solid #e2e8f0; background: #ffffff;">
+                🌅 Morning (08:00 AM)
+            </button>
+            {% elif auto_min_hour <= 9 and auto_max_hour >= 9 %}
+            <button type="button" class="btn btn-outline btn-sm" onclick="slideCalendarToHour('09:00')" style="padding: 4px 12px; font-size: 0.78rem; font-weight: 700; border-radius: 20px; border: 1.5px solid #e2e8f0; background: #ffffff;">
+                🌅 Morning (09:00 AM)
+            </button>
+            {% endif %}
+            {% if (auto_min_hour is not defined or auto_min_hour <= 13) and (auto_max_hour is not defined or auto_max_hour >= 13) %}
+            <button type="button" class="btn btn-outline btn-sm" onclick="slideCalendarToHour('13:00')" style="padding: 4px 12px; font-size: 0.78rem; font-weight: 700; border-radius: 20px; border: 1.5px solid #e2e8f0; background: #ffffff;">
+                ☀️ Afternoon (01:00 PM)
+            </button>
+            {% endif %}
+            {% if (auto_min_hour is not defined or auto_min_hour <= 17) and (auto_max_hour is not defined or auto_max_hour >= 17) %}
+            <button type="button" class="btn btn-outline btn-sm" onclick="slideCalendarToHour('17:00')" style="padding: 4px 12px; font-size: 0.78rem; font-weight: 700; border-radius: 20px; border: 1.5px solid #e2e8f0; background: #ffffff;">
+                🌆 Evening (05:00 PM)
+            </button>
+            {% endif %}
+            {% if auto_max_hour is not defined or auto_max_hour >= 21 %}
+            <button type="button" class="btn btn-outline btn-sm" onclick="slideCalendarToHour('21:00')" style="padding: 4px 12px; font-size: 0.78rem; font-weight: 700; border-radius: 20px; border: 1.5px solid #c7d2fe; background: #eef2ff; color: #4338ca;">
+                🌙 Night (09:00 PM – 11:59 PM)
+            </button>
+            {% endif %}
+        </div>
+
+        <div style="display: flex; align-items: center; gap: 12px;">
+            <span style="font-size: 0.8rem; font-weight: 700; color: #475569;" id="sliderHourDisplay">Slider: {{ calendar_hours[0][1] if calendar_hours else '09:00 AM' }}</span>
+            <input type="range" min="{{ auto_min_hour if auto_min_hour is defined else 9 }}" max="{{ auto_max_hour if auto_max_hour is defined else 17 }}" value="{{ auto_min_hour if auto_min_hour is defined else 9 }}" step="1" class="calendar-slider-input" id="calendarHourSlider" oninput="onHourSliderMove(this.value)" title="Slide to scroll through doctor hours">
+        </div>
+    </div>
+
+    <!-- Weekly Calendar Grid Table (Screen 6 - Scrollable Viewport with Slider) -->
+    <div class="calendar-table-wrap mb-4" id="calendarTableScrollWrap">
+        <table class="calendar-grid-table">
+            <thead>
+                <tr>
+                    <th class="cal-time-col">TIME</th>
+                    {% for day in days_of_week %}
+                    {% set day_sched = sched_map.get(day) %}
+                    {% set is_avail = day_sched.is_available if day_sched else (day in (active_doc.working_days.split(',') if active_doc.working_days else [])) %}
+                    <th class="cal-day-header">
+                        <div>{{ day }}</div>
+                        <div style="margin-top: 4px;">
+                            {% if is_avail %}
+                                <span class="badge badge-success" style="font-size: 0.68rem; padding: 2px 7px;">Open</span>
+                            {% else %}
+                                <span class="badge badge-secondary" style="font-size: 0.68rem; padding: 2px 7px;">Closed</span>
+                            {% endif %}
+                        </div>
+                    </th>
+                    {% endfor %}
+                </tr>
+            </thead>
+            <tbody>
+                {% set hours = calendar_hours if calendar_hours else [
+                    ('09:00', '09:00 AM'),
+                    ('10:00', '10:00 AM'),
+                    ('11:00', '11:00 AM'),
+                    ('12:00', '12:00 PM'),
+                    ('13:00', '01:00 PM'),
+                    ('14:00', '02:00 PM'),
+                    ('15:00', '03:00 PM'),
+                    ('16:00', '04:00 PM'),
+                    ('17:00', '05:00 PM')
+                ] %}
+
+                {% for h_code, h_label in hours %}
+                <tr id="calRow_{{ h_code|replace(':', '') }}">
+                    <td class="cal-time-col">{{ h_label }}</td>
+                    {% for day in days_of_week %}
+                        {% set day_sched = sched_map.get(day) %}
+                        {% set is_avail = day_sched.is_available if day_sched else (day in (active_doc.working_days.split(',') if active_doc.working_days else [])) %}
+                        {% set s_start = day_sched.start_time if day_sched else active_doc.start_time %}
+                        {% set s_end = day_sched.end_time if day_sched else active_doc.end_time %}
+                        {% set s2_start = day_sched.shift_2_start_time if day_sched else active_doc.shift_2_start_time %}
+                        {% set s2_end = day_sched.shift_2_end_time if day_sched else active_doc.shift_2_end_time %}
+                        {% set b_start = active_doc.break_start_time %}
+                        {% set b_end = active_doc.break_end_time %}
+
+                        {% set is_break = (b_start and b_end and h_code >= b_start and h_code < b_end) %}
+                        {% set is_shift1 = (s_start and s_end and (
+                            (h_code >= s_start) if s_end in ['00:00', '24:00', '23:59'] else
+                            (h_code >= s_start and h_code < s_end) if s_start <= s_end else
+                            (h_code >= s_start or h_code < s_end)
+                        ) and not is_break) %}
+                        {% set is_shift2 = (s2_start and s2_end and (
+                            (h_code >= s2_start) if s2_end in ['00:00', '24:00', '23:59'] else
+                            (h_code >= s2_start and h_code < s2_end) if s2_start <= s2_end else
+                            (h_code >= s2_start or h_code < s2_end)
+                        )) %}
+
+                        {% if not is_avail %}
+                            <td class="cal-slot cal-slot-unavailable">Off</td>
+                        {% elif is_break %}
+                            <td class="cal-slot cal-slot-break">Break</td>
+                        {% elif is_shift1 or is_shift2 %}
+                            <td class="cal-slot cal-slot-available">Available</td>
+                        {% else %}
+                            <td class="cal-slot cal-slot-unavailable">—</td>
+                        {% endif %}
+                    {% endfor %}
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+
+    <!-- Detailed Day-by-Day Schedule Summary with Hover Effects -->
+    <div class="section-card mb-4" style="border-radius: 16px; border: 1.5px solid #e2e8f0; padding: 1.6rem; box-shadow: 0 2px 10px rgba(15, 23, 42, 0.04);">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.25rem; flex-wrap: wrap; gap: 10px;">
+            <div>
+                <h3 style="margin: 0; font-size: 1.12rem; font-weight: 800; font-family: 'Plus Jakarta Sans', sans-serif; color: #0f172a; display: inline-flex; align-items: center; gap: 8px;">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#4f46e5" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+                    Weekly Working Hours: {{ active_doc.name }}
+                </h3>
+                <p style="margin: 3px 0 0 0; font-size: 0.8rem; color: #64748b;">Interactive day cards with working shifts and quick edit access.</p>
+            </div>
+            <button type="button" class="btn btn-secondary btn-sm" onclick="openModal('editDoctorModal_{{ active_doc.id }}')" style="display: inline-flex; align-items: center; gap: 6px; font-weight: 700; border-radius: 8px;">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+                Edit Times
+            </button>
+        </div>
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); gap: 12px;">
+            {% for day in days_of_week %}
+                {% set day_sched = sched_map.get(day) %}
+                {% set is_avail = day_sched.is_available if day_sched else (day in (active_doc.working_days.split(',') if active_doc.working_days else [])) %}
+                {% set s_start = day_sched.start_time if day_sched else active_doc.start_time %}
+                {% set s_end = day_sched.end_time if day_sched else active_doc.end_time %}
+                {% set s2_start = day_sched.shift_2_start_time if day_sched else active_doc.shift_2_start_time %}
+                {% set s2_end = day_sched.shift_2_end_time if day_sched else active_doc.shift_2_end_time %}
+                <div class="weekly-hour-card {% if is_avail %}card-avail{% else %}card-off{% endif %}" onclick="openModal('editDoctorModal_{{ active_doc.id }}')" title="Click to modify hours for {{ day }}">
+                    <div style="font-weight: 800; color: {% if is_avail %}#065f46{% else %}#64748b{% endif %}; font-size: 0.9rem; margin-bottom: 8px; letter-spacing: 0.5px;">{{ day[:3].upper() }}</div>
+                    {% if is_avail %}
+                        <div class="card-icon-circle" style="display: inline-flex; align-items: center; justify-content: center; width: 32px; height: 32px; background: linear-gradient(135deg, #10b981 0%, #059669 100%); border-radius: 50%; margin-bottom: 8px; box-shadow: 0 2px 6px rgba(16, 185, 129, 0.3);">
+                            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#ffffff" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+                        </div>
+                        <div style="font-size: 0.76rem; color: #047857; font-weight: 800; line-height: 1.4;">{{ (s_start or '09:00')|format_12hr }}<br>– {{ (s_end or '17:00')|format_12hr }}</div>
+                        {% if s2_start and s2_end %}
+                        <div style="font-size: 0.7rem; color: #92400e; margin-top: 5px; background: #fef3c7; padding: 2px 6px; border-radius: 6px; font-weight: 700; border: 1px solid #fde68a;">+{{ s2_start|format_12hr }}–{{ s2_end|format_12hr }}</div>
+                        {% endif %}
+                    {% else %}
+                        <div class="card-icon-circle" style="display: inline-flex; align-items: center; justify-content: center; width: 32px; height: 32px; background: #e2e8f0; border-radius: 50%; margin-bottom: 8px;">
+                            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#94a3b8" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+                        </div>
+                        <div style="font-size: 0.76rem; color: #94a3b8; font-weight: 700;">Day Off</div>
+                    {% endif %}
+                </div>
+            {% endfor %}
+        </div>
+    </div>
+
+    <!-- Blocked Leaves & Vacation Management for Selected Doctor -->
+    <div class="section-card">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem; flex-wrap: wrap; gap: 8px;">
+            <div>
+                <h3 style="margin: 0; font-size: 1.05rem; color: var(--text-main); display: inline-flex; align-items: center; gap: 8px;">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="color: #ef4444;"><circle cx="12" cy="12" r="10"/><line x1="4.93" y1="4.93" x2="19.07" y2="19.07"/></svg>
+                    Blocked Dates &amp; Leaves: {{ active_doc.name }}
+                </h3>
+                <p style="margin: 2px 0 0 0; font-size: 0.82rem; color: var(--text-muted);">Slots on these dates are automatically blocked and prevented from being booked by the AI receptionist.</p>
+            </div>
+            <button type="button" class="btn btn-secondary btn-sm" onclick="openModal('addLeaveModal')" style="display: inline-flex; align-items: center; gap: 5px;">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+                Add Blocked Date
+            </button>
+        </div>
+
+        {% if active_doc.leaves %}
+        <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 12px; margin-bottom: 1.25rem;">
+            {% for leave in active_doc.leaves %}
+            <div style="background: #ffffff; border: 1px solid #fee2e2; border-radius: 8px; padding: 12px; display: flex; justify-content: space-between; align-items: center;">
+                <div>
+                    <div style="font-weight: 700; color: #991b1b; font-size: 0.88rem; display: inline-flex; align-items: center; gap: 6px;">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+                        {{ leave.leave_date }}
+                    </div>
+                    <div style="font-size: 0.8rem; color: #475569; margin-top: 2px;">
+                        {% if leave.is_all_day %}All Day{% else %}{{ leave.start_time|format_12hr }} – {{ leave.end_time|format_12hr }}{% endif %}
+                        {% if leave.reason %} • {{ leave.reason }}{% endif %}
+                    </div>
+                </div>
+                <form action="/admin/doctors/leave/delete/{{ leave.id }}" method="POST" style="margin: 0;">
+                    <button type="submit" class="btn btn-ghost btn-sm" style="color: #ef4444; padding: 4px 8px; display: inline-flex; align-items: center; gap: 4px;" title="Remove this blocked date">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
+                        Delete
+                    </button>
+                </form>
+            </div>
+            {% endfor %}
+        </div>
+        {% else %}
+        <p style="font-size: 0.85rem; color: #64748b; margin-bottom: 1.25rem;">No blocked leave dates currently scheduled for this doctor.</p>
+        {% endif %}
+
+        <!-- Quick Inline Add Leave Form -->
+        <div style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 14px;">
+            <div style="font-size: 0.82rem; font-weight: 700; color: #334155; margin-bottom: 8px;">Quick Add Blocked Date for {{ active_doc.name }}:</div>
+            <form action="/admin/doctors/leave/add" method="POST" style="display: flex; flex-wrap: wrap; gap: 8px; align-items: center;">
+                <input type="hidden" name="doctor_id" value="{{ active_doc.id }}">
+                <input type="date" name="leave_date" required style="padding: 6px 10px; border-radius: 6px; border: 1px solid #cbd5e1; font-size: 0.85rem;">
+                <input type="text" name="reason" placeholder="Reason (e.g. Vacation, Medical Leave)" style="padding: 6px 10px; border-radius: 6px; border: 1px solid #cbd5e1; font-size: 0.85rem; flex: 1; min-width: 160px;">
+                <label style="font-size: 0.82rem; cursor: pointer; display: flex; align-items: center; gap: 4px; font-weight: 600; color: #475569;">
+                    <input type="checkbox" name="is_all_day" checked style="accent-color: var(--primary);"> All Day
+                </label>
+                <button type="submit" class="btn btn-primary btn-sm" style="display: inline-flex; align-items: center; gap: 4px;">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+                    Save Blocked Date
+                </button>
+            </form>
+        </div>
+    </div>
+    {% endif %}
+</div>
 
 <!-- ============================================================== -->
 <!-- MODALS                                                         -->
 <!-- ============================================================== -->
 
+<!-- Shared 12-Hour Time Options Datalist Template -->
+<datalist id="doctorTimeOptions">
+    <option value="08:00">08:00 AM</option>
+    <option value="08:30">08:30 AM</option>
+    <option value="09:00">09:00 AM</option>
+    <option value="09:30">09:30 AM</option>
+    <option value="10:00">10:00 AM</option>
+    <option value="10:30">10:30 AM</option>
+    <option value="11:00">11:00 AM</option>
+    <option value="11:30">11:30 AM</option>
+    <option value="12:00">12:00 PM</option>
+    <option value="12:30">12:30 PM</option>
+    <option value="13:00">01:00 PM</option>
+    <option value="13:30">01:30 PM</option>
+    <option value="14:00">02:00 PM</option>
+    <option value="14:30">02:30 PM</option>
+    <option value="15:00">03:00 PM</option>
+    <option value="15:30">03:30 PM</option>
+    <option value="16:00">04:00 PM</option>
+    <option value="16:30">04:30 PM</option>
+    <option value="17:00">05:00 PM</option>
+    <option value="17:30">05:30 PM</option>
+    <option value="18:00">06:00 PM</option>
+    <option value="18:30">06:30 PM</option>
+    <option value="19:00">07:00 PM</option>
+    <option value="19:30">07:30 PM</option>
+    <option value="20:00">08:00 PM</option>
+    <option value="20:30">08:30 PM</option>
+    <option value="21:00">09:00 PM</option>
+    <option value="21:30">09:30 PM</option>
+    <option value="22:00">10:00 PM</option>
+</datalist>
+
 <!-- 1. ADD DOCTOR MODAL -->
 <div class="saas-modal-backdrop" id="addDoctorModal">
     <div class="saas-modal-card modal-lg">
         <div class="saas-modal-header">
-            <h3 class="saas-modal-title">
-                <span>➕</span> Add New Doctor & Weekly Schedule
+            <h3 class="saas-modal-title" style="display: inline-flex; align-items: center; gap: 8px;">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><line x1="19" y1="8" x2="19" y2="14"/><line x1="22" y1="11" x2="16" y2="11"/></svg>
+                Add New Doctor &amp; Weekly Schedule
             </h3>
             <button type="button" class="saas-modal-close" onclick="closeModal('addDoctorModal')">✕</button>
         </div>
@@ -378,41 +505,52 @@
                         </select>
                     </div>
                     <div>
-                        <label style="display: block; font-size: 0.82rem; font-weight: 700; color: #334155; margin-bottom: 6px;">Lunch Break (Optional)</label>
-                        <div style="display: flex; gap: 8px; align-items: center;">
-                            <input type="time" name="break_start_time" value="13:00" class="form-control" style="flex: 1;">
+                        <label style="display: block; font-size: 0.82rem; font-weight: 700; color: #334155; margin-bottom: 6px;">Lunch Break (Global – All Days)</label>
+                        <div style="display: flex; gap: 8px; align-items: center; margin-bottom: 4px;">
+                            <input type="time" name="break_start_time" value="13:00" list="doctorTimeOptions" class="form-control" style="flex: 1;">
                             <span style="font-size: 0.8rem; color: #64748b;">to</span>
-                            <input type="time" name="break_end_time" value="14:00" class="form-control" style="flex: 1;">
+                            <input type="time" name="break_end_time" value="14:00" list="doctorTimeOptions" class="form-control" style="flex: 1;">
                         </div>
+                        <small style="font-size: 0.72rem; color: #64748b;">Applies uniformly to all working days for this doctor.</small>
                     </div>
                 </div>
 
                 <div style="background: #f8fafc; padding: 14px; border-radius: 8px; border: 1px solid #e2e8f0;">
-                    <div style="font-size: 0.85rem; font-weight: 700; color: #1e293b; margin-bottom: 10px;">
-                        🗓️ Weekly Schedule Configuration (Per Day)
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; flex-wrap: wrap; gap: 8px;">
+                        <div style="font-size: 0.85rem; font-weight: 700; color: #1e293b; display: inline-flex; align-items: center; gap: 6px;">
+                            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+                            Weekly Schedule Configuration (Per Day)
+                        </div>
+                        <div style="display: flex; align-items: center; gap: 6px; flex-wrap: wrap;">
+                            <span style="font-size: 0.72rem; font-weight: 700; color: #64748b;">Quick Presets:</span>
+                            <button type="button" class="btn btn-sm" onclick="applyShiftPreset('addDoctorModal', '09:00', '17:00')" style="background: #eef2ff; color: #4338ca; border: 1px solid #c7d2fe; padding: 2px 7px; font-size: 0.72rem; font-weight: 700; border-radius: 6px; cursor: pointer;">09:00 AM – 05:00 PM</button>
+                            <button type="button" class="btn btn-sm" onclick="applyShiftPreset('addDoctorModal', '08:00', '14:00')" style="background: #f0fdf4; color: #166534; border: 1px solid #bbf7d0; padding: 2px 7px; font-size: 0.72rem; font-weight: 700; border-radius: 6px; cursor: pointer;">08:00 AM – 02:00 PM</button>
+                            <button type="button" class="btn btn-sm" onclick="applyShiftPreset('addDoctorModal', '14:00', '21:00')" style="background: #fffbeb; color: #b45309; border: 1px solid #fcd34d; padding: 2px 7px; font-size: 0.72rem; font-weight: 700; border-radius: 6px; cursor: pointer;">02:00 PM – 09:00 PM</button>
+                            <button type="button" class="btn btn-sm" onclick="applyShiftPreset('addDoctorModal', '09:00', '21:00')" style="background: #fdf2f8; color: #9d174d; border: 1px solid #fbcfe8; padding: 2px 7px; font-size: 0.72rem; font-weight: 700; border-radius: 6px; cursor: pointer;">09:00 AM – 09:00 PM</button>
+                        </div>
                     </div>
-                    <div style="display: grid; gap: 8px;">
+                    <div style="display: grid; gap: 10px;">
                         {% for day in days_of_week %}
-                        <div style="display: flex; align-items: center; justify-content: space-between; background: #ffffff; padding: 8px 12px; border-radius: 6px; border: 1px solid #cbd5e1; flex-wrap: wrap; gap: 8px;">
-                            <label style="font-weight: 600; min-width: 100px; margin: 0; display: flex; align-items: center; gap: 8px; cursor: pointer; color: #1e293b; font-size: 0.85rem;">
-                                <input type="checkbox" name="is_available_{{ day }}" {% if day != 'Sunday' %}checked{% endif %} style="accent-color: var(--primary);">
-                                {{ day }}
+                        <div style="display: flex; align-items: center; justify-content: space-between; background: #ffffff; padding: 10px 14px; border-radius: 10px; border: 1.5px solid #e2e8f0; box-shadow: 0 1px 2px rgba(15, 23, 42, 0.02); flex-wrap: wrap; gap: 10px; transition: border-color 0.15s ease;">
+                            <label style="font-weight: 700; min-width: 105px; margin: 0; display: flex; align-items: center; gap: 8px; cursor: pointer; color: #0f172a; font-size: 0.88rem;">
+                                <input type="checkbox" name="is_available_{{ day }}" {% if day != 'Sunday' %}checked{% endif %} style="width: 16px; height: 16px; accent-color: var(--primary);">
+                                <span>{{ day }}</span>
                             </label>
                             <div style="display: flex; align-items: center; flex-wrap: wrap; gap: 8px;">
-                                <div style="display: inline-flex; align-items: center; gap: 6px; background: #f0fdf4; padding: 3px 8px; border-radius: 4px; border: 1px solid #bbf7d0;">
-                                    <span style="font-size: 0.75rem; font-weight: 700; color: #166534;">Shift 1</span>
-                                    <input type="time" name="start_time_{{ day }}" value="09:00" style="padding: 2px 6px; border-radius: 4px; border: 1px solid #cbd5e1; font-size: 0.8rem; background: #fff;">
-                                    <span style="font-size: 0.75rem; color: #64748b;">–</span>
-                                    <input type="time" name="end_time_{{ day }}" value="17:00" style="padding: 2px 6px; border-radius: 4px; border: 1px solid #cbd5e1; font-size: 0.8rem; background: #fff;">
+                                <div style="display: inline-flex; align-items: center; gap: 6px; background: #f0fdf4; padding: 4px 10px; border-radius: 8px; border: 1.5px solid #bbf7d0;">
+                                    <span style="font-size: 0.75rem; font-weight: 800; color: #166534;">Shift 1</span>
+                                    <input type="time" name="start_time_{{ day }}" value="09:00" list="doctorTimeOptions" style="padding: 4px 8px; border-radius: 6px; border: 1px solid #cbd5e1; font-size: 0.82rem; font-weight: 600; background: #fff; color: #0f172a;">
+                                    <span style="font-size: 0.75rem; color: #64748b; font-weight: 700;">–</span>
+                                    <input type="time" name="end_time_{{ day }}" value="17:00" list="doctorTimeOptions" style="padding: 4px 8px; border-radius: 6px; border: 1px solid #cbd5e1; font-size: 0.82rem; font-weight: 600; background: #fff; color: #0f172a;">
                                 </div>
-                                <div id="add_shift2_{{ day }}" style="display: none; align-items: center; gap: 6px; background: #fffbeb; padding: 3px 8px; border-radius: 4px; border: 1px dashed #fcd34d;">
-                                    <span style="font-size: 0.75rem; font-weight: 700; color: #b45309;">Shift 2</span>
-                                    <input type="time" name="shift_2_start_time_{{ day }}" value="" placeholder="17:00" style="padding: 2px 6px; border-radius: 4px; border: 1px solid #cbd5e1; font-size: 0.8rem; background: #fff;">
-                                    <span style="font-size: 0.75rem; color: #64748b;">–</span>
-                                    <input type="time" name="shift_2_end_time_{{ day }}" value="" placeholder="21:00" style="padding: 2px 6px; border-radius: 4px; border: 1px solid #cbd5e1; font-size: 0.8rem; background: #fff;">
-                                    <button type="button" onclick="hideShift2('add_shift2_{{ day }}', 'add_btn_shift2_{{ day }}')" style="border: none; background: #fee2e2; color: #dc2626; border-radius: 4px; padding: 2px 5px; font-size: 0.75rem; font-weight: bold; cursor: pointer;">✕</button>
+                                <div id="add_shift2_{{ day }}" style="display: none; align-items: center; gap: 6px; background: #fffbeb; padding: 4px 10px; border-radius: 8px; border: 1.5px dashed #fcd34d;">
+                                    <span style="font-size: 0.75rem; font-weight: 800; color: #b45309;">Shift 2</span>
+                                    <input type="time" name="shift_2_start_time_{{ day }}" value="" placeholder="17:00" list="doctorTimeOptions" style="padding: 4px 8px; border-radius: 6px; border: 1px solid #cbd5e1; font-size: 0.82rem; font-weight: 600; background: #fff; color: #0f172a;">
+                                    <span style="font-size: 0.75rem; color: #64748b; font-weight: 700;">–</span>
+                                    <input type="time" name="shift_2_end_time_{{ day }}" value="" placeholder="21:00" list="doctorTimeOptions" style="padding: 4px 8px; border-radius: 6px; border: 1px solid #cbd5e1; font-size: 0.82rem; font-weight: 600; background: #fff; color: #0f172a;">
+                                    <button type="button" onclick="hideShift2('add_shift2_{{ day }}', 'add_btn_shift2_{{ day }}')" style="border: none; background: #fee2e2; color: #dc2626; border-radius: 4px; padding: 2px 6px; font-size: 0.75rem; font-weight: bold; cursor: pointer;">✕</button>
                                 </div>
-                                <button type="button" id="add_btn_shift2_{{ day }}" onclick="showShift2('add_shift2_{{ day }}', 'add_btn_shift2_{{ day }}')" style="background: #f8fafc; border: 1px dashed #94a3b8; color: #475569; padding: 3px 8px; border-radius: 4px; font-size: 0.75rem; font-weight: 600; cursor: pointer;">
+                                <button type="button" id="add_btn_shift2_{{ day }}" onclick="showShift2('add_shift2_{{ day }}', 'add_btn_shift2_{{ day }}')" style="background: #ffffff; border: 1.5px dashed #94a3b8; color: #475569; padding: 4px 10px; border-radius: 8px; font-size: 0.76rem; font-weight: 700; cursor: pointer; transition: all 0.15s ease;">
                                     + Add Shift 2
                                 </button>
                             </div>
@@ -423,7 +561,7 @@
             </div>
             <div class="saas-modal-footer">
                 <button type="button" class="btn btn-secondary" onclick="closeModal('addDoctorModal')">Cancel</button>
-                <button type="submit" class="btn btn-primary">Save Doctor Profile & Schedule</button>
+                <button type="submit" class="btn btn-primary">Save Doctor Profile &amp; Schedule</button>
             </div>
         </form>
     </div>
@@ -434,8 +572,9 @@
 <div class="saas-modal-backdrop" id="editDoctorModal_{{ doc.id }}">
     <div class="saas-modal-card modal-lg">
         <div class="saas-modal-header">
-            <h3 class="saas-modal-title">
-                <span>✏️</span> Edit Doctor Profile & Schedule: {{ doc.name }}
+            <h3 class="saas-modal-title" style="display: inline-flex; align-items: center; gap: 8px;">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+                Edit Doctor Profile &amp; Schedule: {{ doc.name }}
             </h3>
             <button type="button" class="saas-modal-close" onclick="closeModal('editDoctorModal_{{ doc.id }}')">✕</button>
         </div>
@@ -460,19 +599,30 @@
                         </select>
                     </div>
                     <div>
-                        <label style="display: block; font-size: 0.82rem; font-weight: 700; color: #334155; margin-bottom: 4px;">Lunch Break Range</label>
-                        <div style="display: flex; gap: 6px; align-items: center;">
-                            <input type="time" name="break_start_time" value="{{ doc.break_start_time or '' }}" class="form-control" placeholder="13:00">
+                        <label style="display: block; font-size: 0.82rem; font-weight: 700; color: #334155; margin-bottom: 4px;">Lunch Break Range (Global – All Days)</label>
+                        <div style="display: flex; gap: 6px; align-items: center; margin-bottom: 3px;">
+                            <input type="time" name="break_start_time" value="{{ doc.break_start_time or '' }}" list="doctorTimeOptions" class="form-control" placeholder="13:00">
                             <span style="font-size: 0.8rem; color: #64748b;">to</span>
-                            <input type="time" name="break_end_time" value="{{ doc.break_end_time or '' }}" class="form-control" placeholder="14:00">
+                            <input type="time" name="break_end_time" value="{{ doc.break_end_time or '' }}" list="doctorTimeOptions" class="form-control" placeholder="14:00">
                         </div>
+                        <small style="font-size: 0.72rem; color: #64748b;">Applies uniformly to all working days for this doctor.</small>
                     </div>
                 </div>
 
                 <!-- Per-Day Weekly Schedule Grid -->
                 <div style="background: #f8fafc; padding: 14px; border-radius: 8px; border: 1px solid #e2e8f0; margin-bottom: 16px;">
-                    <div style="font-size: 0.85rem; font-weight: 700; color: #1e293b; margin-bottom: 10px;">
-                        🗓️ Per-Day Working Hours Configuration
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; flex-wrap: wrap; gap: 8px;">
+                        <div style="font-size: 0.85rem; font-weight: 700; color: #1e293b; display: inline-flex; align-items: center; gap: 6px;">
+                            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+                            Per-Day Working Hours Configuration
+                        </div>
+                        <div style="display: flex; align-items: center; gap: 6px; flex-wrap: wrap;">
+                            <span style="font-size: 0.72rem; font-weight: 700; color: #64748b;">Quick Presets:</span>
+                            <button type="button" class="btn btn-sm" onclick="applyShiftPreset('editDoctorModal_{{ doc.id }}', '09:00', '17:00')" style="background: #eef2ff; color: #4338ca; border: 1px solid #c7d2fe; padding: 2px 7px; font-size: 0.72rem; font-weight: 700; border-radius: 6px; cursor: pointer;">09:00 AM – 05:00 PM</button>
+                            <button type="button" class="btn btn-sm" onclick="applyShiftPreset('editDoctorModal_{{ doc.id }}', '08:00', '14:00')" style="background: #f0fdf4; color: #166534; border: 1px solid #bbf7d0; padding: 2px 7px; font-size: 0.72rem; font-weight: 700; border-radius: 6px; cursor: pointer;">08:00 AM – 02:00 PM</button>
+                            <button type="button" class="btn btn-sm" onclick="applyShiftPreset('editDoctorModal_{{ doc.id }}', '14:00', '21:00')" style="background: #fffbeb; color: #b45309; border: 1px solid #fcd34d; padding: 2px 7px; font-size: 0.72rem; font-weight: 700; border-radius: 6px; cursor: pointer;">02:00 PM – 09:00 PM</button>
+                            <button type="button" class="btn btn-sm" onclick="applyShiftPreset('editDoctorModal_{{ doc.id }}', '09:00', '21:00')" style="background: #fdf2f8; color: #9d174d; border: 1px solid #fbcfe8; padding: 2px 7px; font-size: 0.72rem; font-weight: 700; border-radius: 6px; cursor: pointer;">09:00 AM – 09:00 PM</button>
+                        </div>
                     </div>
 
                     {% set doc_sched_map = {} %}
@@ -482,7 +632,7 @@
                         {% endfor %}
                     {% endif %}
 
-                    <div style="display: grid; gap: 8px;">
+                    <div style="display: grid; gap: 10px;">
                         {% for day in days_of_week %}
                             {% set day_sched = doc_sched_map.get(day) %}
                             {% set is_avail = day_sched.is_available if day_sched else (day in (doc.working_days.split(',') if doc.working_days else [])) %}
@@ -490,29 +640,29 @@
                             {% set e_time = day_sched.end_time if day_sched else doc.end_time %}
                             {% set s2_start = (day_sched.shift_2_start_time if (day_sched and day_sched.shift_2_start_time) else '') %}
                             {% set s2_end = (day_sched.shift_2_end_time if (day_sched and day_sched.shift_2_end_time) else '') %}
-                            <div style="display: flex; align-items: center; justify-content: space-between; background: #ffffff; padding: 8px 12px; border-radius: 6px; border: 1px solid #e2e8f0; font-size: 0.85rem; flex-wrap: wrap; gap: 8px;">
-                                <label style="font-weight: 600; min-width: 100px; margin: 0; display: flex; align-items: center; gap: 6px; cursor: pointer;">
-                                    <input type="checkbox" name="is_available_{{ day }}" {% if is_avail %}checked{% endif %} style="accent-color: var(--primary);">
-                                    {{ day[:3] }} {% if is_avail %}<span style="color: #16a34a; font-size: 0.75rem; font-weight: 700;">(Open)</span>{% else %}<span style="color: #94a3b8; font-size: 0.75rem;">(Off)</span>{% endif %}
+                            <div style="display: flex; align-items: center; justify-content: space-between; background: #ffffff; padding: 10px 14px; border-radius: 10px; border: 1.5px solid #e2e8f0; box-shadow: 0 1px 2px rgba(15, 23, 42, 0.02); font-size: 0.85rem; flex-wrap: wrap; gap: 10px; transition: border-color 0.15s ease;">
+                                <label style="font-weight: 700; min-width: 105px; margin: 0; display: flex; align-items: center; gap: 8px; cursor: pointer; color: #0f172a; font-size: 0.88rem;">
+                                    <input type="checkbox" name="is_available_{{ day }}" {% if is_avail %}checked{% endif %} style="width: 16px; height: 16px; accent-color: var(--primary);">
+                                    <span>{{ day[:3] }}</span> {% if is_avail %}<span style="color: #16a34a; font-size: 0.74rem; font-weight: 800; background: #ecfdf5; padding: 2px 8px; border-radius: 12px; border: 1px solid #bbf7d0;">Open</span>{% else %}<span style="color: #94a3b8; font-size: 0.74rem; font-weight: 700; background: #f1f5f9; padding: 2px 8px; border-radius: 12px;">Off</span>{% endif %}
                                 </label>
                                 <div style="display: flex; align-items: center; flex-wrap: wrap; gap: 8px;">
                                     <!-- Shift 1 -->
-                                    <div style="display: inline-flex; align-items: center; gap: 4px; background: #f0fdf4; padding: 3px 8px; border-radius: 4px; border: 1px solid #bbf7d0;">
-                                        <span style="font-size: 0.75rem; font-weight: 700; color: #166534; white-space: nowrap;">Shift 1</span>
-                                        <input type="time" name="start_time_{{ day }}" value="{{ s_time or '09:00' }}" style="padding: 2px 6px; border-radius: 4px; border: 1px solid #cbd5e1; font-size: 0.8rem; background: #fff;">
-                                        <span style="font-size: 0.75rem; color: #64748b;">–</span>
-                                        <input type="time" name="end_time_{{ day }}" value="{{ e_time or '17:00' }}" style="padding: 2px 6px; border-radius: 4px; border: 1px solid #cbd5e1; font-size: 0.8rem; background: #fff;">
+                                    <div style="display: inline-flex; align-items: center; gap: 6px; background: #f0fdf4; padding: 4px 10px; border-radius: 8px; border: 1.5px solid #bbf7d0;">
+                                        <span style="font-size: 0.75rem; font-weight: 800; color: #166534; white-space: nowrap;">Shift 1</span>
+                                        <input type="time" name="start_time_{{ day }}" value="{{ s_time or '09:00' }}" list="doctorTimeOptions" style="padding: 4px 8px; border-radius: 6px; border: 1px solid #cbd5e1; font-size: 0.82rem; font-weight: 600; background: #fff; color: #0f172a;">
+                                        <span style="font-size: 0.75rem; color: #64748b; font-weight: 700;">–</span>
+                                        <input type="time" name="end_time_{{ day }}" value="{{ e_time or '17:00' }}" list="doctorTimeOptions" style="padding: 4px 8px; border-radius: 6px; border: 1px solid #cbd5e1; font-size: 0.82rem; font-weight: 600; background: #fff; color: #0f172a;">
                                     </div>
                                     <!-- Shift 2 -->
                                     {% set has_shift_2 = (s2_start and s2_end) %}
-                                    <div id="edit_shift2_{{ doc.id }}_{{ day }}" style="display: {% if has_shift_2 %}inline-flex{% else %}none{% endif %}; align-items: center; gap: 4px; background: #fffbeb; padding: 3px 8px; border-radius: 4px; border: 1px dashed #fcd34d;">
-                                        <span style="font-size: 0.75rem; font-weight: 700; color: #b45309; white-space: nowrap;">Shift 2</span>
-                                        <input type="time" name="shift_2_start_time_{{ day }}" value="{{ s2_start }}" placeholder="17:00" style="padding: 2px 6px; border-radius: 4px; border: 1px solid #cbd5e1; font-size: 0.8rem; background: #fff;">
-                                        <span style="font-size: 0.75rem; color: #64748b;">–</span>
-                                        <input type="time" name="shift_2_end_time_{{ day }}" value="{{ s2_end }}" placeholder="21:00" style="padding: 2px 6px; border-radius: 4px; border: 1px solid #cbd5e1; font-size: 0.8rem; background: #fff;">
-                                        <button type="button" onclick="hideShift2('edit_shift2_{{ doc.id }}_{{ day }}', 'edit_btn_shift2_{{ doc.id }}_{{ day }}')" style="border: none; background: #fee2e2; color: #dc2626; border-radius: 4px; padding: 2px 5px; font-size: 0.75rem; font-weight: bold; cursor: pointer;">✕</button>
+                                    <div id="edit_shift2_{{ doc.id }}_{{ day }}" style="display: {% if has_shift_2 %}inline-flex{% else %}none{% endif %}; align-items: center; gap: 6px; background: #fffbeb; padding: 4px 10px; border-radius: 8px; border: 1.5px dashed #fcd34d;">
+                                        <span style="font-size: 0.75rem; font-weight: 800; color: #b45309; white-space: nowrap;">Shift 2</span>
+                                        <input type="time" name="shift_2_start_time_{{ day }}" value="{{ s2_start }}" placeholder="17:00" list="doctorTimeOptions" style="padding: 4px 8px; border-radius: 6px; border: 1px solid #cbd5e1; font-size: 0.82rem; font-weight: 600; background: #fff; color: #0f172a;">
+                                        <span style="font-size: 0.75rem; color: #64748b; font-weight: 700;">–</span>
+                                        <input type="time" name="shift_2_end_time_{{ day }}" value="{{ s2_end }}" placeholder="21:00" list="doctorTimeOptions" style="padding: 4px 8px; border-radius: 6px; border: 1px solid #cbd5e1; font-size: 0.82rem; font-weight: 600; background: #fff; color: #0f172a;">
+                                        <button type="button" onclick="hideShift2('edit_shift2_{{ doc.id }}_{{ day }}', 'edit_btn_shift2_{{ doc.id }}_{{ day }}')" style="border: none; background: #fee2e2; color: #dc2626; border-radius: 4px; padding: 2px 6px; font-size: 0.75rem; font-weight: bold; cursor: pointer;">✕</button>
                                     </div>
-                                    <button type="button" id="edit_btn_shift2_{{ doc.id }}_{{ day }}" onclick="showShift2('edit_shift2_{{ doc.id }}_{{ day }}', 'edit_btn_shift2_{{ doc.id }}_{{ day }}')" style="display: {% if has_shift_2 %}none{% else %}inline-flex{% endif %}; align-items: center; gap: 4px; background: #f8fafc; border: 1px dashed #94a3b8; color: #475569; padding: 3px 8px; border-radius: 4px; font-size: 0.75rem; font-weight: 600; cursor: pointer;">
+                                    <button type="button" id="edit_btn_shift2_{{ doc.id }}_{{ day }}" onclick="showShift2('edit_shift2_{{ doc.id }}_{{ day }}', 'edit_btn_shift2_{{ doc.id }}_{{ day }}')" style="display: {% if has_shift_2 %}none{% else %}inline-flex{% endif %}; align-items: center; gap: 4px; background: #ffffff; border: 1.5px dashed #94a3b8; color: #475569; padding: 4px 10px; border-radius: 8px; font-size: 0.76rem; font-weight: 700; cursor: pointer; transition: all 0.15s ease;">
                                         + Add Shift 2
                                     </button>
                                 </div>
@@ -524,7 +674,7 @@
                 <div style="display: flex; justify-content: space-between; align-items: center;">
                     <label style="font-size: 0.85rem; font-weight: 600; cursor: pointer; display: flex; align-items: center; gap: 8px;">
                         <input type="checkbox" name="is_active" {% if doc.is_active %}checked{% endif %} style="accent-color: var(--primary);">
-                        Active & Accepting Bookings
+                        Active &amp; Accepting Bookings
                     </label>
                 </div>
             </div>
@@ -542,8 +692,9 @@
 <div class="saas-modal-backdrop" id="addLeaveModal">
     <div class="saas-modal-card">
         <div class="saas-modal-header">
-            <h3 class="saas-modal-title">
-                <span>🚫</span> Add Blocked Date / Leave
+            <h3 class="saas-modal-title" style="display: inline-flex; align-items: center; gap: 8px;">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="color: #ef4444;"><circle cx="12" cy="12" r="10"/><line x1="4.93" y1="4.93" x2="19.07" y2="19.07"/></svg>
+                Add Blocked Date / Leave
             </h3>
             <button type="button" class="saas-modal-close" onclick="closeModal('addLeaveModal')">✕</button>
         </div>
@@ -567,9 +718,17 @@
                 </div>
                 <div>
                     <label style="font-size: 0.85rem; font-weight: 600; cursor: pointer; display: flex; align-items: center; gap: 8px;">
-                        <input type="checkbox" name="is_all_day" checked style="accent-color: var(--primary);">
+                        <input type="checkbox" name="is_all_day" checked onchange="document.getElementById('leavePartialTimes').style.display = this.checked ? 'none' : 'block'" style="accent-color: var(--primary);">
                         Block Entire Day (All Day)
                     </label>
+                </div>
+                <div id="leavePartialTimes" style="display: none; margin-top: 10px; background: #f8fafc; padding: 10px; border-radius: 8px; border: 1px solid #e2e8f0;">
+                    <label style="display: block; font-size: 0.8rem; font-weight: 700; color: #334155; margin-bottom: 4px;">Blocked Hours Range</label>
+                    <div style="display: flex; gap: 8px; align-items: center;">
+                        <input type="time" name="start_time" list="doctorTimeOptions" class="form-control" placeholder="09:00" style="flex: 1;">
+                        <span style="font-size: 0.8rem; color: #64748b;">to</span>
+                        <input type="time" name="end_time" list="doctorTimeOptions" class="form-control" placeholder="13:00" style="flex: 1;">
+                    </div>
                 </div>
             </div>
             <div class="saas-modal-footer">
@@ -585,6 +744,60 @@
 
 {% block scripts %}
 <script>
+function switchDoctorTab(tabName, docId) {
+    if (tabName === 'schedules') {
+        if (docId) {
+            window.location.href = '/admin/doctors?tab=schedules&doc_id=' + encodeURIComponent(docId);
+            return;
+        }
+        window.location.href = '/admin/doctors?tab=schedules';
+        return;
+    } else {
+        window.location.href = '/admin/doctors?tab=directory';
+        return;
+    }
+}
+
+function slideCalendarToHour(timeStr) {
+    const cleanId = timeStr.replace(':', '');
+    const targetRow = document.getElementById('calRow_' + cleanId);
+    const scrollContainer = document.getElementById('calendarTableScrollWrap');
+    
+    if (targetRow && scrollContainer) {
+        // Calculate offset relative to scroll container
+        const rowTop = targetRow.offsetTop;
+        scrollContainer.scrollTo({
+            top: Math.max(0, rowTop - 45), // subtract header height
+            behavior: 'smooth'
+        });
+    }
+
+    // Sync slider control and display
+    const hourNum = parseInt(timeStr.split(':')[0], 10);
+    const slider = document.getElementById('calendarHourSlider');
+    const display = document.getElementById('sliderHourDisplay');
+    if (slider) slider.value = hourNum;
+    if (display) {
+        const ampm = hourNum >= 12 ? 'PM' : 'AM';
+        const display12 = hourNum % 12 === 0 ? 12 : hourNum % 12;
+        display.innerText = 'Slider: ' + (display12 < 10 ? '0' : '') + display12 + ':00 ' + ampm;
+    }
+}
+
+function onHourSliderMove(hourVal) {
+    const hourNum = parseInt(hourVal, 10);
+    const hourStr = (hourNum < 10 ? '0' : '') + hourNum + ':00';
+    slideCalendarToHour(hourStr);
+}
+
+// Auto-align calendar viewport to start of doctor practicing hours on initial page load
+document.addEventListener('DOMContentLoaded', function() {
+    const wrap = document.getElementById('calendarTableScrollWrap');
+    if (wrap) {
+        wrap.scrollTop = 0;
+    }
+});
+
 function openModal(modalId) {
     const el = document.getElementById(modalId);
     if (el) el.classList.add('active');
@@ -642,6 +855,13 @@ function filterDoctorsGrid() {
     });
     const countEl = document.getElementById('doctorCountText');
     if (countEl) countEl.innerText = visibleCount;
+}
+
+function applyShiftPreset(modalId, startTime, endTime) {
+    const modal = document.getElementById(modalId);
+    if (!modal) return;
+    modal.querySelectorAll('input[name^="start_time_"]').forEach(el => el.value = startTime);
+    modal.querySelectorAll('input[name^="end_time_"]').forEach(el => el.value = endTime);
 }
 </script>
 {% endblock %}

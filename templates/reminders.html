@@ -39,17 +39,17 @@
                     <td>{{ r.appointment.customer.name if r.appointment and r.appointment.customer else "N/A" }}</td>
                     <td>{{ r.appointment.customer.phone if r.appointment and r.appointment.customer else "N/A" }}</td>
                     <td>
-                        {{ r.appointment.appointment_date if r.appointment else "" }} at {{ r.appointment.appointment_time if r.appointment else "" }}
+                        {{ r.appointment.appointment_date if r.appointment else "" }} at {{ (r.appointment.appointment_time|format_12hr) if r.appointment else "" }}
                     </td>
                     <td><strong>{{ r.scheduled_for.strftime('%Y-%m-%d %I:%M %p') }}</strong></td>
                     <td><span class="tag tag-blue">{{ r.reminder_type }}</span></td>
                     <td>
                         {% if r.status == 'SCHEDULED' %}
-                            <span class="badge badge-warning">⏰ SCHEDULED</span>
+                            <span class="badge badge-warning"><span class="status-dot dot-warning"></span> Scheduled</span>
                         {% elif r.status == 'SENT' %}
-                            <span class="badge badge-success">✅ SENT</span>
+                            <span class="badge badge-success"><span class="status-dot dot-success"></span> Sent</span>
                         {% elif r.status == 'CANCELLED' %}
-                            <span class="badge badge-danger">CANCELLED</span>
+                            <span class="badge badge-danger"><span class="status-dot dot-danger"></span> Cancelled</span>
                         {% else %}
                             <span class="badge badge-secondary">{{ r.status }}</span>
                         {% endif %}

@@ -1,73 +1,216 @@
 {% extends "base.html" %}
 
-{% block title %}ClinicConnect AI - Multi-Specialty Polyclinic Platform{% endblock %}
+{% block title %}{{ (business.name if business else "ClinicConnect AI") | e }} - AI Receptionist &amp; Healthcare SaaS{% endblock %}
 
 {% block content %}
-<div class="hero-section">
-    <div class="hero-badge">ClinicConnect AI Polyclinic</div>
-    <h1 class="hero-title">ClinicConnect AI: Autonomous Polyclinic Agent</h1>
-    <p class="hero-subtitle">
-        Not just a chatbot. A complete multi-specialty polyclinic workflow agent that understands patient intent, checks real doctor availability, prevents double booking, confirms appointments in the database, schedules automated reminders, and supports live human handoffs.
-    </p>
+<div class="landing-container">
+    <!-- Hero Section -->
+    <div class="hero-section">
+        <div class="hero-brand-header">
+            <img src="{{ url_for('static', filename='img/logo_icon.png') }}" alt="ClinicConnect" class="hero-brand-logo">
+            <div class="hero-badge">
+                <span class="status-dot status-dot-success"></span>
+                <span>ClinicConnect &bull; Virtual Clinic Assistant</span>
+            </div>
+        </div>
+        <h1 class="hero-title">Next-Gen AI Receptionist for Modern Healthcare</h1>
+        <p class="hero-subtitle">
+            An enterprise-grade polyclinic workflow platform that understands patient intent, verifies doctor schedules in real-time, eliminates double bookings, and empowers front-desk staff with live chat takeover.
+        </p>
 
-    <div class="hero-actions">
-        <a href="{% if business and business.id != 1 %}/chat/{{ business.id }}{% else %}/chat{% endif %}" class="btn btn-primary btn-lg">
-            <span>💬 Launch Customer Chat</span>
-        </a>
-        <a href="/admin" class="btn btn-secondary btn-lg">
-            <span>📊 Open Admin Dashboard</span>
-        </a>
-    </div>
-</div>
-
-<div class="features-grid">
-    <div class="feature-card">
-        <div class="feature-icon">🧠</div>
-        <h3>Centralized AI Brain</h3>
-        <p>Dynamic clinic knowledge injection with provider abstraction supporting Gemini, Groq, and Mock adapters.</p>
-    </div>
-
-    <div class="feature-card">
-        <div class="feature-icon">⚡</div>
-        <h3>Validated Tool Dispatcher</h3>
-        <p>The LLM never directly executes SQL. Every operation passes through backend business validation services.</p>
-    </div>
-
-    <div class="feature-card">
-        <div class="feature-icon">🛡️</div>
-        <h3>Double-Booking Protection</h3>
-        <p>Atomic transactions with database-level uniqueness constraints prevent race conditions and concurrent overlaps.</p>
+        <div class="hero-actions">
+            <a href="/admin" class="btn btn-primary btn-lg">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <rect x="3" y="3" width="7" height="7"/>
+                    <rect x="14" y="3" width="7" height="7"/>
+                    <rect x="14" y="14" width="7" height="7"/>
+                    <rect x="3" y="14" width="7" height="7"/>
+                </svg>
+                <span>Open Admin Dashboard</span>
+            </a>
+            <a href="{% if business and business.id != 1 %}/chat/{{ business.id }}{% else %}/chat{% endif %}" class="btn btn-secondary btn-lg">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
+                </svg>
+                <span>Launch Patient Webchat</span>
+            </a>
+        </div>
     </div>
 
-    <div class="feature-card">
-        <div class="feature-icon">⏰</div>
-        <h3>Automated Reminders</h3>
-        <p>Proactive reminder records automatically scheduled 24 hours prior to appointment time upon booking confirmation.</p>
+    <!-- Active Clinic Summary Card -->
+    <div class="clinic-portal-card">
+        <div class="clinic-portal-header">
+            <div class="clinic-portal-brand">
+                <div class="clinic-avatar-badge">
+                    <img src="{{ url_for('static', filename='img/logo_icon.png') }}" alt="ClinicConnect" class="clinic-logo-img">
+                </div>
+                <div class="clinic-portal-info">
+                    <div class="clinic-portal-title-row">
+                        <h2 class="clinic-portal-name">{{ business.name if business else "ClinicConnect Polyclinic" }}</h2>
+                        <span class="status-badge status-badge-confirmed">
+                            <span class="status-dot status-dot-success"></span>
+                            Active Practice
+                        </span>
+                    </div>
+                    <p class="clinic-portal-sub">Multi-Specialty Polyclinic Facility &bull; Tenant #{{ business.id if business else 1 }}</p>
+                </div>
+            </div>
+            <div class="clinic-portal-actions">
+                <a href="/admin/doctors" class="btn btn-sm btn-outline">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/>
+                        <circle cx="9" cy="7" r="4"/>
+                    </svg>
+                    <span>View Doctors</span>
+                </a>
+                <a href="/admin/services" class="btn btn-sm btn-outline">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <line x1="12" y1="1" x2="12" y2="23"/>
+                        <path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/>
+                    </svg>
+                    <span>Services &amp; Pricing</span>
+                </a>
+            </div>
+        </div>
+
+        <div class="clinic-portal-grid">
+            <div class="clinic-detail-cell">
+                <div class="cell-icon">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/>
+                        <circle cx="12" cy="10" r="3"/>
+                    </svg>
+                </div>
+                <div class="cell-content">
+                    <span class="cell-label">Location</span>
+                    <span class="cell-value">{{ business.address if business else "Gulberg III, Lahore" }}</span>
+                </div>
+            </div>
+
+            <div class="clinic-detail-cell">
+                <div class="cell-icon">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"/>
+                    </svg>
+                </div>
+                <div class="cell-content">
+                    <span class="cell-label">Phone Contact</span>
+                    <span class="cell-value">{{ business.phone if business else "+92 42 35789000" }}</span>
+                </div>
+            </div>
+
+            <div class="clinic-detail-cell">
+                <div class="cell-icon">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <circle cx="12" cy="12" r="10"/>
+                        <polyline points="12 6 12 12 16 14"/>
+                    </svg>
+                </div>
+                <div class="cell-content">
+                    <span class="cell-label">Operating Hours</span>
+                    <span class="cell-value">{{ business.opening_hours if business else "Mon-Sat: 09:00 AM - 05:00 PM" }}</span>
+                </div>
+            </div>
+
+            <div class="clinic-detail-cell">
+                <div class="cell-icon">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <circle cx="12" cy="12" r="10"/>
+                        <line x1="2" y1="12" x2="22" y2="12"/>
+                        <path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/>
+                    </svg>
+                </div>
+                <div class="cell-content">
+                    <span class="cell-label">Timezone &amp; Locale</span>
+                    <span class="cell-value">{{ business.timezone if business else "Asia/Karachi" }}</span>
+                </div>
+            </div>
+        </div>
     </div>
 
-    <div class="feature-card">
-        <div class="feature-icon">👥</div>
-        <h3>Live Human Takeover</h3>
-        <p>Seamless two-way human handoff. Clinic staff can take over chats in real-time and release them back to AI.</p>
+    <!-- Core Platform Capabilities Grid -->
+    <div class="landing-section-header">
+        <h2 class="landing-section-title">Core Clinical Automation Capabilities</h2>
+        <p class="landing-section-subtitle">Reliable, clinically safe automation engineered for high-volume healthcare practices.</p>
     </div>
 
-    <div class="feature-card">
-        <div class="feature-icon">🏢</div>
-        <h3>Multi-Tenant Foundation</h3>
-        <p>All database models and business workflows enforce tenant isolation with <code>business_id</code> from the ground up.</p>
-    </div>
-</div>
+    <div class="features-grid">
+        <div class="feature-card">
+            <div class="feature-icon-box">
+                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <rect x="4" y="4" width="16" height="16" rx="2" ry="2"/>
+                    <rect x="9" y="9" width="6" height="6"/>
+                    <line x1="9" y1="1" x2="9" y2="4"/>
+                    <line x1="15" y1="1" x2="15" y2="4"/>
+                    <line x1="9" y1="20" x2="9" y2="23"/>
+                    <line x1="15" y1="20" x2="15" y2="23"/>
+                    <line x1="20" y1="9" x2="23" y2="9"/>
+                    <line x1="20" y1="14" x2="23" y2="14"/>
+                    <line x1="1" y1="9" x2="4" y2="9"/>
+                    <line x1="1" y1="14" x2="4" y2="14"/>
+                </svg>
+            </div>
+            <h3>Centralized AI Brain</h3>
+            <p>Dynamic clinic knowledge injection with robust provider abstraction supporting Gemini, Groq, and custom adapters.</p>
+        </div>
 
-<div class="demo-clinic-card">
-    <div class="demo-clinic-header">
-        <h2>🏥 Active Polyclinic: {{ business.name if business else "ClinicConnect Polyclinic" }}</h2>
-        <span class="badge badge-success">Tenant ID: #{{ business.id if business else 1 }}</span>
-    </div>
-    <div class="demo-clinic-details">
-        <div class="detail-item"><strong>📍 Address:</strong> {{ business.address if business else "Gulberg III, Lahore" }}</div>
-        <div class="detail-item"><strong>📞 Phone:</strong> {{ business.phone if business else "+92 42 35789000" }}</div>
-        <div class="detail-item"><strong>⏰ Hours:</strong> {{ business.opening_hours if business else "Mon-Sat: 9 AM - 5 PM" }}</div>
-        <div class="detail-item"><strong>🌐 Timezone:</strong> {{ business.timezone if business else "Asia/Karachi" }}</div>
+        <div class="feature-card">
+            <div class="feature-icon-box">
+                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <polyline points="9 11 12 14 22 4"/>
+                    <path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/>
+                </svg>
+            </div>
+            <h3>Validated Tool Dispatcher</h3>
+            <p>Every clinical action executes via backend validation services. The LLM never writes directly to the database.</p>
+        </div>
+
+        <div class="feature-card">
+            <div class="feature-icon-box">
+                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
+                    <polyline points="9 12 11 14 15 10"/>
+                </svg>
+            </div>
+            <h3>Double-Booking Protection</h3>
+            <p>Database-level atomic transactions and slot concurrency guards ensure two patients can never reserve the same slot.</p>
+        </div>
+
+        <div class="feature-card">
+            <div class="feature-icon-box">
+                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/>
+                    <path d="M13.73 21a2 2 0 0 1-3.46 0"/>
+                </svg>
+            </div>
+            <h3>Automated Reminders</h3>
+            <p>Proactive reminder notifications queued and dispatched automatically before appointments to reduce clinic no-shows.</p>
+        </div>
+
+        <div class="feature-card">
+            <div class="feature-icon-box">
+                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/>
+                    <circle cx="9" cy="7" r="4"/>
+                    <path d="M23 21v-2a4 4 0 0 0-3-3.87"/>
+                    <path d="M16 3.13a4 4 0 0 1 0 7.75"/>
+                </svg>
+            </div>
+            <h3>Live Human Takeover</h3>
+            <p>Front-desk receptionists can monitor active conversations in real-time and take over chats with a single click.</p>
+        </div>
+
+        <div class="feature-card">
+            <div class="feature-icon-box">
+                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <polygon points="12 2 2 7 12 12 22 7 12 2"/>
+                    <polyline points="2 17 12 22 22 17"/>
+                    <polyline points="2 12 12 17 22 12"/>
+                </svg>
+            </div>
+            <h3>Multi-Tenant Architecture</h3>
+            <p>Strict multi-tenant segregation by business ID keeps patient records, doctor rotas, and clinic settings secure.</p>
+        </div>
     </div>
 </div>
 {% endblock %}
