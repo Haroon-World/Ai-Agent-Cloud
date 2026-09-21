@@ -37,16 +37,25 @@ def _get_cached_services_info(business_id: int, consultation_fee: float) -> str:
     cache_key = f"services_str_grouped_{business_id}"
     services_info = RequestCache.get(cache_key)
     if services_info is None:
+        from services.booking_service import BookingService
         doctors = Doctor.query.filter_by(business_id=business_id).all()
         lines = []
         for doc in doctors:
             doc_services = Service.query.filter_by(business_id=business_id, doctor_id=doc.id, is_active=True).all()
+            if not doc_services and (not hasattr(doc, "is_active") or doc.is_active):
+                try:
+                    consult_svc = BookingService.ensure_doctor_consultation_service(business_id, doc.id)
+                    if consult_svc:
+                        doc_services = [consult_svc]
+                except Exception:
+                    pass
+
             lines.append(f"Services offered by {doc.name} ({doc.specialization}):")
             if doc_services:
                 for s in doc_services:
                     lines.append(f"  - Service ID {s.id}: {s.name} ({s.duration} mins) - PKR {s.price:,.0f} | {s.description or 'Standard treatment'}")
             else:
-                lines.append("  - No active services listed.")
+                lines.append(f"  - Consultation & Checkup ({getattr(doc, 'slot_interval', 30)} mins) - PKR {consultation_fee:,.0f} | Regular consultation and checkup")
         services_info = "\n".join(lines) if lines else f"- General Consultation (30 mins) - PKR {consultation_fee:,.0f}"
         RequestCache.set(cache_key, services_info)
     return services_info

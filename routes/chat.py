@@ -232,6 +232,7 @@ def send_message():
             "session_reset": is_new
         })
     except Exception as e:
+        db.session.rollback()
         current_app.logger.error(f"[Chat Send Error]: {e}", exc_info=True)
         return jsonify({
             "success": False,

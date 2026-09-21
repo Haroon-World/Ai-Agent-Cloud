@@ -1160,7 +1160,13 @@ def add_doctor():
             doctor.working_days = ",".join(active_days)
 
         db.session.commit()
-        from services.booking_service import RequestCache
+        from services.booking_service import BookingService, RequestCache
+        from models import sync_postgres_sequences
+        try:
+            BookingService.ensure_doctor_consultation_service(business_id, doctor.id)
+            sync_postgres_sequences()
+        except Exception as e:
+            current_app.logger.warning("Failed to auto-provision consultation service for doctor %s: %s", doctor.id, e)
         RequestCache.clear()
         flash(f"Doctor '{name}' added successfully with weekly schedule.", "success")
     else:
@@ -1419,7 +1425,14 @@ def add_service():
         is_active=is_active
     )
     db.session.add(service)
-    db.session.commit()
+    try:
+        db.session.commit()
+    except Exception:
+        db.session.rollback()
+        from models import sync_postgres_sequences
+        sync_postgres_sequences()
+        db.session.add(service)
+        db.session.commit()
     from services.booking_service import RequestCache
     RequestCache.clear()
     flash(f"Service '{name}' added successfully at PKR {price:,.0f}.", "success")

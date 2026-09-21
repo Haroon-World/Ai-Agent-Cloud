@@ -421,10 +421,36 @@ class BookingService:
             price=fee,
             is_active=True
         )
-        db.session.add(new_svc)
-        db.session.commit()
-        RequestCache.clear()
-        return new_svc
+        try:
+            db.session.add(new_svc)
+            db.session.commit()
+            RequestCache.clear()
+            return new_svc
+        except IntegrityError:
+            db.session.rollback()
+            # If on PostgreSQL, sync sequence and retry once
+            try:
+                from models import sync_postgres_sequences
+                sync_postgres_sequences()
+                retry_svc = Service(
+                    business_id=business_id,
+                    doctor_id=doctor_id,
+                    name="Consultation & Checkup",
+                    description=f"Clinical evaluation and general consultation with {doc.name}.",
+                    duration=30,
+                    price=fee,
+                    is_active=True
+                )
+                db.session.add(retry_svc)
+                db.session.commit()
+                RequestCache.clear()
+                return retry_svc
+            except Exception:
+                db.session.rollback()
+            return Service.query.filter_by(business_id=business_id, doctor_id=doctor_id).first()
+        except Exception:
+            db.session.rollback()
+            return Service.query.filter_by(business_id=business_id, doctor_id=doctor_id).first()
 
     @staticmethod
     def get_services(business_id: int, doctor_id: Optional[int] = None) -> List[Dict[str, Any]]:
@@ -434,6 +460,10 @@ class BookingService:
         if svcs is None:
             if doctor_id:
                 BookingService.ensure_doctor_consultation_service(business_id, doctor_id)
+            else:
+                active_doctors = Doctor.query.filter_by(business_id=business_id, is_active=True).all()
+                for doc in active_doctors:
+                    BookingService.ensure_doctor_consultation_service(business_id, doc.id)
             query = Service.query.filter_by(business_id=business_id, is_active=True)
             if doctor_id:
                 query = query.filter_by(doctor_id=doctor_id)
@@ -521,17 +551,28 @@ class BookingService:
 
         service = None
         duration_override = None
+        target_doc = doctors[0] if doctors else None
         if service_id:
             service = Service.query.filter_by(id=service_id, business_id=business_id).first()
             if service:
                 if doctor_id and service.doctor_id != doctor_id:
-                    doc = doctors[0] if doctors else None
-                    doc_name = doc.name if doc else "The requested doctor"
-                    return {
-                        "success": False,
-                        "error": f"{doc_name} does not offer {service.name}."
-                    }
-                duration_override = service.duration
+                    # Remap consultation/checkup service to target doctor's consultation
+                    if any(k in service.name.lower() for k in ["consultation", "checkup", "check up", "examination"]):
+                        doc_consult = BookingService.ensure_doctor_consultation_service(business_id, doctor_id)
+                        if doc_consult:
+                            service = doc_consult
+                            duration_override = doc_consult.duration
+                    if not service or service.doctor_id != doctor_id:
+                        # Fallback: calculate open slots using target doctor's consultation or slot interval
+                        doc_consult = BookingService.ensure_doctor_consultation_service(business_id, doctor_id) if doctor_id else None
+                        if doc_consult:
+                            service = doc_consult
+                            duration_override = doc_consult.duration
+                        else:
+                            duration_override = getattr(target_doc, "slot_interval", None) or 30
+                            service = None
+                else:
+                    duration_override = service.duration
 
         results = []
         all_available_slots = []
@@ -671,6 +712,10 @@ class BookingService:
 
         if not service_id and conv and conv.selected_service_id:
             service_id = conv.selected_service_id
+        if not service_id and doctor_id:
+            doc_consult = BookingService.ensure_doctor_consultation_service(business_id, doctor_id)
+            if doc_consult:
+                service_id = doc_consult.id
         if not service_id:
             missing_fields.append("service_id")
 
@@ -714,8 +759,12 @@ class BookingService:
         if not service:
             return {"success": False, "error": f"Service with ID {service_id} not found."}
         if service.doctor_id != doctor.id:
-            # If the requested service was a consultation/checkup, map to this doctor's consultation service
-            if any(k in service.name.lower() for k in ["consultation", "checkup", "check up", "examination"]):
+            # Check if this doctor offers a service with the same or similar name
+            matching_service = Service.query.filter_by(business_id=business_id, doctor_id=doctor.id, is_active=True).filter(Service.name.ilike(f"%{service.name}%")).first()
+            if matching_service:
+                service = matching_service
+                service_id = matching_service.id
+            elif any(k in service.name.lower() for k in ["consultation", "checkup", "check up", "examination", "general", "visit"]):
                 doc_consult = BookingService.ensure_doctor_consultation_service(business_id, doctor.id)
                 if doc_consult:
                     service = doc_consult

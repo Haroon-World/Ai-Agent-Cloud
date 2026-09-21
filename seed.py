@@ -1,7 +1,7 @@
 import os
 from flask import Flask, current_app
 from config.config import Config
-from models import db, Business, Doctor, Service, Customer, Appointment, Conversation, Message, Reminder, DoctorSchedule, DAYS_OF_WEEK
+from models import db, Business, Doctor, Service, Customer, Appointment, Conversation, Message, Reminder, DoctorSchedule, DAYS_OF_WEEK, sync_postgres_sequences
 from models.user import User
 from werkzeug.security import generate_password_hash
 
@@ -199,6 +199,8 @@ def seed_database(app=None):
                 updated = True
             if updated:
                 db.session.commit()
+
+        sync_postgres_sequences()
 
     if app:
         with app.app_context():

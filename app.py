@@ -2,7 +2,7 @@ import os
 import sys
 from flask import Flask, render_template, redirect, url_for, request, session
 from config.config import Config
-from models import db, Business, auto_migrate_db
+from models import db, Business, auto_migrate_db, sync_postgres_sequences
 from routes.chat import chat_bp
 from routes.appointments import appointments_bp
 from routes.admin import admin_bp
@@ -24,6 +24,7 @@ def init_db(app):
             db.create_all()
             auto_migrate_db(app)
             seed_database(app)
+            sync_postgres_sequences()
         except Exception as e:
             print(f"[DB Init Warning]: {e}")
 

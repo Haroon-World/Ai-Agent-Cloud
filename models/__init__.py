@@ -31,11 +31,64 @@ from models.clinic_invitation import ClinicInvitation
 
 DAYS_OF_WEEK = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"]
 
+def sync_postgres_sequences(engine=None):
+    """
+    Ensure all PostgreSQL primary key sequences match the maximum ID in their respective tables.
+    Prevents duplicate key errors (UniqueViolation) on subsequent inserts when tables are seeded
+    or populated with explicit IDs.
+    """
+    target_engine = engine or db.engine
+    if not target_engine or target_engine.dialect.name != "postgresql":
+        return
+
+    table_names = [
+        "businesses",
+        "users",
+        "doctors",
+        "doctor_schedules",
+        "doctor_leaves",
+        "services",
+        "customers",
+        "whatsapp_accounts",
+        "clinic_invitations",
+        "subscription_requests",
+        "conversations",
+        "messages",
+        "appointments",
+        "reminders",
+    ]
+
+    try:
+        with target_engine.connect() as conn:
+            for tbl in table_names:
+                try:
+                    seq_query = text(f"SELECT pg_get_serial_sequence('{tbl}', 'id');")
+                    seq_name = conn.execute(seq_query).scalar()
+                    if seq_name:
+                        max_id_query = text(f'SELECT MAX(id) FROM "{tbl}";')
+                        max_id = conn.execute(max_id_query).scalar()
+                        if max_id is not None and max_id > 0:
+                            conn.execute(text(f"SELECT setval('{seq_name}', :max_id, true);"), {"max_id": max_id})
+                        else:
+                            conn.execute(text(f"SELECT setval('{seq_name}', 1, false);"))
+                    else:
+                        conn.execute(text(
+                            f'SELECT setval(pg_get_serial_sequence(\'{tbl}\', \'id\'), coalesce(max(id), 1)) FROM "{tbl}";'
+                        ))
+                except Exception as ex:
+                    print(f"[Sequence Sync Notice] '{tbl}': {ex}")
+            conn.commit()
+            print("[Auto-Migrate] PostgreSQL primary key sequences synchronized.")
+    except Exception as e:
+        print(f"[Sequence Sync Warning]: {e}")
+
 def auto_migrate_db(app=None):
     """Automatically inspect existing database tables, add missing columns, and populate default doctor schedules."""
     def _migrate():
         db.create_all()
         try:
+            sync_postgres_sequences()
+
             inspector = inspect(db.engine)
             for table_name, table in db.metadata.tables.items():
                 if inspector.has_table(table_name):
@@ -48,7 +101,7 @@ def auto_migrate_db(app=None):
                             db.session.commit()
                             print(f"[Auto-Migrate] Added column '{column.name}' to table '{table_name}'.")
 
-            # Seed default DoctorSchedule entries for any existing doctor lacking schedule entries
+            # Seed default DoctorSchedule entries & consultation services for any existing doctor lacking them
             doctors = Doctor.query.all()
             for doc in doctors:
                 existing_schedules = {s.day_of_week: s for s in doc.schedules}
@@ -66,6 +119,26 @@ def auto_migrate_db(app=None):
                         db.session.add(sched)
                 db.session.commit()
 
+                # Ensure doctor has at least one active consultation service
+                has_service = Service.query.filter_by(business_id=doc.business_id, doctor_id=doc.id, is_active=True).first()
+                if not has_service:
+                    biz = db.session.get(Business, doc.business_id)
+                    fee = getattr(biz, "consultation_fee", 2000.0) or 2000.0
+                    new_svc = Service(
+                        business_id=doc.business_id,
+                        doctor_id=doc.id,
+                        name="Consultation & Checkup",
+                        description=f"Clinical evaluation and general consultation with {doc.name}.",
+                        duration=30,
+                        price=fee,
+                        is_active=True
+                    )
+                    db.session.add(new_svc)
+                    try:
+                        db.session.commit()
+                    except Exception:
+                        db.session.rollback()
+
             # Populate default trial_ends_at for any businesses lacking subscription data
             from datetime import datetime, timezone, timedelta
             businesses = Business.query.all()
@@ -75,6 +148,8 @@ def auto_migrate_db(app=None):
                     base_time = biz.created_at or datetime.now(timezone.utc)
                     biz.trial_ends_at = base_time + timedelta(days=30)
             db.session.commit()
+
+            sync_postgres_sequences()
 
         except Exception as e:
             db.session.rollback()
@@ -103,6 +178,7 @@ __all__ = [
     "ClinicWhatsAppAccount",
     "ClinicInvitation",
     "auto_migrate_db",
+    "sync_postgres_sequences",
 ]
 
 

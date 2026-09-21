@@ -821,7 +821,11 @@ def _format_doctor_schedule_lines(doc: Dict[str, Any], target_day: Optional[str]
                 lines.append(f"• {day}: Closed")
         return lines
 
-    working_days = [d.strip() for d in (doc.get("working_days") or "").split(",") if d.strip()]
+    raw_wd = doc.get("working_days") or []
+    if isinstance(raw_wd, list):
+        working_days = [str(d).strip() for d in raw_wd if str(d).strip()]
+    else:
+        working_days = [d.strip() for d in str(raw_wd).split(",") if d.strip()]
     st = _fmt_time_ampm(doc.get("shift_1_start_time") or doc.get("start_time", "09:00"))
     et = _fmt_time_ampm(doc.get("shift_1_end_time") or doc.get("end_time", "17:00"))
     s2_st = doc.get("shift_2_start_time")
