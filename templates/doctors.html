@@ -39,7 +39,7 @@
                 <span style="position: absolute; left: 14px; color: #94a3b8; pointer-events: none; display: flex; align-items: center;">
                     <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
                 </span>
-                <input type="text" id="doctorSearchInput" class="form-control" placeholder="Search doctor by name or specialization..." onkeyup="filterDoctorsGrid()" style="padding-left: 2.65rem; height: 48px; font-size: 0.92rem; border-radius: 10px; border: 1.5px solid #cbd5e1; background: #f8fafc; transition: all 0.2s ease;">
+                <input type="search" id="doctorSearchInput" name="doctor_filter_search" class="form-control" placeholder="Search doctor by name or specialization..." autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" data-lpignore="true" data-1p-ignore="true" data-form-type="other" onkeyup="filterDoctorsGrid()" oninput="filterDoctorsGrid()" style="padding-left: 2.65rem; height: 48px; font-size: 0.92rem; border-radius: 10px; border: 1.5px solid #cbd5e1; background: #f8fafc; transition: all 0.2s ease;">
             </div>
             <div style="display: inline-flex; align-items: center; gap: 8px; background: #f1f5f9; padding: 8px 16px; border-radius: 20px; font-size: 0.84rem; color: #475569; font-weight: 600; border: 1px solid #e2e8f0;">
                 <span style="width: 8px; height: 8px; border-radius: 50%; background: #10b981; display: inline-block;"></span>
@@ -863,5 +863,20 @@ function applyShiftPreset(modalId, startTime, endTime) {
     modal.querySelectorAll('input[name^="start_time_"]').forEach(el => el.value = startTime);
     modal.querySelectorAll('input[name^="end_time_"]').forEach(el => el.value = endTime);
 }
+
+document.addEventListener('DOMContentLoaded', () => {
+    const docSearch = document.getElementById('doctorSearchInput');
+    const purgeDocAutofill = () => {
+        if (docSearch && docSearch.value.trim().toLowerCase() === 'admin') {
+            docSearch.value = '';
+            filterDoctorsGrid();
+        }
+    };
+    purgeDocAutofill();
+    setTimeout(purgeDocAutofill, 50);
+    setTimeout(purgeDocAutofill, 150);
+    setTimeout(purgeDocAutofill, 350);
+    setTimeout(purgeDocAutofill, 700);
+});
 </script>
 {% endblock %}

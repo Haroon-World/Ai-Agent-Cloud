@@ -76,7 +76,7 @@
     <!-- Quick Search -->
     <div class="filter-card mb-4" style="padding: 0;">
         <div style="position: relative; width: 100%;">
-            <input type="text" id="serviceSearchInput" class="form-control" placeholder="🔍  Search by service name, description, or doctor..." onkeyup="filterServicesTable()" style="padding: 0.85rem 1rem 0.85rem 2.75rem; height: 52px; font-size: 0.9rem; border-radius: 10px; border: 1.5px solid #e2e8f0; width: 100%; background: #f8fafc; transition: border-color 0.2s ease, box-shadow 0.2s ease;" onfocus="this.style.borderColor='#4f46e5';this.style.boxShadow='0 0 0 3px rgba(79,70,229,0.08)';this.style.background='#fff'" onblur="this.style.borderColor='#e2e8f0';this.style.boxShadow='none';this.style.background='#f8fafc'">
+            <input type="search" id="serviceSearchInput" name="service_filter_search" class="form-control" placeholder="🔍  Search by service name, description, or doctor..." autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" data-lpignore="true" data-1p-ignore="true" data-form-type="other" onkeyup="filterServicesTable()" oninput="filterServicesTable()" style="padding: 0.85rem 1rem 0.85rem 2.75rem; height: 52px; font-size: 0.9rem; border-radius: 10px; border: 1.5px solid #e2e8f0; width: 100%; background: #f8fafc; transition: border-color 0.2s ease, box-shadow 0.2s ease;" onfocus="this.style.borderColor='#4f46e5';this.style.boxShadow='0 0 0 3px rgba(79,70,229,0.08)';this.style.background='#fff'" onblur="this.style.borderColor='#e2e8f0';this.style.boxShadow='none';this.style.background='#f8fafc'">
             <span style="position: absolute; left: 14px; top: 50%; transform: translateY(-50%); color: #94a3b8; pointer-events: none;">
                 <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
             </span>
@@ -583,6 +583,21 @@ function filterServicesTable() {
         }
     });
 }
+
+document.addEventListener('DOMContentLoaded', () => {
+    const sSearch = document.getElementById('serviceSearchInput');
+    const purgeServiceAutofill = () => {
+        if (sSearch && sSearch.value.trim().toLowerCase() === 'admin') {
+            sSearch.value = '';
+            filterServicesTable();
+        }
+    };
+    purgeServiceAutofill();
+    setTimeout(purgeServiceAutofill, 50);
+    setTimeout(purgeServiceAutofill, 150);
+    setTimeout(purgeServiceAutofill, 350);
+    setTimeout(purgeServiceAutofill, 700);
+});
 
 // In-place AJAX toggle without full page refresh
 async function toggleServiceAjax(btn, serviceId) {

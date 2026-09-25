@@ -45,7 +45,7 @@
                         <span class="conv-search-icon">
                             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
                         </span>
-                        <input type="text" id="convNameFilter" class="conv-search-input" placeholder="Search name or phone..." autocomplete="off">
+                        <input type="search" id="convNameFilter" name="conv_filter_search" class="conv-search-input" placeholder="Search name or phone..." autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" data-lpignore="true" data-1p-ignore="true" data-form-type="other">
                         <button type="button" id="convNameClearBtn" class="conv-search-clear" style="display: none;" onclick="clearConvNameFilter()" title="Clear patient filter">&times;</button>
                     </div>
                 </div>
@@ -54,7 +54,7 @@
                 <div class="conv-search-grid">
                     <div class="conv-search-field" style="width: 78px; flex: 0 0 78px;">
                         <span class="conv-search-icon">#</span>
-                        <input type="text" id="convIdFilter" class="conv-search-input conv-id-input" placeholder="ID..." autocomplete="off">
+                        <input type="search" id="convIdFilter" name="conv_id_search" class="conv-search-input conv-id-input" placeholder="ID..." autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" data-lpignore="true" data-1p-ignore="true" data-form-type="other">
                         <button type="button" id="convIdClearBtn" class="conv-search-clear" style="display: none;" onclick="clearConvIdFilter()" title="Clear ID filter">&times;</button>
                     </div>
                     <div class="conv-search-field" style="flex: 1 1 0; min-width: 0;">
@@ -338,7 +338,12 @@
                     3. Security Confirmation (Enter Admin Password) <span style="color: var(--danger);">*</span>
                 </label>
                 <div class="password-field-wrapper">
-                    <input type="password" id="convCleanupPassword" class="filter-input" placeholder="Enter your admin login password to confirm" required autocomplete="current-password">
+                    <!-- Dummy hidden inputs to absorb browser autofill heuristics -->
+                    <div style="position: absolute; top: -9999px; left: -9999px; height: 0; width: 0; overflow: hidden;" aria-hidden="true">
+                        <input type="text" name="dummy_username_autofill_sink" tabindex="-1" autocomplete="username">
+                        <input type="password" name="dummy_password_autofill_sink" tabindex="-1" autocomplete="current-password">
+                    </div>
+                    <input type="password" id="convCleanupPassword" name="conv_cleanup_security_pwd" class="filter-input" placeholder="Enter your admin login password to confirm" required autocomplete="new-password" data-lpignore="true" data-1p-ignore="true">
                 </div>
                 <small class="text-muted" style="font-size: 0.78rem;">Required to prevent accidental deletion by staff.</small>
             </div>
@@ -579,6 +584,28 @@
         if (cid) {
             selectConversation(cid);
         }
+
+        // Guard against browser password manager injecting saved 'admin' username into filter box
+        const purgeAutofilledAdmin = () => {
+            let changed = false;
+            if (nameInput && nameInput.value.trim().toLowerCase() === 'admin') {
+                nameInput.value = '';
+                changed = true;
+            }
+            const idInput = document.getElementById('convIdFilter');
+            if (idInput && idInput.value.trim().toLowerCase() === 'admin') {
+                idInput.value = '';
+                changed = true;
+            }
+            if (changed) {
+                applyConvFiltering();
+            }
+        };
+        purgeAutofilledAdmin();
+        setTimeout(purgeAutofilledAdmin, 50);
+        setTimeout(purgeAutofilledAdmin, 150);
+        setTimeout(purgeAutofilledAdmin, 350);
+        setTimeout(purgeAutofilledAdmin, 700);
     });
 
     // Conversation Data Cleanup Modal Logic

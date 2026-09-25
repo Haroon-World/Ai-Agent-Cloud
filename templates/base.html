@@ -147,7 +147,7 @@
                     <div class="topbar-search-wrapper" id="topbarSearchWrapper">
                         <div class="topbar-search-box">
                             <svg class="search-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
-                            <input type="text" id="topbarSearchInput" class="topbar-search-input" placeholder="Search appointments, chats, doctors..." aria-label="Search" autocomplete="off">
+                            <input type="search" id="topbarSearchInput" name="topbar_quick_search" class="topbar-search-input" placeholder="Search appointments, chats, doctors..." aria-label="Search" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" data-lpignore="true" data-1p-ignore="true" data-form-type="other">
                             <button type="button" id="topbarSearchClearBtn" class="topbar-search-clear" style="display: none;" title="Clear search" onclick="clearTopbarSearch()">&times;</button>
                             <div class="topbar-search-spinner" id="topbarSearchSpinner" style="display: none;"></div>
                             <span class="topbar-search-kbd" title="Press / or Ctrl+K to search">/</span>
@@ -684,7 +684,59 @@
             .replace(/'/g, '&#039;');
     }
 
-    document.addEventListener('DOMContentLoaded', initTopbarSearch);
+    // Universal guard against browser password managers injecting saved 'admin' username into search/filter inputs
+    const userInteractedInputs = new Set();
+    document.addEventListener('keydown', (e) => {
+        if (e.target && (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA')) {
+            userInteractedInputs.add(e.target);
+        }
+    }, true);
+
+    function purgeInjectedAdminUsername() {
+        const searchSelectors = [
+            '#topbarSearchInput',
+            '#apptSearchInput',
+            '#convNameFilter',
+            '#convIdFilter',
+            '#doctorSearchInput',
+            '#serviceSearchInput',
+            'input[type="search"]'
+        ];
+
+        searchSelectors.forEach(sel => {
+            document.querySelectorAll(sel).forEach(input => {
+                if (!input) return;
+                // Never clear if the user genuinely typed into this input via keyboard
+                if (userInteractedInputs.has(input)) return;
+
+                const val = (input.value || '').trim().toLowerCase();
+                if (val === 'admin') {
+                    // Check if this is an explicit URL search parameter (e.g. ?search=admin)
+                    const urlParams = new URLSearchParams(window.location.search);
+                    if (input.id === 'apptSearchInput' && urlParams.get('search')?.toLowerCase() === 'admin') {
+                        return;
+                    }
+                    input.value = '';
+                    input.dispatchEvent(new Event('input', { bubbles: true }));
+                    if (input.id === 'topbarSearchInput') {
+                        const clearBtn = document.getElementById('topbarSearchClearBtn');
+                        if (clearBtn) clearBtn.style.display = 'none';
+                        closeTopbarSearch();
+                    }
+                }
+            });
+        });
+    }
+
+    document.addEventListener('DOMContentLoaded', () => {
+        initTopbarSearch();
+        purgeInjectedAdminUsername();
+        setTimeout(purgeInjectedAdminUsername, 50);
+        setTimeout(purgeInjectedAdminUsername, 150);
+        setTimeout(purgeInjectedAdminUsername, 350);
+        setTimeout(purgeInjectedAdminUsername, 700);
+        setTimeout(purgeInjectedAdminUsername, 1200);
+    });
     </script>
 
     <!-- ====================================================================
