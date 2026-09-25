@@ -39,36 +39,43 @@
     </div>
 </div>
 
-<!-- Mini KPI Summary Cards (Matching Screen 2) -->
-{% set confirmed_count = appointments|selectattr('status', 'equalto', 'CONFIRMED')|list|length if appointments else 0 %}
-{% set cancelled_count = appointments|selectattr('status', 'equalto', 'CANCELLED')|list|length if appointments else 0 %}
-{% set pending_count = (appointments|length - confirmed_count - cancelled_count) if appointments else 0 %}
+<!-- Mini KPI Summary Cards -->
 <div class="appt-kpi-grid">
     <div class="appt-kpi-card">
         <span class="appt-kpi-label">Appointments Today</span>
         <span class="appt-kpi-value">{{ today_count|default(0) }}</span>
     </div>
     <div class="appt-kpi-card">
-        <span class="appt-kpi-label">Total Confirmed</span>
-        <span class="appt-kpi-value">{{ confirmed_count }}</span>
+        <span class="appt-kpi-label">Active / Upcoming</span>
+        <span class="appt-kpi-value" style="color: #059669;">{{ upcoming_count|default(confirmed_count) }}</span>
     </div>
     <div class="appt-kpi-card">
-        <span class="appt-kpi-label">Pending Bookings</span>
-        <span class="appt-kpi-value">{{ pending_count }}</span>
+        <span class="appt-kpi-label">Completed</span>
+        <span class="appt-kpi-value" style="color: #0d9488;">{{ completed_count|default(0) }}</span>
+    </div>
+    <div class="appt-kpi-card">
+        <span class="appt-kpi-label">Cancelled</span>
+        <span class="appt-kpi-value" style="color: #dc2626;">{{ cancelled_count|default(0) }}</span>
     </div>
 </div>
 
-<!-- Status Segmented Tabs (Screen 2 - Placed Above Card) -->
+<!-- Timeline & Scope Segmented Tabs (Default: Upcoming & Today) -->
 {% if appointments %}
-<div class="appt-status-segmented-tabs mb-3">
-    <button type="button" class="tab-btn active" id="tabStatusAll" onclick="setStatusTab('')">
+<div class="appt-status-segmented-tabs mb-3" style="display: flex; gap: 6px; flex-wrap: wrap; background: #f1f5f9; padding: 4px; border-radius: 10px; width: fit-content; border: 1px solid #e2e8f0;">
+    <button type="button" class="tab-btn active" id="tabScopeUpcoming" onclick="setScopeTab('upcoming')" style="border: none; background: #ffffff; padding: 6px 14px; border-radius: 7px; font-size: 0.82rem; font-weight: 600; color: var(--primary); cursor: pointer; display: inline-flex; align-items: center; gap: 6px; box-shadow: 0 1px 3px rgba(0,0,0,0.08);">
+        <span class="status-dot dot-success" style="width: 7px; height: 7px; border-radius: 50%; display: inline-block;"></span>
+        Upcoming &amp; Today ({{ upcoming_count|default(0) }})
+    </button>
+    <button type="button" class="tab-btn" id="tabScopePast" onclick="setScopeTab('past')" style="border: none; background: transparent; padding: 6px 14px; border-radius: 7px; font-size: 0.82rem; font-weight: 600; color: #475569; cursor: pointer; display: inline-flex; align-items: center; gap: 6px;">
+        <span class="status-dot dot-completed" style="width: 7px; height: 7px; border-radius: 50%; display: inline-block; background: #0d9488;"></span>
+        Past History ({{ past_count|default(0) }})
+    </button>
+    <button type="button" class="tab-btn" id="tabStatusCancelled" onclick="setScopeTab('cancelled')" style="border: none; background: transparent; padding: 6px 14px; border-radius: 7px; font-size: 0.82rem; font-weight: 600; color: #475569; cursor: pointer; display: inline-flex; align-items: center; gap: 6px;">
+        <span class="status-dot dot-danger" style="width: 7px; height: 7px; border-radius: 50%; display: inline-block; background: #ef4444;"></span>
+        Cancelled ({{ cancelled_count|default(0) }})
+    </button>
+    <button type="button" class="tab-btn" id="tabStatusAll" onclick="setScopeTab('all')" style="border: none; background: transparent; padding: 6px 14px; border-radius: 7px; font-size: 0.82rem; font-weight: 600; color: #475569; cursor: pointer; display: inline-flex; align-items: center; gap: 6px;">
         All ({{ appointments|length }})
-    </button>
-    <button type="button" class="tab-btn" id="tabStatusConfirmed" onclick="setStatusTab('CONFIRMED')">
-        Confirmed ({{ confirmed_count }})
-    </button>
-    <button type="button" class="tab-btn" id="tabStatusCancelled" onclick="setStatusTab('CANCELLED')">
-        Cancelled ({{ cancelled_count }})
     </button>
 </div>
 {% endif %}
@@ -99,18 +106,19 @@
             <button type="button" id="apptClearDateBtn" class="filter-date-clear-icon" style="display: none;" onclick="clearApptDatePicker()" title="Clear date">✕</button>
         </div>
 
-        <select id="apptStatusFilter" class="filter-select-inline" onchange="filterAppointments(); syncStatusTabs();">
+        <select id="apptStatusFilter" class="filter-select-inline" onchange="filterAppointments(); syncScopeTabs();">
             <option value="">All Status</option>
             <option value="CONFIRMED">Confirmed</option>
+            <option value="COMPLETED">Completed</option>
             <option value="CANCELLED">Cancelled</option>
         </select>
 
         <!-- Hidden date preset to maintain automated test suite contracts -->
         <select id="apptDatePreset" style="display: none;" onchange="onApptPresetChanged()">
-            <option value="all">All Dates</option>
-            <option value="today">Today</option>
-            <option value="upcoming">Upcoming</option>
+            <option value="upcoming" selected>Upcoming</option>
             <option value="past">Past</option>
+            <option value="today">Today</option>
+            <option value="all">All Dates</option>
         </select>
 
         <button type="button" id="apptResetBtn" class="filter-reset-inline-btn" onclick="resetApptFilters()">
@@ -142,6 +150,8 @@
             </thead>
             <tbody>
                 {% for appt in appointments %}
+                {% set is_past = (appt.appointment_date < today_str) %}
+                {% set effective_status = ('COMPLETED' if (is_past and appt.status == 'CONFIRMED') else appt.status) %}
                 <tr class="appt-row"
                     id="apptRow-{{ appt.id }}"
                     data-id="{{ appt.id }}"
@@ -150,7 +160,9 @@
                     data-doctor="{{ (appt.doctor.name if appt.doctor else '') | lower }}"
                     data-doctor-id="{{ appt.doctor_id }}"
                     data-service="{{ (appt.service.name if appt.service else '') | lower }}"
-                    data-status="{{ appt.status | upper }}"
+                    data-status="{{ effective_status | upper }}"
+                    data-raw-status="{{ appt.status | upper }}"
+                    data-is-past="{{ 'true' if is_past else 'false' }}"
                     data-date="{{ appt.appointment_date }}"
                     data-time="{{ (appt.appointment_time or '') | lower }} {{ ((appt.appointment_time|format_12hr) or '') | lower }}"
                     data-raw-price="{{ '{:,.0f}'.format(appt.service.price) if appt.service else '0' }}"
@@ -182,12 +194,14 @@
                         <span style="font-size: 0.84rem; color: #0f172a; font-weight: 500;">{{ appt.service.duration if appt.service else 30 }} min</span>
                     </td>
                     <td>
-                        {% if appt.status == 'CONFIRMED' %}
+                        {% if effective_status == 'CONFIRMED' %}
                             <span class="badge-pill-confirmed"><span class="status-dot dot-success"></span> CONFIRMED</span>
-                        {% elif appt.status == 'CANCELLED' %}
+                        {% elif effective_status == 'COMPLETED' %}
+                            <span class="badge-pill-completed"><span class="status-dot dot-completed"></span> COMPLETED</span>
+                        {% elif effective_status == 'CANCELLED' %}
                             <span class="badge-pill-cancelled"><span class="status-dot dot-danger"></span> CANCELLED</span>
                         {% else %}
-                            <span class="badge badge-secondary">{{ appt.status }}</span>
+                            <span class="badge badge-secondary">{{ effective_status }}</span>
                         {% endif %}
                     </td>
                     <td>
@@ -215,12 +229,28 @@
                                     View Patient Chat
                                 </a>
                                 {% endif %}
-                                {% if appt.status == 'CONFIRMED' %}
-                                <button type="button" class="action-dropdown-item" onclick="cancelAppointment('{{ appt.id }}')">
-                                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/></svg>
-                                    Cancel Appointment
+
+                                {% if effective_status != 'COMPLETED' %}
+                                <button type="button" class="action-dropdown-item" style="color: #0d9488;" onclick="updateApptStatus('{{ appt.id }}', 'COMPLETED')">
+                                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+                                    Mark as Completed
                                 </button>
                                 {% endif %}
+
+                                {% if effective_status != 'CANCELLED' %}
+                                <button type="button" class="action-dropdown-item" style="color: #dc2626;" onclick="cancelAppointment('{{ appt.id }}')">
+                                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/></svg>
+                                    {% if is_past %}Mark as Cancelled{% else %}Cancel Appointment{% endif %}
+                                </button>
+                                {% endif %}
+
+                                {% if effective_status != 'CONFIRMED' and not is_past %}
+                                <button type="button" class="action-dropdown-item" onclick="updateApptStatus('{{ appt.id }}', 'CONFIRMED')">
+                                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M23 4v6h-6"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></svg>
+                                    Re-mark as Confirmed
+                                </button>
+                                {% endif %}
+
                                 <div class="action-dropdown-divider"></div>
                                 <button type="button" class="action-dropdown-item action-dropdown-danger" onclick="deleteSingleAppointment('{{ appt.id }}', '{{ (appt.customer.name if appt.customer else 'Patient') | replace('\'', '\\\'') }}')">
                                     <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
@@ -327,9 +357,10 @@
         </div>
     </div>
 
-    <div class="slide-over-footer">
-        <a href="/admin/slots" class="btn btn-secondary" style="flex: 1; text-align: center;">Reschedule</a>
-        <button type="button" id="drawerCancelBtn" class="btn btn-danger" style="flex: 1;" onclick="drawerExecuteCancel()">Cancel</button>
+    <div class="slide-over-footer" style="display: flex; gap: 8px;">
+        <button type="button" id="drawerCompleteBtn" class="btn btn-sm" style="flex: 1; background: #0d9488; color: #ffffff; border: none; font-weight: 600; padding: 0.55rem;" onclick="drawerExecuteStatus('COMPLETED')">✓ Mark Completed</button>
+        <a href="/admin/slots" class="btn btn-sm btn-secondary" style="flex: 1; text-align: center; padding: 0.55rem;">Reschedule</a>
+        <button type="button" id="drawerCancelBtn" class="btn btn-sm btn-danger" style="flex: 1; padding: 0.55rem;" onclick="drawerExecuteStatus('CANCELLED')">Cancel</button>
     </div>
 </div>
 
@@ -473,7 +504,7 @@ function filterAppointments() {
     const dateClear = document.getElementById('apptClearDateBtn');
     if (dateClear) dateClear.style.display = calendarDateVal ? 'block' : 'none';
 
-    const hasActiveFilters = searchVal !== '' || doctorVal !== '' || statusVal !== '' || calendarDateVal !== '' || presetVal !== 'all';
+    const hasActiveFilters = searchVal !== '' || doctorVal !== '' || statusVal !== '' || calendarDateVal !== '' || presetVal !== 'upcoming';
     const resetBtn = document.getElementById('apptResetBtn');
     if (resetBtn) resetBtn.style.display = hasActiveFilters ? 'inline-flex' : 'none';
 
@@ -518,6 +549,9 @@ function filterAppointments() {
         let matchStatus = true;
         if (statusVal) {
             matchStatus = (rowStatus === statusVal);
+        } else if (presetVal === 'upcoming') {
+            // When viewing Upcoming & Today by default, only show active confirmed bookings
+            matchStatus = (rowStatus !== 'CANCELLED');
         }
 
         // 4. Date match:
@@ -623,53 +657,99 @@ function resetApptFilters() {
     const statusFilter = document.getElementById('apptStatusFilter');
     const datePicker = document.getElementById('apptDatePicker');
     const datePreset = document.getElementById('apptDatePreset');
+    const searchClear = document.getElementById('apptSearchClearBtn');
+    const dateClear = document.getElementById('apptClearDateBtn');
 
     if (searchInput) searchInput.value = '';
+    if (searchClear) searchClear.style.display = 'none';
     if (doctorFilter) doctorFilter.value = '';
     if (statusFilter) statusFilter.value = '';
     if (datePicker) datePicker.value = '';
-    if (datePreset) datePreset.value = 'all';
+    if (dateClear) dateClear.style.display = 'none';
+    if (datePreset) datePreset.value = 'upcoming';
 
-    syncStatusTabs();
+    syncScopeTabs();
     filterAppointments();
 }
 
-function setStatusTab(status) {
+function setScopeTab(scope) {
+    const datePreset = document.getElementById('apptDatePreset');
     const statusFilter = document.getElementById('apptStatusFilter');
-    if (statusFilter) {
-        statusFilter.value = status;
+    const datePicker = document.getElementById('apptDatePicker');
+    const dateClear = document.getElementById('apptClearDateBtn');
+
+    if (datePicker) datePicker.value = '';
+    if (dateClear) dateClear.style.display = 'none';
+
+    if (scope === 'upcoming') {
+        if (datePreset) datePreset.value = 'upcoming';
+        if (statusFilter) statusFilter.value = '';
+    } else if (scope === 'past') {
+        if (datePreset) datePreset.value = 'past';
+        if (statusFilter) statusFilter.value = '';
+    } else if (scope === 'cancelled') {
+        if (datePreset) datePreset.value = 'all';
+        if (statusFilter) statusFilter.value = 'CANCELLED';
+    } else if (scope === 'all') {
+        if (datePreset) datePreset.value = 'all';
+        if (statusFilter) statusFilter.value = '';
     }
-    syncStatusTabs();
+
+    syncScopeTabs();
     filterAppointments();
 }
 
-function syncStatusTabs() {
+function syncScopeTabs() {
+    const datePreset = document.getElementById('apptDatePreset')?.value || 'upcoming';
     const statusVal = (document.getElementById('apptStatusFilter')?.value || '').trim().toUpperCase();
-    const tabAll = document.getElementById('tabStatusAll');
-    const tabConf = document.getElementById('tabStatusConfirmed');
-    const tabCanc = document.getElementById('tabStatusCancelled');
+    const datePickerVal = document.getElementById('apptDatePicker')?.value || '';
 
-    [tabAll, tabConf, tabCanc].forEach(t => {
+    const tabUpcoming = document.getElementById('tabScopeUpcoming');
+    const tabPast = document.getElementById('tabScopePast');
+    const tabCanc = document.getElementById('tabStatusCancelled');
+    const tabAll = document.getElementById('tabStatusAll');
+
+    [tabUpcoming, tabPast, tabCanc, tabAll].forEach(t => {
         if (t) {
             t.classList.remove('active');
             t.style.background = 'transparent';
             t.style.color = '#475569';
+            t.style.boxShadow = 'none';
         }
     });
 
-    if (statusVal === 'CONFIRMED' && tabConf) {
-        tabConf.classList.add('active');
-        tabConf.style.background = '#ffffff';
-        tabConf.style.color = 'var(--primary)';
-    } else if (statusVal === 'CANCELLED' && tabCanc) {
-        tabCanc.classList.add('active');
-        tabCanc.style.background = '#ffffff';
-        tabCanc.style.color = 'var(--primary)';
-    } else if (tabAll) {
-        tabAll.classList.add('active');
-        tabAll.style.background = '#ffffff';
-        tabAll.style.color = 'var(--primary)';
+    const activateTab = (el) => {
+        if (el) {
+            el.classList.add('active');
+            el.style.background = '#ffffff';
+            el.style.color = 'var(--primary)';
+            el.style.boxShadow = '0 1px 3px rgba(0,0,0,0.08)';
+        }
+    };
+
+    if (statusVal === 'CANCELLED') {
+        activateTab(tabCanc);
+    } else if (datePickerVal || datePreset === 'all') {
+        activateTab(tabAll);
+    } else if (datePreset === 'past') {
+        activateTab(tabPast);
+    } else {
+        activateTab(tabUpcoming);
     }
+}
+
+function setStatusTab(status) {
+    if (status === 'CANCELLED') {
+        setScopeTab('cancelled');
+    } else if (status === 'CONFIRMED') {
+        setScopeTab('upcoming');
+    } else {
+        setScopeTab('all');
+    }
+}
+
+function syncStatusTabs() {
+    syncScopeTabs();
 }
 
 let activeDrawerApptId = null;
@@ -706,7 +786,7 @@ function openApptDrawer(row) {
     const statusBadge = document.getElementById('drawerStatusBadge');
     if (statusBadge) {
         statusBadge.innerText = status;
-        statusBadge.className = 'badge ' + (status === 'CONFIRMED' ? 'badge-success' : (status === 'CANCELLED' ? 'badge-danger' : 'badge-secondary'));
+        statusBadge.className = 'badge ' + (status === 'CONFIRMED' ? 'badge-success' : (status === 'CANCELLED' ? 'badge-danger' : (status === 'COMPLETED' ? 'badge-pill-completed' : 'badge-secondary')));
     }
 
     const sourceEl = document.getElementById('drawerSource');
@@ -724,8 +804,12 @@ function openApptDrawer(row) {
     }
 
     const cancelBtn = document.getElementById('drawerCancelBtn');
+    const completeBtn = document.getElementById('drawerCompleteBtn');
     if (cancelBtn) {
-        cancelBtn.style.display = (status === 'CONFIRMED') ? 'block' : 'none';
+        cancelBtn.style.display = (status !== 'CANCELLED') ? 'inline-block' : 'none';
+    }
+    if (completeBtn) {
+        completeBtn.style.display = (status !== 'COMPLETED') ? 'inline-block' : 'none';
     }
 
     document.getElementById('apptDrawerBackdrop')?.classList.add('active');
@@ -738,9 +822,15 @@ function closeApptDrawer() {
     activeDrawerApptId = null;
 }
 
+function drawerExecuteStatus(newStatus) {
+    if (activeDrawerApptId) {
+        updateApptStatus(activeDrawerApptId, newStatus);
+    }
+}
+
 function drawerExecuteCancel() {
     if (activeDrawerApptId) {
-        cancelAppointment(activeDrawerApptId);
+        updateApptStatus(activeDrawerApptId, 'CANCELLED');
     }
 }
 
@@ -771,6 +861,11 @@ document.addEventListener('DOMContentLoaded', () => {
     if (searchParam && searchInput) {
         searchInput.value = searchParam;
         filterAppointments();
+    } else if (datePreset) {
+        // Default view: Active & Upcoming only
+        datePreset.value = 'upcoming';
+        syncScopeTabs();
+        filterAppointments();
     }
 
     // Guard against browser password manager injecting saved 'admin' username into search box
@@ -787,13 +882,18 @@ document.addEventListener('DOMContentLoaded', () => {
     setTimeout(purgeAutofilledAdmin, 700);
 });
 
-async function cancelAppointment(appointmentId) {
-    if (!confirm(`Are you sure you want to cancel appointment #${appointmentId}?`)) return;
+async function updateApptStatus(appointmentId, newStatus) {
+    let confirmPrompt = `Are you sure you want to mark appointment #${appointmentId} as ${newStatus}?`;
+    if (newStatus === 'CANCELLED') {
+        confirmPrompt = `Are you sure you want to cancel appointment #${appointmentId}?`;
+    }
+    if (!confirm(confirmPrompt)) return;
+
     try {
-        const res = await fetch('/api/admin/appointments/cancel', {
+        const res = await fetch('/api/admin/appointments/update-status', {
             method: 'POST',
             headers: {'Content-Type': 'application/json'},
-            body: JSON.stringify({ appointment_id: parseInt(appointmentId), reason: 'Cancelled by Admin Staff' })
+            body: JSON.stringify({ appointment_id: parseInt(appointmentId), status: newStatus })
         });
         
         const contentType = res.headers.get("content-type") || "";
@@ -804,14 +904,17 @@ async function cancelAppointment(appointmentId) {
 
         const data = await res.json();
         if (data.success) {
-            alert(data.message || 'Appointment cancelled successfully.');
             window.location.reload();
         } else {
-            alert('Error: ' + (data.error || 'Failed to cancel appointment.'));
+            alert('Error: ' + (data.error || 'Failed to update appointment status.'));
         }
     } catch (e) {
         alert('Network error: ' + e.message);
     }
+}
+
+async function cancelAppointment(appointmentId) {
+    await updateApptStatus(appointmentId, 'CANCELLED');
 }
 
 function toggleActionMenu(btn, event) {

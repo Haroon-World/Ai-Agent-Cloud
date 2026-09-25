@@ -332,14 +332,22 @@ def appointments_view():
     ).all()
     today_str = datetime.now().strftime("%Y-%m-%d")
     today_count = sum(1 for a in all_appointments if a.appointment_date == today_str)
-    confirmed_count = sum(1 for a in all_appointments if a.status == "CONFIRMED")
-    pending_count = sum(1 for a in all_appointments if a.status not in ("CONFIRMED", "CANCELLED"))
+    confirmed_count = sum(1 for a in all_appointments if a.status == "CONFIRMED" and a.appointment_date >= today_str)
+    completed_count = sum(1 for a in all_appointments if a.status == "COMPLETED" or (a.status == "CONFIRMED" and a.appointment_date < today_str))
+    cancelled_count = sum(1 for a in all_appointments if a.status == "CANCELLED")
+    upcoming_count = sum(1 for a in all_appointments if a.appointment_date >= today_str and a.status != "CANCELLED")
+    past_count = sum(1 for a in all_appointments if a.appointment_date < today_str)
+    pending_count = sum(1 for a in all_appointments if a.status not in ("CONFIRMED", "COMPLETED", "CANCELLED"))
     return render_template(
         "appointments.html",
         business=business,
         appointments=all_appointments,
         today_count=today_count,
         confirmed_count=confirmed_count,
+        completed_count=completed_count,
+        cancelled_count=cancelled_count,
+        upcoming_count=upcoming_count,
+        past_count=past_count,
         pending_count=pending_count,
         today_str=today_str
     )
@@ -949,6 +957,53 @@ def admin_cancel_appointment():
     )
     status_code = 200 if result.get("success") else 400
     return jsonify(result), status_code
+
+
+@admin_bp.route("/api/admin/appointments/update-status", methods=["POST"])
+@login_required
+def admin_update_appointment_status():
+    """Update appointment status manually with clinic staff authority."""
+    data = request.get_json() or {}
+    appointment_id = data.get("appointment_id")
+    new_status = (data.get("status") or "").upper().strip()
+    business_id = _current_business_id()
+
+    if not appointment_id or not new_status:
+        return jsonify({"success": False, "error": "appointment_id and status are required."}), 400
+
+    if new_status not in ("CONFIRMED", "COMPLETED", "CANCELLED"):
+        return jsonify({"success": False, "error": f"Invalid status: {new_status}. Allowed: CONFIRMED, COMPLETED, CANCELLED."}), 400
+
+    try:
+        appt_id_int = int(appointment_id)
+    except (ValueError, TypeError):
+        return jsonify({"success": False, "error": "Invalid appointment_id format."}), 400
+
+    if new_status == "CANCELLED":
+        reason = data.get("reason", "Cancelled by Staff (Patient did not attend / cancelled)")
+        result = BookingService.cancel_appointment(
+            business_id=business_id,
+            appointment_id=appt_id_int,
+            reason=reason
+        )
+        return jsonify(result), (200 if result.get("success") else 400)
+
+    appt = Appointment.query.filter_by(id=appt_id_int, business_id=business_id).first()
+    if not appt:
+        return jsonify({"success": False, "error": "Appointment not found."}), 404
+
+    appt.status = new_status
+    if new_status == "COMPLETED":
+        from services.reminder_service import ReminderService
+        ReminderService.cancel_for_appointment(appt.id)
+
+    db.session.commit()
+    return jsonify({
+        "success": True,
+        "appointment_id": appt.id,
+        "status": appt.status,
+        "message": f"Appointment #{appt.id} marked as {appt.status}."
+    }), 200
 
 
 from models import DoctorSchedule, DoctorLeave, DAYS_OF_WEEK
