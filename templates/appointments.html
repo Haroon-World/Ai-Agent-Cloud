@@ -42,20 +42,40 @@
 <!-- Mini KPI Summary Cards -->
 <div class="appt-kpi-grid">
     <div class="appt-kpi-card">
-        <span class="appt-kpi-label">Appointments Today</span>
-        <span class="appt-kpi-value">{{ today_count|default(0) }}</span>
+        <div class="appt-kpi-card-header">
+            <span class="appt-kpi-label">Appointments Today</span>
+            <span class="appt-kpi-icon-badge" style="background: #eff6ff; color: #2563eb;">
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+            </span>
+        </div>
+        <div class="appt-kpi-value" style="color: #1e40af;">{{ today_count|default(0) }}</div>
     </div>
     <div class="appt-kpi-card">
-        <span class="appt-kpi-label">Active / Upcoming</span>
-        <span class="appt-kpi-value" style="color: #059669;">{{ upcoming_count|default(confirmed_count) }}</span>
+        <div class="appt-kpi-card-header">
+            <span class="appt-kpi-label">Active / Upcoming</span>
+            <span class="appt-kpi-icon-badge" style="background: #ecfdf5; color: #059669;">
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+            </span>
+        </div>
+        <div class="appt-kpi-value" style="color: #059669;">{{ upcoming_count|default(confirmed_count) }}</div>
     </div>
     <div class="appt-kpi-card">
-        <span class="appt-kpi-label">Completed</span>
-        <span class="appt-kpi-value" style="color: #0d9488;">{{ completed_count|default(0) }}</span>
+        <div class="appt-kpi-card-header">
+            <span class="appt-kpi-label">Completed</span>
+            <span class="appt-kpi-icon-badge" style="background: #f0fdfa; color: #0d9488;">
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+            </span>
+        </div>
+        <div class="appt-kpi-value" style="color: #0d9488;">{{ completed_count|default(0) }}</div>
     </div>
     <div class="appt-kpi-card">
-        <span class="appt-kpi-label">Cancelled</span>
-        <span class="appt-kpi-value" style="color: #dc2626;">{{ cancelled_count|default(0) }}</span>
+        <div class="appt-kpi-card-header">
+            <span class="appt-kpi-label">Cancelled</span>
+            <span class="appt-kpi-icon-badge" style="background: #fef2f2; color: #dc2626;">
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/></svg>
+            </span>
+        </div>
+        <div class="appt-kpi-value" style="color: #dc2626;">{{ cancelled_count|default(0) }}</div>
     </div>
 </div>
 
@@ -68,7 +88,7 @@
     </button>
     <button type="button" class="tab-btn" id="tabScopePast" onclick="setScopeTab('past')" style="border: none; background: transparent; padding: 6px 14px; border-radius: 7px; font-size: 0.82rem; font-weight: 600; color: #475569; cursor: pointer; display: inline-flex; align-items: center; gap: 6px;">
         <span class="status-dot dot-completed" style="width: 7px; height: 7px; border-radius: 50%; display: inline-block; background: #0d9488;"></span>
-        Past History ({{ past_count|default(0) }})
+        History ({{ past_count|default(0) }})
     </button>
     <button type="button" class="tab-btn" id="tabStatusCancelled" onclick="setScopeTab('cancelled')" style="border: none; background: transparent; padding: 6px 14px; border-radius: 7px; font-size: 0.82rem; font-weight: 600; color: #475569; cursor: pointer; display: inline-flex; align-items: center; gap: 6px;">
         <span class="status-dot dot-danger" style="width: 7px; height: 7px; border-radius: 50%; display: inline-block; background: #ef4444;"></span>

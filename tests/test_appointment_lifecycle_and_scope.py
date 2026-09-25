@@ -83,7 +83,7 @@ class TestAppointmentLifecycleAndScope(unittest.TestCase):
         self.assertIn('id="tabScopeUpcoming"', html)
         self.assertIn('id="tabScopePast"', html)
         self.assertIn('Upcoming &amp; Today', html)
-        self.assertIn('Past History', html)
+        self.assertIn('History', html)
 
         # Past appointment has effective status COMPLETED in row and badge
         self.assertIn('badge-pill-completed', html)

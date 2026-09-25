@@ -5531,84 +5531,114 @@ body {
    ==================================================================== */
 .appt-kpi-grid {
     display: grid;
-    grid-template-columns: repeat(3, 1fr);
-    gap: 1.25rem;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 1rem;
     margin-bottom: 1.25rem;
 }
 
 .appt-kpi-card {
     background: #ffffff;
-    border: 1px solid #eef2f6;
-    border-radius: 12px;
-    padding: 1.1rem 1.4rem;
-    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.03);
+    border: 1px solid #e2e8f0;
+    border-radius: 14px;
+    padding: 1.15rem 1.35rem;
+    box-shadow: 0 1px 3px rgba(15, 23, 42, 0.04), 0 1px 2px rgba(15, 23, 42, 0.02);
     display: flex;
     flex-direction: column;
-    justify-content: center;
-    transition: box-shadow 0.2s ease, transform 0.15s ease;
+    justify-content: space-between;
+    transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+    position: relative;
+    overflow: hidden;
 }
 
 .appt-kpi-card:hover {
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+    box-shadow: 0 6px 20px rgba(15, 23, 42, 0.06);
+    border-color: #cbd5e1;
+    transform: translateY(-1px);
+}
+
+.appt-kpi-card-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 0.65rem;
 }
 
 .appt-kpi-label {
-    font-size: 0.84rem;
-    font-weight: 500;
+    font-size: 0.76rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
     color: #64748b;
-    margin-bottom: 0.35rem;
+    margin: 0;
+}
+
+.appt-kpi-icon-badge {
+    width: 30px;
+    height: 30px;
+    border-radius: 8px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.9rem;
+    flex-shrink: 0;
 }
 
 .appt-kpi-value {
-    font-family: var(--font-heading);
-    font-size: 1.75rem;
-    font-weight: 700;
+    font-family: 'Plus Jakarta Sans', var(--font-heading, sans-serif);
+    font-size: 1.85rem;
+    font-weight: 800;
     color: #0f172a;
-    line-height: 1.1;
+    line-height: 1;
+    letter-spacing: -0.02em;
+    font-variant-numeric: tabular-nums;
 }
 
-@media (max-width: 768px) {
+@media (max-width: 992px) {
     .appt-kpi-grid {
-        grid-template-columns: repeat(3, 1fr);
-        gap: 0.65rem;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 0.85rem;
         margin-bottom: 1rem;
     }
+}
 
+@media (max-width: 640px) {
     .appt-kpi-card {
-        padding: 0.75rem 0.6rem;
-        border-radius: 10px;
-        text-align: center;
-        align-items: center;
+        padding: 0.85rem 1rem;
+        border-radius: 12px;
     }
 
     .appt-kpi-label {
         font-size: 0.72rem;
-        margin-bottom: 0.25rem;
-        text-align: center;
-        line-height: 1.2;
     }
 
     .appt-kpi-value {
-        font-size: 1.4rem;
-        text-align: center;
+        font-size: 1.5rem;
     }
 }
 
-@media (max-width: 380px) {
+@media (max-width: 480px) {
     .appt-kpi-grid {
-        gap: 0.4rem;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 0.55rem;
     }
 
     .appt-kpi-card {
-        padding: 0.6rem 0.35rem;
+        padding: 0.75rem 0.65rem;
+        border-radius: 10px;
     }
 
     .appt-kpi-label {
-        font-size: 0.65rem;
+        font-size: 0.68rem;
+    }
+
+    .appt-kpi-icon-badge {
+        width: 26px;
+        height: 26px;
+        font-size: 0.8rem;
     }
 
     .appt-kpi-value {
-        font-size: 1.2rem;
+        font-size: 1.35rem;
     }
 }
 
