@@ -86,6 +86,38 @@ def create_app(config_class=Config):
             business = db.session.get(Business, Config.DEFAULT_BUSINESS_ID)
         return render_template("index.html", business=business)
 
+    # -------------------------------------------------------------------
+    # Temporary Evaluator Direct Login Routes (No password required)
+    # -------------------------------------------------------------------
+    @app.route("/evaluator/clinic")
+    def evaluator_clinic_login():
+        from models.user import User
+        user = User.query.filter_by(username=Config.ADMIN_USERNAME).first() or User.query.filter_by(is_platform_admin=False).first()
+        if user:
+            session.clear()
+            session.permanent = True
+            session["user_id"] = user.id
+            session["business_id"] = user.business_id or Config.DEFAULT_BUSINESS_ID
+            session["admin_user"] = user.username
+            session["is_platform_admin"] = False
+            business = db.session.get(Business, session["business_id"])
+            session["clinic_name"] = business.name if business else "Clinic"
+        return redirect(url_for("admin_bp.dashboard"))
+
+    @app.route("/evaluator/platform")
+    def evaluator_platform_login():
+        from models.user import User
+        user = User.query.filter_by(username=Config.PLATFORM_ADMIN_USERNAME, is_platform_admin=True).first() or User.query.filter_by(is_platform_admin=True).first()
+        if user:
+            session.clear()
+            session.permanent = True
+            session["platform_admin_id"] = user.id
+            session["platform_admin_user"] = user.username
+            session["is_platform_admin"] = True
+            session["user_id"] = user.id
+            session["admin_user"] = user.username
+        return redirect(url_for("platform_bp.dashboard"))
+
     init_db(app)
 
     return app

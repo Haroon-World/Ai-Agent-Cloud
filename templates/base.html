@@ -224,6 +224,10 @@
                         Back to Admin Portal
                     </a>
                 {% else %}
+                    <button type="button" class="evaluator-trigger-btn" onclick="openEvaluatorModal()" title="Click to view test credentials and direct links">
+                        <span class="evaluator-pulse-dot"></span>
+                        <span>⚡ Evaluator Access</span>
+                    </button>
                     <a href="/admin/login" class="nav-item nav-btn" style="font-weight: 700; border-radius: 8px;">Clinic Staff Login</a>
                 {% endif %}
             </div>
@@ -246,7 +250,11 @@
                     <span class="live-dot"></span>
                 </a>
             </div>
-            <div class="nav-auth-section">
+            <div class="nav-auth-section" style="display: flex; align-items: center; gap: 10px;">
+                <button type="button" class="evaluator-trigger-btn" onclick="openEvaluatorModal()" title="Click to view test credentials and direct links">
+                    <span class="evaluator-pulse-dot"></span>
+                    <span>⚡ Evaluator Access</span>
+                </button>
                 {% if session.get('user_id') %}
                     <a href="/admin" class="nav-item nav-btn" style="font-weight: 700; border-radius: 8px;">Open Dashboard</a>
                 {% else %}
@@ -677,6 +685,128 @@
     }
 
     document.addEventListener('DOMContentLoaded', initTopbarSearch);
+    </script>
+
+    <!-- ====================================================================
+         TEMPORARY EVALUATOR ACCESS POPUP (For Academic / Project Evaluation)
+         ==================================================================== -->
+    <style>
+    .evaluator-trigger-btn {
+        display: inline-flex;
+        align-items: center;
+        gap: 7px;
+        background: linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%);
+        color: #ffffff !important;
+        font-weight: 700;
+        font-size: 0.82rem;
+        padding: 8px 15px;
+        border-radius: 8px;
+        border: 1px solid rgba(255, 255, 255, 0.25);
+        cursor: pointer;
+        box-shadow: 0 2px 10px rgba(79, 70, 229, 0.35);
+        transition: all 0.2s ease;
+        font-family: inherit;
+        text-decoration: none;
+        line-height: 1.2;
+    }
+    .evaluator-trigger-btn:hover {
+        background: linear-gradient(135deg, #4338ca 0%, #6d28d9 100%);
+        transform: translateY(-1px);
+        box-shadow: 0 4px 14px rgba(79, 70, 229, 0.5);
+    }
+    .evaluator-pulse-dot {
+        width: 7px;
+        height: 7px;
+        border-radius: 50%;
+        background: #34d399;
+        box-shadow: 0 0 6px #34d399;
+        display: inline-block;
+        animation: evalPulse 1.8s infinite ease-in-out;
+    }
+    @keyframes evalPulse {
+        0%, 100% { transform: scale(1); opacity: 1; }
+        50% { transform: scale(1.35); opacity: 0.6; }
+    }
+    @keyframes evalModalPop {
+        from { opacity: 0; transform: scale(0.95); }
+        to { opacity: 1; transform: scale(1); }
+    }
+    </style>
+
+    <div id="evaluatorModal" style="display: none; position: fixed; inset: 0; width: 100%; height: 100%; background: rgba(15, 23, 42, 0.7); backdrop-filter: blur(4px); -webkit-backdrop-filter: blur(4px); z-index: 99999; align-items: center; justify-content: center; padding: 16px;" onclick="handleEvaluatorBackdropClick(event)">
+        <div style="background: #ffffff; width: 100%; max-width: 440px; border-radius: 16px; box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25); border: 1px solid #e2e8f0; overflow: hidden; animation: evalModalPop 0.2s ease-out; font-family: 'Plus Jakarta Sans', sans-serif;" onclick="event.stopPropagation()">
+            <!-- Header -->
+            <div style="background: linear-gradient(135deg, #1e1b4b 0%, #312e81 100%); padding: 18px 22px; color: #ffffff; display: flex; justify-content: space-between; align-items: center;">
+                <div style="display: flex; align-items: center; gap: 9px;">
+                    <span style="font-size: 1.25rem;">⚡</span>
+                    <div>
+                        <h3 style="margin: 0; font-size: 1.08rem; font-weight: 800; color: #ffffff; letter-spacing: -0.01em;">Evaluator Test Access</h3>
+                        <div style="font-size: 0.74rem; color: #c7d2fe; margin-top: 1px;">Direct Access &bull; No password required</div>
+                    </div>
+                </div>
+                <button type="button" onclick="closeEvaluatorModal()" style="background: rgba(255,255,255,0.15); border: none; color: #ffffff; width: 30px; height: 30px; border-radius: 50%; cursor: pointer; display: flex; align-items: center; justify-content: center; font-size: 1rem; transition: background 0.15s;" title="Close popup">✕</button>
+            </div>
+
+            <!-- Body with 2 Direct Click-to-Open Buttons -->
+            <div style="padding: 22px; display: flex; flex-direction: column; gap: 12px;">
+                <!-- Link 1: Clinic Staff Admin Portal -->
+                <a href="/evaluator/clinic" style="display: flex; align-items: center; justify-content: space-between; background: #f8fafc; border: 1.5px solid #cbd5e1; border-radius: 12px; padding: 16px 18px; text-decoration: none; transition: all 0.2s ease; box-shadow: 0 1px 3px rgba(0,0,0,0.05);" onmouseover="this.style.borderColor='#2563eb'; this.style.transform='translateY(-1px)';" onmouseout="this.style.borderColor='#cbd5e1'; this.style.transform='none';">
+                    <div style="display: flex; align-items: center; gap: 12px;">
+                        <span style="font-size: 1.6rem;">🏥</span>
+                        <div style="text-align: left;">
+                            <div style="font-weight: 800; font-size: 0.95rem; color: #0f172a;">Clinic Staff Admin Portal</div>
+                            <div style="font-size: 0.76rem; color: #64748b; margin-top: 2px;">Appointments, Doctors &amp; Schedules</div>
+                        </div>
+                    </div>
+                    <span style="font-size: 0.82rem; font-weight: 700; color: #ffffff; background: #2563eb; padding: 7px 14px; border-radius: 8px; box-shadow: 0 1px 3px rgba(37,99,235,0.3);">Open &rarr;</span>
+                </a>
+
+                <!-- Link 2: SaaS Platform Master Console -->
+                <a href="/evaluator/platform" target="_blank" rel="noopener noreferrer" onclick="closeEvaluatorModal()" style="display: flex; align-items: center; justify-content: space-between; background: #0f172a; border: 1.5px solid #1e293b; border-radius: 12px; padding: 16px 18px; text-decoration: none; transition: all 0.2s ease; box-shadow: 0 2px 8px rgba(15,23,42,0.25);" onmouseover="this.style.borderColor='#6366f1'; this.style.transform='translateY(-1px)';" onmouseout="this.style.borderColor='#1e293b'; this.style.transform='none';">
+                    <div style="display: flex; align-items: center; gap: 12px;">
+                        <span style="font-size: 1.6rem;">🛡️</span>
+                        <div style="text-align: left;">
+                            <div style="font-weight: 800; font-size: 0.95rem; color: #f8fafc;">SaaS Master Console</div>
+                            <div style="font-size: 0.76rem; color: #94a3b8; margin-top: 2px;">Multi-Tenant &amp; Platform Controls</div>
+                        </div>
+                    </div>
+                    <span style="font-size: 0.82rem; font-weight: 700; color: #ffffff; background: #6366f1; padding: 7px 14px; border-radius: 8px; box-shadow: 0 2px 6px rgba(99,102,241,0.35); display: inline-flex; align-items: center; gap: 4px;">
+                        <span>Open</span>
+                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>
+                    </span>
+                </a>
+            </div>
+
+            <!-- Footer -->
+            <div style="background: #f8fafc; border-top: 1px solid #e2e8f0; padding: 10px 22px; text-align: center; font-size: 0.74rem; color: #64748b;">
+                Click any portal to enter directly &bull; Press <kbd style="background: #e2e8f0; border: 1px solid #cbd5e1; padding: 1px 5px; border-radius: 4px; font-weight: 600;">ESC</kbd> to close
+            </div>
+        </div>
+    </div>
+
+    <script>
+    function openEvaluatorModal() {
+        const modal = document.getElementById('evaluatorModal');
+        if (modal) {
+            modal.style.display = 'flex';
+            document.body.style.overflow = 'hidden';
+        }
+    }
+    function closeEvaluatorModal() {
+        const modal = document.getElementById('evaluatorModal');
+        if (modal) {
+            modal.style.display = 'none';
+            document.body.style.overflow = '';
+        }
+    }
+    function handleEvaluatorBackdropClick(e) {
+        if (e.target && e.target.id === 'evaluatorModal') {
+            closeEvaluatorModal();
+        }
+    }
+    window.addEventListener('keydown', function(e) {
+        if (e.key === 'Escape') closeEvaluatorModal();
+    });
     </script>
 </body>
 </html>
