@@ -1233,12 +1233,18 @@ function openRescheduleModal(apptId) {
 
     // Set doctor
     const docSelect = document.getElementById('reschedDoctorSelect');
-    if (docSelect && activeReschedAppt.doctorId) {
-        docSelect.value = activeReschedAppt.doctorId;
+    if (docSelect) {
+        if (activeReschedAppt.doctorId) {
+            docSelect.value = activeReschedAppt.doctorId;
+        }
+        if (!docSelect.value && docSelect.options.length > 0) {
+            docSelect.selectedIndex = 0;
+        }
     }
+    const effDocId = docSelect ? docSelect.value : activeReschedAppt.doctorId;
     
     // Populate services for selected doctor
-    populateReschedServices(activeReschedAppt.doctorId, activeReschedAppt.serviceId);
+    populateReschedServices(effDocId, activeReschedAppt.serviceId);
 
     // Set date (defaults to appointment date if today or future, else today)
     const todayStr = getTodayDateString();
@@ -1329,12 +1335,22 @@ async function loadReschedSlots(preferredTime) {
     }
 
     try {
-        const res = await fetch(`/api/admin/doctors/${docId}/slots?date=${encodeURIComponent(dateStr)}`);
+        const apptId = document.getElementById('reschedApptId')?.value || '';
+        const url = `/api/admin/doctor-slots?doctor_id=${encodeURIComponent(docId)}&date=${encodeURIComponent(dateStr)}` + (apptId ? `&exclude_appointment_id=${encodeURIComponent(apptId)}` : '');
+        const res = await fetch(url);
+        if (!res.ok) {
+            let errMsg = 'Failed to load doctor slots.';
+            try {
+                const errData = await res.json();
+                if (errData && errData.error) errMsg = errData.error;
+            } catch (_) {}
+            throw new Error(errMsg);
+        }
         const data = await res.json();
 
         if (!data.success || !data.slots || data.slots.length === 0) {
             if (summary) summary.innerText = 'No slots available';
-            if (pillsWrap) pillsWrap.innerHTML = '<div style="padding: 6px; font-size: 0.8rem; color: #dc2626;">Doctor has no scheduled working hours or available slots on this day.</div>';
+            if (pillsWrap) pillsWrap.innerHTML = '<div style="padding: 8px 12px; font-size: 0.82rem; color: #dc2626; background: #fef2f2; border: 1px solid #fee2e2; border-radius: 8px;">Doctor has no scheduled working hours or available slots on this day.</div>';
             if (timeSelect) timeSelect.innerHTML = '<option value="">No slots available</option>';
             return;
         }
@@ -1403,7 +1419,7 @@ async function loadReschedSlots(preferredTime) {
 
     } catch (err) {
         if (summary) summary.innerText = 'Failed to load slots';
-        if (pillsWrap) pillsWrap.innerHTML = '<div style="padding: 6px; font-size: 0.8rem; color: #dc2626;">Network error while fetching slots.</div>';
+        if (pillsWrap) pillsWrap.innerHTML = `<div style="padding: 8px 12px; font-size: 0.82rem; color: #b91c1c; background: #fef2f2; border: 1px solid #fecaca; border-radius: 8px; line-height: 1.4;">${err.message || 'Network error while fetching slots.'}</div>`;
     }
 }
 

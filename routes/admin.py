@@ -1833,11 +1833,12 @@ def slots_view():
 
 
 @admin_bp.route("/api/admin/doctor-slots")
+@admin_bp.route("/api/admin/doctors/<int:doctor_id>/slots")
 @login_required
-def get_doctor_slots():
-    """Return available and occupied slots formatted in 12-hour AM/PM for manual booking template."""
+def get_doctor_slots(doctor_id=None):
+    """Return available and occupied slots formatted in 12-hour AM/PM for manual booking and reschedule modals."""
     business_id = _current_business_id()
-    doc_id = request.args.get("doctor_id")
+    doc_id = doctor_id or request.args.get("doctor_id")
     date_str = request.args.get("date", "").strip()
     if not doc_id or not date_str:
         return jsonify({"success": False, "error": "Doctor ID and date required."}), 400
@@ -1851,6 +1852,14 @@ def get_doctor_slots():
     if not doc:
         return jsonify({"success": False, "error": "Doctor not found."}), 404
 
+    exclude_appt_id = request.args.get("exclude_appointment_id") or request.args.get("appointment_id")
+    exclude_id_int = None
+    if exclude_appt_id:
+        try:
+            exclude_id_int = int(exclude_appt_id)
+        except ValueError:
+            pass
+
     from services.booking_service import BookingService
     avail_res = BookingService.check_availability(
         business_id=business_id,
@@ -1859,12 +1868,15 @@ def get_doctor_slots():
     )
     available_slots = set(avail_res.get("available_slots", []))
 
-    booked_appts = Appointment.query.filter_by(
+    booked_query = Appointment.query.filter_by(
         business_id=business_id,
         doctor_id=doc_id_int,
         appointment_date=date_str,
         status="CONFIRMED"
-    ).all()
+    )
+    if exclude_id_int:
+        booked_query = booked_query.filter(Appointment.id != exclude_id_int)
+    booked_appts = booked_query.all()
 
     booked_map = {a.appointment_time: (a.customer.name if a.customer else "Patient") for a in booked_appts}
     all_times = sorted(list(available_slots.union(set(booked_map.keys()))))

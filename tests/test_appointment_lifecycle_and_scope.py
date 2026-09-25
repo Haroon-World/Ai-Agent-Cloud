@@ -154,6 +154,25 @@ class TestAppointmentLifecycleAndScope(unittest.TestCase):
         self.assertIn('openRescheduleModal', html)
         self.assertIn('position: fixed', html)
 
+    def test_get_doctor_slots_api(self):
+        """Doctor slots API works via both /api/admin/doctor-slots and /api/admin/doctors/<id>/slots."""
+        today_str = datetime.now().strftime("%Y-%m-%d")
+        
+        # Test query string format
+        res1 = self.client.get(f"/api/admin/doctor-slots?doctor_id={self.doc.id}&date={today_str}&exclude_appointment_id={self.future_appt.id}")
+        self.assertEqual(res1.status_code, 200)
+        data1 = res1.get_json()
+        self.assertTrue(data1.get("success"))
+        self.assertIn("slots", data1)
+        self.assertEqual(data1.get("doctor_name"), self.doc.name)
+
+        # Test path param format
+        res2 = self.client.get(f"/api/admin/doctors/{self.doc.id}/slots?date={today_str}")
+        self.assertEqual(res2.status_code, 200)
+        data2 = res2.get_json()
+        self.assertTrue(data2.get("success"))
+        self.assertIn("slots", data2)
+
 
 if __name__ == "__main__":
     unittest.main()
