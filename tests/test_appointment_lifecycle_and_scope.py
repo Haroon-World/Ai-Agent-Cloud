@@ -117,6 +117,44 @@ class TestAppointmentLifecycleAndScope(unittest.TestCase):
         updated = db.session.get(Appointment, self.future_appt.id)
         self.assertEqual(updated.status, "CANCELLED")
 
+    def test_reschedule_appointment_api(self):
+        """Staff can reschedule appointment to new date/time with updated patient details."""
+        new_date_str = (datetime.now() + timedelta(days=5)).strftime("%Y-%m-%d")
+        res = self.client.post("/api/admin/appointments/reschedule", json={
+            "appointment_id": self.future_appt.id,
+            "new_date": new_date_str,
+            "new_time": "10:30",
+            "customer_name": "Tariq Jameel Updated",
+            "customer_phone": "+923001112233",
+            "notes": "Patient requested later slot"
+        })
+        self.assertEqual(res.status_code, 200)
+        data = res.get_json()
+        self.assertTrue(data.get("success"))
+
+        updated = db.session.get(Appointment, self.future_appt.id)
+        self.assertEqual(updated.appointment_date, new_date_str)
+        self.assertEqual(updated.appointment_time, "10:30")
+        self.assertEqual(updated.customer.name, "Tariq Jameel Updated")
+        self.assertEqual(updated.customer.phone, "+923001112233")
+        self.assertEqual(updated.status, "CONFIRMED")
+
+    def test_reschedule_modal_and_fixed_action_menu_rendered(self):
+        """Reschedule modal and fixed positioning logic are rendered in appointments page."""
+        res = self.client.get("/admin/appointments")
+        self.assertEqual(res.status_code, 200)
+        html = res.data.decode("utf-8")
+
+        self.assertIn('id="rescheduleModal"', html)
+        self.assertIn('id="reschedPatientName"', html)
+        self.assertIn('id="reschedPatientPhone"', html)
+        self.assertIn('id="reschedDoctorSelect"', html)
+        self.assertIn('id="reschedDateInput"', html)
+        self.assertIn('id="reschedTimeSelect"', html)
+        self.assertIn('openRescheduleModal', html)
+        self.assertIn('position: fixed', html)
+
 
 if __name__ == "__main__":
     unittest.main()
+

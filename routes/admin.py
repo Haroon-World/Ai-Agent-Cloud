@@ -1006,6 +1006,121 @@ def admin_update_appointment_status():
     }), 200
 
 
+@admin_bp.route("/api/admin/appointments/reschedule", methods=["POST"])
+@login_required
+def admin_reschedule_appointment():
+    """Reschedule an existing appointment to a new date, time, doctor, and/or service with optional patient info updates."""
+    data = request.get_json() or {}
+    business_id = _current_business_id()
+    appointment_id = data.get("appointment_id")
+    new_date = (data.get("new_date") or "").strip()
+    new_time_raw = (data.get("new_time") or "").strip()
+    new_time = normalize_time_to_24h(new_time_raw)
+    doctor_id = data.get("doctor_id")
+    service_id = data.get("service_id")
+    customer_name = (data.get("customer_name") or "").strip()
+    customer_phone = (data.get("customer_phone") or "").strip()
+    notes = (data.get("notes") or "").strip()
+
+    if not appointment_id:
+        return jsonify({"success": False, "error": "appointment_id is required."}), 400
+    if not new_date:
+        return jsonify({"success": False, "error": "new_date is required."}), 400
+    if not new_time:
+        return jsonify({"success": False, "error": "new_time is required."}), 400
+
+    try:
+        appt_id_int = int(appointment_id)
+    except (ValueError, TypeError):
+        return jsonify({"success": False, "error": "Invalid appointment_id format."}), 400
+
+    doc_id_int = None
+    if doctor_id:
+        try:
+            doc_id_int = int(doctor_id)
+        except (ValueError, TypeError):
+            return jsonify({"success": False, "error": "Invalid doctor_id format."}), 400
+
+    svc_id_int = None
+    if service_id:
+        try:
+            svc_id_int = int(service_id)
+        except (ValueError, TypeError):
+            return jsonify({"success": False, "error": "Invalid service_id format."}), 400
+
+    appt = Appointment.query.filter_by(id=appt_id_int, business_id=business_id).first()
+    if not appt:
+        return jsonify({"success": False, "error": "Appointment not found."}), 404
+
+    # Update customer information if provided
+    if customer_name or customer_phone:
+        if appt.customer:
+            if customer_name:
+                appt.customer.name = customer_name
+            if customer_phone:
+                appt.customer.phone = customer_phone
+        else:
+            cust = Customer(
+                business_id=business_id,
+                name=customer_name or "Walk-in Patient",
+                phone=customer_phone or ""
+            )
+            db.session.add(cust)
+            db.session.flush()
+            appt.customer_id = cust.id
+
+    # If appointment was CANCELLED, allow re-activation during staff reschedule
+    if appt.status == "CANCELLED":
+        appt.status = "CONFIRMED"
+        db.session.flush()
+
+    from services.booking_service import BookingService
+    result = BookingService.reschedule_appointment(
+        business_id=business_id,
+        appointment_id=appt_id_int,
+        new_date=new_date,
+        new_time=new_time,
+        new_doctor_id=doc_id_int,
+        new_service_id=svc_id_int
+    )
+
+    if not result.get("success"):
+        err_msg = result.get("error", "Failed to reschedule appointment.")
+        formatted_time = format_time_to_12h(new_time)
+        doc = db.session.get(Doctor, doc_id_int) if doc_id_int else appt.doctor
+        doc_name = doc.name if doc else "the doctor"
+        if any(w in err_msg.lower() for w in ["overlap", "already booked", "not available", "outside", "break", "conflict"]):
+            result["conflict"] = True
+            result["conflict_time"] = formatted_time
+        status_code = 409 if result.get("conflict") else 400
+        return jsonify(result), status_code
+
+    if notes:
+        appt.notes = notes
+
+    db.session.commit()
+
+    formatted_time = format_time_to_12h(appt.appointment_time)
+    return jsonify({
+        "success": True,
+        "message": f"Appointment successfully rescheduled to {appt.appointment_date} at {formatted_time}.",
+        "appointment": {
+            "id": appt.id,
+            "date": appt.appointment_date,
+            "time": formatted_time,
+            "raw_time": appt.appointment_time,
+            "doctor": appt.doctor.name if appt.doctor else "",
+            "doctor_id": appt.doctor_id,
+            "service": appt.service.name if appt.service else "",
+            "service_id": appt.service_id,
+            "status": appt.status,
+            "patient": appt.customer.name if appt.customer else "Patient",
+            "phone": appt.customer.phone if appt.customer else ""
+        }
+    }), 200
+
+
+
 from models import DoctorSchedule, DoctorLeave, DAYS_OF_WEEK
 
 # ---------------------------------------------------------------------------

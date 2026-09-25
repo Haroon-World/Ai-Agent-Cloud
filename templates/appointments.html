@@ -176,17 +176,22 @@
                     id="apptRow-{{ appt.id }}"
                     data-id="{{ appt.id }}"
                     data-patient="{{ (appt.customer.name if appt.customer else '') | lower }}"
+                    data-patient-display="{{ appt.customer.name if appt.customer else 'Walk-in Patient' }}"
                     data-phone="{{ (appt.customer.phone if appt.customer else '') | lower }}"
+                    data-phone-display="{{ appt.customer.phone if appt.customer else '' }}"
                     data-doctor="{{ (appt.doctor.name if appt.doctor else '') | lower }}"
                     data-doctor-id="{{ appt.doctor_id }}"
                     data-service="{{ (appt.service.name if appt.service else '') | lower }}"
+                    data-service-id="{{ appt.service_id or '' }}"
                     data-status="{{ effective_status | upper }}"
                     data-raw-status="{{ appt.status | upper }}"
                     data-is-past="{{ 'true' if is_past else 'false' }}"
                     data-date="{{ appt.appointment_date }}"
                     data-time="{{ (appt.appointment_time or '') | lower }} {{ ((appt.appointment_time|format_12hr) or '') | lower }}"
+                    data-raw-time="{{ appt.appointment_time or '' }}"
                     data-raw-price="{{ '{:,.0f}'.format(appt.service.price) if appt.service else '0' }}"
                     data-raw-duration="{{ appt.service.duration if appt.service else 30 }}"
+                    data-notes="{{ appt.notes or '' }}"
                     data-cid="{{ appt.conversation_id or '' }}"
                     style="cursor: pointer;"
                     onclick="onApptRowClick(event, this)">
@@ -249,6 +254,11 @@
                                     View Patient Chat
                                 </a>
                                 {% endif %}
+
+                                <button type="button" class="action-dropdown-item" style="color: #2563eb;" onclick="openRescheduleModal('{{ appt.id }}')">
+                                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 2v6h-6"/><path d="M3 12a9 9 0 0 1 15-6.7L21 8"/><path d="M3 22v-6h6"/><path d="M21 12a9 9 0 0 1-15 6.7L3 16"/></svg>
+                                    Reschedule
+                                </button>
 
                                 {% if effective_status != 'COMPLETED' %}
                                 <button type="button" class="action-dropdown-item" style="color: #0d9488;" onclick="updateApptStatus('{{ appt.id }}', 'COMPLETED')">
@@ -379,7 +389,7 @@
 
     <div class="slide-over-footer" style="display: flex; gap: 8px;">
         <button type="button" id="drawerCompleteBtn" class="btn btn-sm" style="flex: 1; background: #0d9488; color: #ffffff; border: none; font-weight: 600; padding: 0.55rem;" onclick="drawerExecuteStatus('COMPLETED')">✓ Mark Completed</button>
-        <a href="/admin/slots" class="btn btn-sm btn-secondary" style="flex: 1; text-align: center; padding: 0.55rem;">Reschedule</a>
+        <button type="button" class="btn btn-sm btn-secondary" style="flex: 1; text-align: center; padding: 0.55rem; font-weight: 600;" onclick="openRescheduleModalFromDrawer()">Reschedule</button>
         <button type="button" id="drawerCancelBtn" class="btn btn-sm btn-danger" style="flex: 1; padding: 0.55rem;" onclick="drawerExecuteStatus('CANCELLED')">Cancel</button>
     </div>
 </div>
@@ -494,6 +504,130 @@
         </div>
     </div>
 </div>
+<!-- ============================================================== -->
+<!-- APPOINTMENT RESCHEDULE MODAL                                   -->
+<!-- ============================================================== -->
+<div id="rescheduleModal" class="modal-overlay" style="display: none;">
+    <div class="cleanup-modal-card" style="max-width: 540px;">
+        <div class="cleanup-modal-header" style="border-bottom: 1px solid #e2e8f0; padding-bottom: 0.85rem;">
+            <div class="cleanup-modal-title" style="display: flex; align-items: center; gap: 10px;">
+                <div style="width: 36px; height: 36px; border-radius: 9px; background: #eff6ff; color: #2563eb; display: flex; align-items: center; justify-content: center; flex-shrink: 0;">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 2v6h-6"/><path d="M3 12a9 9 0 0 1 15-6.7L21 8"/><path d="M3 22v-6h6"/><path d="M21 12a9 9 0 0 1-15 6.7L3 16"/></svg>
+                </div>
+                <div>
+                    <h3 style="font-size: 1.05rem; font-weight: 700; color: #0f172a; margin: 0;">Reschedule Appointment</h3>
+                    <p class="cleanup-modal-subtitle" id="reschedModalSubtitle" style="font-size: 0.78rem; color: #64748b; margin: 2px 0 0 0;">Update appointment slot, doctor, or patient details.</p>
+                </div>
+            </div>
+            <button type="button" class="modal-close-btn" onclick="closeRescheduleModal()" title="Close dialog">✕</button>
+        </div>
+
+        <form id="rescheduleForm" onsubmit="submitReschedule(event)">
+            <input type="hidden" id="reschedApptId" name="appointment_id">
+            <div class="cleanup-modal-body" style="padding: 1rem 0;">
+                <!-- Conflict / Error Alert Banner -->
+                <div id="reschedAlert" style="display: none; margin-bottom: 12px; padding: 10px 14px; border-radius: 8px; font-size: 0.84rem; line-height: 1.4; align-items: flex-start; gap: 8px;">
+                    <span id="reschedAlertIcon" style="font-size: 1.05rem; line-height: 1;">⚠️</span>
+                    <div id="reschedAlertText" style="flex: 1; font-weight: 600;"></div>
+                    <button type="button" onclick="hideReschedAlert()" style="background: none; border: none; font-size: 1rem; color: inherit; cursor: pointer; padding: 0 4px; line-height: 1;">✕</button>
+                </div>
+
+                <!-- Patient Name & Phone (Autofilled & Editable) -->
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 10px;">
+                    <div>
+                        <label style="font-size: 0.78rem; font-weight: 600; color: #334155; margin-bottom: 4px; display: block;">Patient Name *</label>
+                        <input type="text" id="reschedPatientName" class="filter-input" required placeholder="Patient full name" style="width: 100%; height: 38px; border-radius: 8px; border: 1px solid #cbd5e1; padding: 0 10px; font-size: 0.86rem; box-sizing: border-box;">
+                    </div>
+                    <div>
+                        <label style="font-size: 0.78rem; font-weight: 600; color: #334155; margin-bottom: 4px; display: block;">Phone Number</label>
+                        <input type="tel" id="reschedPatientPhone" class="filter-input" placeholder="+923001234567" style="width: 100%; height: 38px; border-radius: 8px; border: 1px solid #cbd5e1; padding: 0 10px; font-size: 0.86rem; box-sizing: border-box;">
+                    </div>
+                </div>
+
+                <!-- Doctor & Service -->
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 10px;">
+                    <div>
+                        <label style="font-size: 0.78rem; font-weight: 600; color: #334155; margin-bottom: 4px; display: block;">Doctor *</label>
+                        <select id="reschedDoctorSelect" class="filter-select-inline" required onchange="onReschedDoctorChange()" style="width: 100%; height: 38px; border-radius: 8px; border: 1px solid #cbd5e1; font-size: 0.86rem; box-sizing: border-box;">
+                            {% if business and business.doctors %}
+                                {% for doc in business.doctors %}
+                                    <option value="{{ doc.id }}">{{ doc.name }} ({{ doc.specialization or 'General' }})</option>
+                                {% endfor %}
+                            {% endif %}
+                        </select>
+                    </div>
+                    <div>
+                        <label style="font-size: 0.78rem; font-weight: 600; color: #334155; margin-bottom: 4px; display: block;">Service *</label>
+                        <select id="reschedServiceSelect" class="filter-select-inline" required style="width: 100%; height: 38px; border-radius: 8px; border: 1px solid #cbd5e1; font-size: 0.86rem; box-sizing: border-box;">
+                            <!-- Populated dynamically based on doctor -->
+                        </select>
+                    </div>
+                </div>
+
+                <!-- New Date & Time Dropdown -->
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 10px;">
+                    <div>
+                        <label style="font-size: 0.78rem; font-weight: 600; color: #334155; margin-bottom: 4px; display: block;">New Date *</label>
+                        <input type="date" id="reschedDateInput" min="{{ today_str }}" required class="filter-date-inline" onchange="onReschedDateChange()" style="width: 100%; height: 38px; border-radius: 8px; border: 1px solid #cbd5e1; font-size: 0.86rem; box-sizing: border-box;">
+                    </div>
+                    <div>
+                        <label style="font-size: 0.78rem; font-weight: 600; color: #334155; margin-bottom: 4px; display: block;">Selected Slot *</label>
+                        <select id="reschedTimeSelect" class="filter-select-inline" required onchange="onReschedTimeSelectChange()" style="width: 100%; height: 38px; border-radius: 8px; border: 1px solid #cbd5e1; font-size: 0.86rem; box-sizing: border-box;">
+                            <option value="">Select a time slot...</option>
+                        </select>
+                    </div>
+                </div>
+
+                <!-- Interactive Slot Pills -->
+                <div style="margin-bottom: 10px;">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
+                        <span style="font-size: 0.76rem; font-weight: 600; color: #64748b; text-transform: uppercase;">Available Doctor Slots:</span>
+                        <span id="reschedSlotSummary" style="font-size: 0.76rem; color: #64748b;">Loading slots...</span>
+                    </div>
+                    <div id="reschedSlotPillsWrap" style="display: flex; flex-wrap: wrap; gap: 6px; max-height: 110px; overflow-y: auto; padding: 6px; background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px;">
+                        <!-- Injected dynamically -->
+                    </div>
+                </div>
+
+                <!-- Notes / Reason -->
+                <div>
+                    <label style="font-size: 0.78rem; font-weight: 600; color: #334155; margin-bottom: 4px; display: block;">Reschedule Reason / Staff Notes</label>
+                    <input type="text" id="reschedNotes" class="filter-input" placeholder="e.g., Patient requested morning slot" style="width: 100%; height: 38px; border-radius: 8px; border: 1px solid #cbd5e1; padding: 0 10px; font-size: 0.86rem; box-sizing: border-box;">
+                </div>
+            </div>
+
+            <div class="cleanup-modal-footer" style="border-top: 1px solid #e2e8f0; padding-top: 0.85rem; display: flex; justify-content: flex-end; gap: 8px;">
+                <button type="button" class="btn btn-secondary btn-sm" onclick="closeRescheduleModal()">Cancel</button>
+                <button type="submit" id="reschedSubmitBtn" class="btn btn-primary btn-sm" style="font-weight: 600; padding: 0.48rem 1.15rem;">Confirm &amp; Reschedule</button>
+            </div>
+        </form>
+    </div>
+</div>
+<script id="clinicDataJson" type="application/json">
+{
+    "doctors": [
+        {% if business and business.doctors %}
+        {% for doc in business.doctors %}
+        {
+            "id": {{ doc.id }},
+            "name": {{ doc.name|tojson }},
+            "specialization": {{ (doc.specialization or '')|tojson }},
+            "services": [
+                {% for s in doc.services %}
+                {
+                    "id": {{ s.id }},
+                    "name": {{ s.name|tojson }},
+                    "price": {{ s.price|default(0) }},
+                    "duration": {{ s.duration|default(30) }}
+                }{% if not loop.last %},{% endif %}
+                {% endfor %}
+            ]
+        }{% if not loop.last %},{% endif %}
+        {% endfor %}
+        {% endif %}
+    ]
+}
+</script>
 {% endblock %}
 
 {% block scripts %}
@@ -950,14 +1084,28 @@ function toggleActionMenu(btn, event) {
     closeAllActionMenus();
     
     if (!wasActive && dropdown) {
+        wrap.classList.add('active');
+        
+        // Calculate fixed viewport coordinates to prevent clipping by table-responsive
         const rect = btn.getBoundingClientRect();
+        dropdown.style.position = 'fixed';
+        dropdown.style.right = (window.innerWidth - rect.right) + 'px';
+        dropdown.style.left = 'auto';
+        dropdown.style.zIndex = '99999';
+        
+        const dropdownHeight = dropdown.offsetHeight || 220;
         const spaceBelow = window.innerHeight - rect.bottom;
-        if (spaceBelow < 200 && rect.top > 200) {
+        const spaceAbove = rect.top;
+        
+        if (spaceBelow < dropdownHeight && spaceAbove > dropdownHeight) {
+            dropdown.style.top = (rect.top - dropdownHeight - 4) + 'px';
+            dropdown.style.bottom = 'auto';
             dropdown.classList.add('dropup');
         } else {
+            dropdown.style.top = (rect.bottom + 4) + 'px';
+            dropdown.style.bottom = 'auto';
             dropdown.classList.remove('dropup');
         }
-        wrap.classList.add('active');
     }
 }
 
@@ -965,8 +1113,356 @@ function closeAllActionMenus() {
     document.querySelectorAll('.action-menu-wrap.active').forEach(w => {
         w.classList.remove('active');
         const d = w.querySelector('.action-dropdown');
-        if (d) d.classList.remove('dropup');
+        if (d) {
+            d.style.position = '';
+            d.style.top = '';
+            d.style.bottom = '';
+            d.style.right = '';
+            d.style.left = '';
+            d.style.zIndex = '';
+            d.classList.remove('dropup');
+        }
     });
+}
+
+window.addEventListener('scroll', () => {
+    if (document.querySelector('.action-menu-wrap.active')) {
+        closeAllActionMenus();
+    }
+}, true);
+
+window.addEventListener('resize', () => {
+    if (document.querySelector('.action-menu-wrap.active')) {
+        closeAllActionMenus();
+    }
+});
+
+// -------------------------------------------------------------
+// Reschedule Modal Logic (Autofill + Realtime Doctor Slots)
+// -------------------------------------------------------------
+let clinicDoctorsData = [];
+try {
+    const rawData = document.getElementById('clinicDataJson');
+    if (rawData) {
+        clinicDoctorsData = JSON.parse(rawData.textContent || '{}').doctors || [];
+    }
+} catch (e) {
+    clinicDoctorsData = [];
+}
+
+let activeReschedAppt = null;
+
+function hideReschedAlert() {
+    const box = document.getElementById('reschedAlert');
+    if (box) box.style.display = 'none';
+}
+
+function showReschedAlert(msg, type) {
+    const box = document.getElementById('reschedAlert');
+    const text = document.getElementById('reschedAlertText');
+    const icon = document.getElementById('reschedAlertIcon');
+    if (!box || !text) return;
+    
+    box.style.display = 'flex';
+    text.innerText = msg;
+    if (type === 'success') {
+        box.style.background = '#ecfdf5';
+        box.style.color = '#065f46';
+        box.style.border = '1px solid #a7f3d0';
+        if (icon) icon.innerText = '✓';
+    } else if (type === 'warning') {
+        box.style.background = '#fffbeb';
+        box.style.color = '#92400e';
+        box.style.border = '1px solid #fde68a';
+        if (icon) icon.innerText = '⚠️';
+    } else {
+        box.style.background = '#fef2f2';
+        box.style.color = '#991b1b';
+        box.style.border = '1px solid #fecaca';
+        if (icon) icon.innerText = '✕';
+    }
+}
+
+function openRescheduleModalFromDrawer() {
+    if (activeDrawerApptId) {
+        openRescheduleModal(activeDrawerApptId);
+    }
+}
+
+function openRescheduleModal(apptId) {
+    closeAllActionMenus();
+    hideReschedAlert();
+    
+    const row = document.getElementById('apptRow-' + apptId);
+    if (!row) return;
+
+    activeReschedAppt = {
+        id: apptId,
+        patient: row.getAttribute('data-patient-display') || row.getAttribute('data-patient') || '',
+        phone: row.getAttribute('data-phone-display') || row.getAttribute('data-phone') || '',
+        doctorId: row.getAttribute('data-doctor-id') || '',
+        serviceId: row.getAttribute('data-service-id') || '',
+        date: row.getAttribute('data-date') || '',
+        rawTime: row.getAttribute('data-raw-time') || '',
+        notes: row.getAttribute('data-notes') || ''
+    };
+
+    document.getElementById('reschedApptId').value = activeReschedAppt.id;
+    document.getElementById('reschedPatientName').value = activeReschedAppt.patient;
+    document.getElementById('reschedPatientPhone').value = activeReschedAppt.phone;
+    document.getElementById('reschedNotes').value = activeReschedAppt.notes;
+
+    const subtitle = document.getElementById('reschedModalSubtitle');
+    if (subtitle) {
+        subtitle.innerText = `Rescheduling Appointment #${activeReschedAppt.id} for ${activeReschedAppt.patient}`;
+    }
+
+    // Set doctor
+    const docSelect = document.getElementById('reschedDoctorSelect');
+    if (docSelect && activeReschedAppt.doctorId) {
+        docSelect.value = activeReschedAppt.doctorId;
+    }
+    
+    // Populate services for selected doctor
+    populateReschedServices(activeReschedAppt.doctorId, activeReschedAppt.serviceId);
+
+    // Set date (defaults to appointment date if today or future, else today)
+    const todayStr = getTodayDateString();
+    const dateInput = document.getElementById('reschedDateInput');
+    if (dateInput) {
+        dateInput.value = (activeReschedAppt.date && activeReschedAppt.date >= todayStr) ? activeReschedAppt.date : todayStr;
+    }
+
+    // Fetch and populate available slots
+    loadReschedSlots(activeReschedAppt.rawTime);
+
+    // Open modal
+    const modal = document.getElementById('rescheduleModal');
+    if (modal) modal.style.display = 'flex';
+}
+
+function closeRescheduleModal() {
+    const modal = document.getElementById('rescheduleModal');
+    if (modal) modal.style.display = 'none';
+    hideReschedAlert();
+    activeReschedAppt = null;
+}
+
+function populateReschedServices(doctorId, selectedServiceId) {
+    const svcSelect = document.getElementById('reschedServiceSelect');
+    if (!svcSelect) return;
+    svcSelect.innerHTML = '';
+
+    const doc = clinicDoctorsData.find(d => String(d.id) === String(doctorId));
+    const services = doc && doc.services ? doc.services : [];
+
+    if (services.length === 0) {
+        const opt = document.createElement('option');
+        opt.value = '';
+        opt.innerText = 'General Consultation (PKR 2,000)';
+        svcSelect.appendChild(opt);
+        return;
+    }
+
+    services.forEach(s => {
+        const opt = document.createElement('option');
+        opt.value = s.id;
+        opt.innerText = `${s.name} (PKR ${Number(s.price).toLocaleString()})`;
+        if (String(s.id) === String(selectedServiceId)) {
+            opt.selected = true;
+        }
+        svcSelect.appendChild(opt);
+    });
+
+    if (!svcSelect.value && services.length > 0) {
+        svcSelect.value = services[0].id;
+    }
+}
+
+function onReschedDoctorChange() {
+    hideReschedAlert();
+    const docId = document.getElementById('reschedDoctorSelect')?.value;
+    populateReschedServices(docId, null);
+    loadReschedSlots(null);
+}
+
+function onReschedDateChange() {
+    hideReschedAlert();
+    loadReschedSlots(null);
+}
+
+async function loadReschedSlots(preferredTime) {
+    const docId = document.getElementById('reschedDoctorSelect')?.value;
+    const dateStr = document.getElementById('reschedDateInput')?.value;
+    const timeSelect = document.getElementById('reschedTimeSelect');
+    const pillsWrap = document.getElementById('reschedSlotPillsWrap');
+    const summary = document.getElementById('reschedSlotSummary');
+
+    if (!docId || !dateStr) return;
+
+    if (summary) summary.innerText = 'Fetching slots...';
+    if (timeSelect) {
+        timeSelect.innerHTML = '<option value="">Loading available slots...</option>';
+    }
+    if (pillsWrap) {
+        pillsWrap.innerHTML = '<div style="padding: 6px; font-size: 0.8rem; color: #64748b;">Loading doctor availability...</div>';
+    }
+
+    try {
+        const res = await fetch(`/api/admin/doctors/${docId}/slots?date=${encodeURIComponent(dateStr)}`);
+        const data = await res.json();
+
+        if (!data.success || !data.slots || data.slots.length === 0) {
+            if (summary) summary.innerText = 'No slots available';
+            if (pillsWrap) pillsWrap.innerHTML = '<div style="padding: 6px; font-size: 0.8rem; color: #dc2626;">Doctor has no scheduled working hours or available slots on this day.</div>';
+            if (timeSelect) timeSelect.innerHTML = '<option value="">No slots available</option>';
+            return;
+        }
+
+        const availableSlots = data.slots.filter(s => s.status === 'AVAILABLE');
+        if (summary) summary.innerText = `${availableSlots.length} available slot(s)`;
+
+        if (timeSelect) {
+            timeSelect.innerHTML = '<option value="">Choose a slot...</option>';
+        }
+        if (pillsWrap) pillsWrap.innerHTML = '';
+
+        let autoSelected = false;
+
+        data.slots.forEach(s => {
+            const isAvail = s.status === 'AVAILABLE';
+            
+            // Populate select option
+            if (timeSelect) {
+                const opt = document.createElement('option');
+                opt.value = s.time;
+                opt.innerText = isAvail ? `${s.time_12h}` : `${s.time_12h} (Occupied - ${s.patient || 'Booked'})`;
+                if (!isAvail) opt.disabled = true;
+                timeSelect.appendChild(opt);
+            }
+
+            // Create pill button
+            if (pillsWrap) {
+                const pill = document.createElement('button');
+                pill.type = 'button';
+                pill.innerText = s.time_12h;
+                pill.setAttribute('data-time', s.time);
+
+                if (isAvail) {
+                    pill.style.cssText = 'background: #ecfdf5; border: 1px solid #a7f3d0; color: #065f46; border-radius: 6px; padding: 4px 9px; font-size: 0.78rem; font-weight: 600; cursor: pointer; transition: all 0.15s ease;';
+                    pill.onclick = () => {
+                        hideReschedAlert();
+                        if (timeSelect) timeSelect.value = s.time;
+                        highlightReschedPill(pill);
+                    };
+
+                    if (!autoSelected && preferredTime && (s.time === preferredTime || s.time_12h === preferredTime)) {
+                        pill.style.background = '#2563eb';
+                        pill.style.borderColor = '#1d4ed8';
+                        pill.style.color = '#ffffff';
+                        if (timeSelect) timeSelect.value = s.time;
+                        autoSelected = true;
+                    }
+                } else {
+                    pill.style.cssText = 'background: #f1f5f9; border: 1px solid #e2e8f0; color: #94a3b8; border-radius: 6px; padding: 4px 9px; font-size: 0.78rem; cursor: not-allowed; text-decoration: line-through;';
+                    pill.title = `Occupied by ${s.patient || 'Patient'}`;
+                    pill.onclick = () => {
+                        showReschedAlert(`Slot ${s.time_12h} is already booked for ${s.patient || 'another patient'}. Please select an open green slot.`, 'warning');
+                    };
+                }
+                pillsWrap.appendChild(pill);
+            }
+        });
+
+        // Auto select first available if preferred was not found
+        if (!autoSelected && availableSlots.length > 0 && timeSelect) {
+            timeSelect.value = availableSlots[0].time;
+            const firstPill = pillsWrap?.querySelector(`button[data-time="${availableSlots[0].time}"]`);
+            if (firstPill) highlightReschedPill(firstPill);
+        }
+
+    } catch (err) {
+        if (summary) summary.innerText = 'Failed to load slots';
+        if (pillsWrap) pillsWrap.innerHTML = '<div style="padding: 6px; font-size: 0.8rem; color: #dc2626;">Network error while fetching slots.</div>';
+    }
+}
+
+function onReschedTimeSelectChange() {
+    hideReschedAlert();
+    const timeVal = document.getElementById('reschedTimeSelect')?.value;
+    const pill = document.querySelector(`#reschedSlotPillsWrap button[data-time="${timeVal}"]`);
+    if (pill) highlightReschedPill(pill);
+}
+
+function highlightReschedPill(selectedPill) {
+    document.querySelectorAll('#reschedSlotPillsWrap button').forEach(p => {
+        if (p.style.textDecoration !== 'line-through') {
+            p.style.background = '#ecfdf5';
+            p.style.borderColor = '#a7f3d0';
+            p.style.color = '#065f46';
+        }
+    });
+    if (selectedPill) {
+        selectedPill.style.background = '#2563eb';
+        selectedPill.style.borderColor = '#1d4ed8';
+        selectedPill.style.color = '#ffffff';
+    }
+}
+
+async function submitReschedule(e) {
+    e.preventDefault();
+    hideReschedAlert();
+
+    const apptId = document.getElementById('reschedApptId')?.value;
+    const patientName = document.getElementById('reschedPatientName')?.value?.trim();
+    const patientPhone = document.getElementById('reschedPatientPhone')?.value?.trim();
+    const doctorId = document.getElementById('reschedDoctorSelect')?.value;
+    const serviceId = document.getElementById('reschedServiceSelect')?.value;
+    const newDate = document.getElementById('reschedDateInput')?.value;
+    const newTime = document.getElementById('reschedTimeSelect')?.value;
+    const notes = document.getElementById('reschedNotes')?.value?.trim();
+    const submitBtn = document.getElementById('reschedSubmitBtn');
+
+    if (!newTime) {
+        showReschedAlert('Please select a valid time slot for the appointment.', 'warning');
+        return;
+    }
+
+    submitBtn.disabled = true;
+    submitBtn.innerText = 'Rescheduling...';
+
+    try {
+        const res = await fetch('/api/admin/appointments/reschedule', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                appointment_id: apptId,
+                customer_name: patientName,
+                customer_phone: patientPhone,
+                doctor_id: doctorId ? parseInt(doctorId) : null,
+                service_id: serviceId ? parseInt(serviceId) : null,
+                new_date: newDate,
+                new_time: newTime,
+                notes: notes
+            })
+        });
+
+        const data = await res.json();
+        if (data.success) {
+            showReschedAlert('Appointment rescheduled successfully! Refreshing...', 'success');
+            setTimeout(() => {
+                window.location.reload();
+            }, 600);
+        } else {
+            showReschedAlert(data.error || 'Failed to reschedule appointment. Please try another slot.', 'danger');
+            submitBtn.disabled = false;
+            submitBtn.innerText = 'Confirm & Reschedule';
+        }
+    } catch (err) {
+        showReschedAlert('Network Error: ' + err.message, 'danger');
+        submitBtn.disabled = false;
+        submitBtn.innerText = 'Confirm & Reschedule';
+    }
 }
 
 function toggleApptToolsDropdown(event) {

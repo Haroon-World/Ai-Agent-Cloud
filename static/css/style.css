@@ -3206,7 +3206,7 @@ body {
 .admin-brand {
     display: flex;
     align-items: center;
-    gap: 0.75rem;
+    gap: 0.85rem;
     text-decoration: none;
     color: #ffffff;
     overflow: hidden;
@@ -3223,6 +3223,7 @@ body {
     justify-content: center;
     padding: 3px;
     box-shadow: 0 2px 6px rgba(0, 0, 0, 0.15);
+    flex-shrink: 0;
 }
 
 .brand-avatar-icon img,
@@ -3237,6 +3238,7 @@ body {
     display: flex;
     flex-direction: column;
     overflow: hidden;
+    min-width: 0;
 }
 
 .brand-title {
@@ -3256,18 +3258,22 @@ body {
     color: #94a3b8;
     display: inline-flex;
     align-items: center;
-    gap: 5px;
-    margin-top: 2px;
+    gap: 7px;
+    margin-top: 3px;
 }
 
 .live-status-dot {
-    width: 6.5px;
-    height: 6.5px;
+    width: 7px;
+    height: 7px;
+    min-width: 7px;
+    min-height: 7px;
+    flex-shrink: 0;
     background-color: var(--success);
     border-radius: 50%;
     display: inline-block;
     box-shadow: 0 0 0 2px rgba(16, 185, 129, 0.25);
     animation: livePulse 2s infinite ease-in-out;
+    margin-right: 1px;
 }
 
 @keyframes livePulse {
