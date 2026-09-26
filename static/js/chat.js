@@ -38,6 +38,23 @@ document.addEventListener('DOMContentLoaded', () => {
     chatForm.addEventListener('submit', handleSendMessage);
     btnResetChat.addEventListener('click', resetChat);
 
+    // Shift+Enter = new line; plain Enter = send message
+    chatInput.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter' && !e.shiftKey) {
+            e.preventDefault();
+            if (chatInput.value.trim()) {
+                chatForm.dispatchEvent(new Event('submit', { cancelable: true, bubbles: true }));
+            }
+        }
+    });
+
+    // Auto-resize textarea as content grows (max 5 rows)
+    chatInput.addEventListener('input', () => {
+        chatInput.style.height = 'auto';
+        const maxH = parseInt(getComputedStyle(chatInput).lineHeight || '20') * 5 + 16;
+        chatInput.style.height = Math.min(chatInput.scrollHeight, maxH) + 'px';
+    });
+
     // Poll every 4 seconds to sync messages if in human handoff mode or waiting for staff
     setInterval(() => {
         if (conversationId) {
@@ -193,6 +210,7 @@ async function handleSendMessage(e) {
     // Append user message immediately to UI and scroll to bottom
     appendMessageBubble('user', text);
     chatInput.value = '';
+    chatInput.style.height = 'auto';  // reset textarea height after send
     scrollToBottom(true);
 
     // Show typing / thinking state

@@ -1279,20 +1279,25 @@ body {
 .chat-input-form {
     display: flex;
     gap: 0.75rem;
-    align-items: center;
+    align-items: flex-end;
 }
 
 .chat-input {
     flex: 1;
     padding: 0.8rem 1.3rem;
     border: 1.5px solid #cbd5e1;
-    border-radius: 9999px;
+    border-radius: 1.25rem;
     font-family: 'Plus Jakarta Sans', sans-serif;
     font-size: 0.94rem;
     outline: none;
     background: #f8fafc;
     color: #0f172a;
     transition: all 0.2s ease;
+    resize: none;
+    overflow-y: hidden;
+    min-height: 2.7rem;
+    max-height: 9rem;
+    line-height: 1.5;
 }
 
 .chat-input:focus {

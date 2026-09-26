@@ -1580,6 +1580,78 @@ class Agent:
                     if not tool_args.get("appointment_time"):
                         tool_args["appointment_time"] = tool_args.get("time") or conv.requested_time
 
+                    # ── PHONE PRE-DISPATCH GATE ─────────────────────────────────────────────
+                    # Prevent premature book_appointment execution when customer_phone is
+                    # still missing after all fallbacks (e.g. the LLM called book_appointment
+                    # right after the patient provided their name, before the phone number
+                    # was collected). Block the dispatch, set awaiting_input = "phone",
+                    # and return a friendly prompt asking for the phone number instead.
+                    _resolved_phone = str(tool_args.get("customer_phone") or "").strip()
+                    _phone_is_empty = (
+                        not _resolved_phone
+                        or _resolved_phone.replace("0", "").replace("+", "").replace("-", "").replace(" ", "") == ""
+                    )
+                    if _phone_is_empty:
+                        conv.awaiting_input = "phone"
+                        conv.workflow_state = "COLLECTING_INFO"
+                        _resolved_name = str(tool_args.get("customer_name") or conv.pending_customer_name or "").strip()
+                        db.session.flush()
+                        db.session.commit()
+                        # Build contextual booking details for the prompt
+                        _history_for_lang = [{"role": m.role, "content": m.content} for m in conv.messages]
+                        _lang = detect_language(user_content, _history_for_lang)
+                        _doc_name = str(tool_args.get("doctor_name") or "").strip()
+                        if not _doc_name and conv.selected_doctor_id:
+                            _doc_obj = db.session.get(Doctor, conv.selected_doctor_id)
+                            if _doc_obj:
+                                _doc_name = _doc_obj.name
+                        _appt_time = str(tool_args.get("appointment_time") or conv.requested_time or "").strip()
+                        _appt_date = str(tool_args.get("appointment_date") or conv.requested_date or "").strip()
+                        # Format time to AM/PM
+                        try:
+                            _h, _m = map(int, _appt_time.split(":"))
+                            _ap = "AM" if _h < 12 else "PM"
+                            _h12 = _h if 1 <= _h <= 12 else (12 if _h % 12 == 0 else _h % 12)
+                            _appt_time_fmt = f"{_h12:02d}:{_m:02d} {_ap}"
+                        except Exception:
+                            _appt_time_fmt = _appt_time
+                        # Build natural contextual prompt
+                        _name_part = f", {_resolved_name}" if _resolved_name else ""
+                        _booking_ref = ""
+                        if _doc_name and _appt_time_fmt:
+                            _booking_ref = f" for your appointment with {_doc_name} at {_appt_time_fmt}"
+                        elif _doc_name:
+                            _booking_ref = f" for your appointment with {_doc_name}"
+                        elif _appt_time_fmt:
+                            _booking_ref = f" for your {_appt_time_fmt} appointment"
+                        if _lang == "urdu":
+                            _phone_prompt = f"شکریہ{_name_part}! بکنگ مکمل کرنے کے لیے براہ کرم اپنا رابطہ فون نمبر شیئر کریں۔"
+                        elif _lang == "roman_urdu":
+                            _phone_prompt = f"Shukriya{_name_part}! Booking finalize karne ke liye barah-e-karam apna contact number share kar dijiye."
+                        else:
+                            _phone_prompt = f"Thank you{_name_part}! To confirm and complete your booking{_booking_ref}, could you please share your contact phone number?"
+                        asst_msg = Message(conversation_id=conv.id, role="assistant", content=_phone_prompt)
+                        conv.updated_at = datetime.now(timezone.utc)
+                        db.session.add(asst_msg)
+                        db.session.commit()
+                        total_turn_ms = (time.perf_counter() - t_start) * 1000.0
+                        return {
+                            "conversation_id": conv.id,
+                            "status": conv.status,
+                            "content": _phone_prompt,
+                            "executed_tools": [],
+                            "ui_action": None,
+                            "metrics": {
+                                "db_queries": getattr(_local_perf_state, "query_count", 0),
+                                "llm_call_1_ms": round(llm_call_1_ms, 2),
+                                "tool_time_ms": 0.0,
+                                "llm_call_2_ms": 0.0,
+                                "response_gen_ms": 0.0,
+                                "total_turn_ms": round(total_turn_ms, 2)
+                            }
+                        }
+                    # ── END PHONE PRE-DISPATCH GATE ────────────────────────────────────────
+
                 executed_tools.append({"name": tool_name, "args": tool_args})
                 self._update_conversation_state(conv, tool_name, tool_args)
 
