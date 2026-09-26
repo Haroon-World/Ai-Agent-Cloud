@@ -388,6 +388,25 @@ class TestShiftEnterCodeStructure(unittest.TestCase):
         self.assertIn("style.height = 'auto'", content, "chat.js must reset height after send")
         print("  ✅ Textarea height reset after send is present")
 
+    def test_chat_html_clean_placeholder(self):
+        """chat.html placeholder must NOT display 'Shift+Enter' to customers"""
+        with open(r"d:\AI-Agent-Render\templates\chat.html", "r", encoding="utf-8") as f:
+            content = f.read()
+
+        self.assertNotIn("Shift+Enter", content, "chat.html placeholder must not mention Shift+Enter")
+        self.assertNotIn("shift+ enter", content.lower(), "chat.html placeholder must not mention shift+ enter")
+        self.assertIn('placeholder="Type or record your message..."', content, "chat.html must have clean placeholder")
+        print("  ✅ chat.html has clean placeholder without Shift+Enter hint")
+
+    def test_css_hides_native_search_cancel_button(self):
+        """style.css must suppress native webkit search cancel button so only 1 cross symbol shows"""
+        with open(r"d:\AI-Agent-Render\static\css\style.css", "r", encoding="utf-8") as f:
+            content = f.read()
+
+        self.assertIn("::-webkit-search-cancel-button", content, "style.css must target ::-webkit-search-cancel-button")
+        self.assertIn("display: none !important", content, "style.css must hide native cancel button with display: none")
+        print("  ✅ style.css suppresses native search cancel button (only 1 cross symbol shows)")
+
 
 class TestExistingFlowsNotBroken(unittest.TestCase):
     """

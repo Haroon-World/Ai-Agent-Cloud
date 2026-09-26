@@ -68,6 +68,27 @@
     padding: 0;
 }
 
+/* Disable native browser search cancel button to prevent duplicate cross symbols with custom clear buttons */
+input[type="search"]::-webkit-search-cancel-button,
+input[type="search"]::-webkit-search-decoration,
+input[type="search"]::-webkit-search-results-button,
+input[type="search"]::-webkit-search-results-decoration,
+input::-webkit-search-cancel-button,
+input::-webkit-search-decoration {
+    -webkit-appearance: none !important;
+    appearance: none !important;
+    display: none !important;
+}
+
+input[type="search"]::-ms-clear,
+input[type="search"]::-ms-reveal,
+input::-ms-clear,
+input::-ms-reveal {
+    display: none !important;
+    width: 0 !important;
+    height: 0 !important;
+}
+
 body {
     font-family: var(--font-body);
     background-color: var(--body-bg);
